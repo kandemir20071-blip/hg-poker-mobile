@@ -391,7 +391,8 @@ export async function registerRoutes(
 
     const totalMoneyWagered = importedResults.reduce((sum, r) => sum + r.buyIn, 0);
     const totalPot = importedResults.reduce((sum, r) => sum + r.cashOut, 0);
-    const totalGames = new Set(importedResults.map(r => new Date(r.date).toISOString().split('T')[0])).size;
+    const leagueSessionsList = await storage.getLeagueSessions(leagueId);
+    const totalGames = leagueSessionsList.filter(s => s.status === 'completed').length;
 
     const playerMap = new Map<string, Map<string, number>>();
     for (const r of sortedResults) {
@@ -510,7 +511,24 @@ export async function registerRoutes(
           .where(inArrayOp(gameResults.id, batch));
       }
 
-      res.json({ migrated: unassigned.length, playersCreated });
+      const uniqueDates = new Set(unassigned.map(r => new Date(r.date).toISOString().split('T')[0]));
+      const existingSessions = await storage.getLeagueSessions(leagueId);
+      const existingSessionDates = new Set(existingSessions.map(s => new Date(s.startTime).toISOString().split('T')[0]));
+      let sessionsCreated = 0;
+      for (const dateStr of uniqueDates) {
+        if (!existingSessionDates.has(dateStr)) {
+          const code = randomBytes(3).toString('hex').toUpperCase();
+          const sessionDate = new Date(dateStr + 'T12:00:00Z');
+          await storage.createSession({
+            hostId: userId, leagueId, type: 'cash',
+            config: { source: 'import', importDate: dateStr },
+            code, startTime: sessionDate, status: 'completed', endTime: sessionDate,
+          } as any);
+          sessionsCreated++;
+        }
+      }
+
+      res.json({ migrated: unassigned.length, playersCreated, sessionsCreated });
     } catch (err: any) {
       console.error("Migration error:", err);
       res.status(500).json({ message: err.message || "Migration failed" });
@@ -591,9 +609,17 @@ export async function registerRoutes(
       const existingPlayers = await storage.getLeaguePlayers(leagueId);
       const playerNameSet = new Set(existingPlayers.map(p => p.name.toLowerCase().trim()));
 
+      const existingSessions = await storage.getLeagueSessions(leagueId);
+      const sessionDateMap = new Map<string, boolean>();
+      for (const s of existingSessions) {
+        const dateStr = new Date(s.startTime).toISOString().split('T')[0];
+        sessionDateMap.set(dateStr, true);
+      }
+
       const playerNames = new Set<string>();
       let imported = 0;
       let skipped = 0;
+      let sessionsCreated = 0;
 
       for (const row of rows) {
         const dateVal = new Date(row.date);
@@ -606,6 +632,24 @@ export async function registerRoutes(
 
         const dupeKey = `${normalizedName.toLowerCase()}|${dateVal.toISOString().split('T')[0]}|${buyIn}|${cashOut}`;
         if (existingSet.has(dupeKey)) { skipped++; continue; }
+
+        const dateStr = dateVal.toISOString().split('T')[0];
+        if (!sessionDateMap.has(dateStr)) {
+          const code = randomBytes(3).toString('hex').toUpperCase();
+          const sessionDate = new Date(dateStr + 'T12:00:00Z');
+          await storage.createSession({
+            hostId: userId,
+            leagueId,
+            type: 'cash',
+            config: { source: 'import', importDate: dateStr },
+            code,
+            startTime: sessionDate,
+            status: 'completed',
+            endTime: sessionDate,
+          } as any);
+          sessionDateMap.set(dateStr, true);
+          sessionsCreated++;
+        }
 
         if (!playerNameSet.has(normalizedName.toLowerCase())) {
           await storage.addLeaguePlayer({ leagueId, name: normalizedName, claimedByUserId: null });
@@ -622,7 +666,7 @@ export async function registerRoutes(
         imported++;
       }
 
-      res.status(201).json({ imported, skipped, players: Array.from(playerNames) });
+      res.status(201).json({ imported, skipped, sessionsCreated, players: Array.from(playerNames) });
     } catch (err: any) {
       if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
       console.error("Import save error:", err);
@@ -634,6 +678,47 @@ export async function registerRoutes(
     const userId = (req.user as any).claims.sub;
     const results = await storage.getGameResults(userId);
     res.json(results);
+  });
+
+  app.post('/api/leagues/:leagueId/backfill-sessions', requireAuth, async (req, res) => {
+    try {
+      const leagueId = Number(req.params.leagueId);
+      const userId = (req.user as any).claims.sub;
+      const isMember = await storage.isLeagueMember(leagueId, userId);
+      if (!isMember) return res.status(401).json({ message: "Not a member" });
+
+      const gameResults = await storage.getLeagueGameResults(leagueId);
+      const uniqueDates = new Set(gameResults.map(r => new Date(r.date).toISOString().split('T')[0]));
+
+      const existingSessions = await storage.getLeagueSessions(leagueId);
+      const existingSessionDates = new Set(
+        existingSessions.map(s => new Date(s.startTime).toISOString().split('T')[0])
+      );
+
+      let created = 0;
+      for (const dateStr of uniqueDates) {
+        if (!existingSessionDates.has(dateStr)) {
+          const code = randomBytes(3).toString('hex').toUpperCase();
+          const sessionDate = new Date(dateStr + 'T12:00:00Z');
+          await storage.createSession({
+            hostId: userId,
+            leagueId,
+            type: 'cash',
+            config: { source: 'import', importDate: dateStr },
+            code,
+            startTime: sessionDate,
+            status: 'completed',
+            endTime: sessionDate,
+          } as any);
+          created++;
+        }
+      }
+
+      res.json({ created, totalUniqueDates: uniqueDates.size, existingSessionsBefore: existingSessions.length });
+    } catch (err: any) {
+      console.error("Backfill sessions error:", err);
+      res.status(500).json({ message: err.message || "Failed to backfill sessions" });
+    }
   });
 
   return httpServer;
