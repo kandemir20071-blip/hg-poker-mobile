@@ -1,0 +1,49 @@
+Build a comprehensive, mobile-first Web Application called "HomeGame Poker Tracker". The app serves as a digital bank and tournament manager for home poker games.
+
+**Tech Stack:**
+* Frontend: React, Tailwind CSS (Dark Mode, "Casino/Sleek" aesthetic).
+* Backend: Node.js/Express.
+* Database: PostgreSQL (Crucial for tracking long-term stats).
+* Visualization: Recharts (for the statistics graphs).
+
+**Core User Flow:**
+1.  **Landing Page:** Users can login/signup to track their long-term stats, or a Host can "Quick Start" a session.
+2.  **Dashboard:** Shows "Start New Session" (Select: Cash Game or Tournament) and "League Stats" (Graphs).
+
+**Feature 1: The "Session" Logic (Two Modes)**
+* **Cash Game Mode:**
+    * Display a live "Table Ledger".
+    * Track: Player Name, Total Buy-in, Current Stack (if updated), and Net Profit/Loss.
+    * **Payment Metadata:** When buying in, allow selection of payment method: "Cash" or "Digital" (PayPal/Venmo).
+    * **Live Pot:** Show the total amount of money currently on the table.
+* **Tournament Mode:**
+    * **Blind Timer:** A large, visible countdown timer. Display current blinds (e.g., 100/200) and next blinds.
+    * **Structure:** Allow the host to set blind intervals (e.g., 15 mins).
+    * **Elimination:** Button to "Knock out" a player. Record their finishing position.
+
+**Feature 2: Input Modes (Host vs. Collaborative)**
+* **Host Mode:** The host enters all data manually.
+* **Collaborative Mode:**
+    * Generate a unique "Session Link" or QR Code.
+    * Players join the lobby on their own phones.
+    * Players can request a "Buy-in" or "Re-buy" from their phone.
+    * **Approval Queue:** The Host sees a notification ("Steve requests $50 Buy-in via PayPal") and must click "Approve" to add it to the ledger.
+
+**Feature 3: Settlement (The End Game)**
+* When ending a Cash Game, allow input of "Cash Out" amounts for every active player.
+* **Validation:** Ensure (Total Cash Out) == (Total Buy In). Warn the user if the numbers don't match.
+* **Payout Strategy (Toggle):**
+    * *Option A (Banker):* Show a list of who the Host needs to pay and who needs to pay the Host.
+    * *Option B (P2P Orchestration):* Use an algorithm to calculate the minimum number of transactions (e.g., "Steve pays Alice $20" directly) to settle all debts.
+
+**Feature 4: "League" Statistics & Graphs (Reference Style)**
+* Data Persistence: Save every session to the database.
+* **The "Bankroll" Graph:** Create a Line Chart using 'Recharts'.
+    * X-Axis: Time/Dates of sessions.
+    * Y-Axis: Cumulative Profit/Loss (€/$).
+    * Lines: Each player gets a distinct colored line showing their history (identical to a stock market chart).
+* **Leaderboard:** A table showing: Total Games Played, Total Profit, ROI %, and "In The Money" % for tournaments.
+
+**Design Aesthetic:**
+* Use a dark background (#1a1a1a) with high-contrast text (Gold/Yellow accents for money, Green for wins, Red for losses).
+* Ensure buttons are large and "thumb-friendly" for
