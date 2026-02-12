@@ -1,0 +1,90 @@
+# HomeGame Poker Tracker
+
+## Overview
+
+HomeGame Poker Tracker is a mobile-first web application that serves as a digital bank and tournament manager for home poker games. It allows users to host and join poker sessions (cash games or tournaments), track buy-ins and cash-outs, manage blind timers, calculate settlements, and view long-term league statistics with bankroll graphs and leaderboards.
+
+The app supports two input modes: **Host Mode** (host enters all data manually) and **Collaborative Mode** (players join via session code/QR and submit buy-in requests that the host approves). Sessions end with a settlement flow that validates totals and calculates optimal payouts (banker or peer-to-peer).
+
+## User Preferences
+
+Preferred communication style: Simple, everyday language.
+
+## System Architecture
+
+### Frontend
+- **Framework:** React with TypeScript (no RSC/SSR — client-side SPA)
+- **Routing:** Wouter (lightweight client-side router)
+- **Styling:** Tailwind CSS with a dark "casino/sleek" theme (deep blacks, gold accents, green for wins, red for losses)
+- **UI Components:** shadcn/ui (new-york style) built on Radix UI primitives, with custom casino-themed CSS variables
+- **Data Fetching:** TanStack React Query for server state management with polling (5s intervals for live session data)
+- **Charts:** Recharts for bankroll history line charts and statistics visualization
+- **QR Codes:** qrcode.react for generating session join codes
+- **Fonts:** Cinzel (display/headings) and Inter (body text)
+- **Build Tool:** Vite with React plugin
+
+### Backend
+- **Runtime:** Node.js with Express
+- **Language:** TypeScript, executed via tsx
+- **API Pattern:** RESTful JSON API under `/api/*` prefix, with Zod schemas for input validation defined in `shared/routes.ts`
+- **File Upload:** Multer (memory storage) for CSV/Excel/PDF import functionality
+- **Session Management:** express-session with connect-pg-simple (PostgreSQL-backed sessions)
+- **Authentication:** Replit OpenID Connect (OIDC) integration via Passport.js — users authenticate through Replit's auth flow
+- **Build:** esbuild for server bundling, Vite for client bundling; output goes to `dist/`
+
+### Shared Code
+- **Location:** `shared/` directory contains schema definitions and API route contracts
+- **Schema:** `shared/schema.ts` defines all database tables using Drizzle ORM
+- **Routes:** `shared/routes.ts` defines API endpoint contracts with Zod validation schemas, shared between client and server
+- **Auth Models:** `shared/models/auth.ts` defines user and session tables required by Replit Auth
+
+### Database
+- **Database:** PostgreSQL (required — provisioned via Replit)
+- **ORM:** Drizzle ORM with `drizzle-kit` for schema management
+- **Schema Push:** Use `npm run db:push` (drizzle-kit push) to sync schema to database — no migration files needed for development
+- **Connection:** `DATABASE_URL` environment variable, using `pg.Pool`
+- **Key Tables:**
+  - `users` — User accounts (Replit Auth managed)
+  - `sessions` (auth) — Express session storage
+  - `poker_sessions` — Game sessions with type (cash/tournament), status, host, join code, and config (JSON for blind structure etc.)
+  - `session_players` — Players in a session with status tracking (active/busted/cashed_out), tournament placement, and stack tracking
+  - `transactions` — Buy-in and cash-out ledger entries with payment method (cash/digital), approval status (pending/approved/rejected)
+  - `game_results` — Historical game results for stats/leaderboard (also used for legacy data import)
+
+### Key Design Patterns
+- **Typed API Contracts:** Route definitions in `shared/routes.ts` include method, path, Zod input schema, and response schemas — used by both server handlers and client hooks
+- **Custom Hooks Pattern:** Each domain area has its own React hook (`use-sessions`, `use-transactions`, `use-stats`, `use-auth`) wrapping TanStack Query
+- **Storage Interface:** `server/storage.ts` defines an `IStorage` interface with a `DatabaseStorage` implementation, allowing for potential swapping of storage backends
+- **Path Aliases:** `@/` maps to `client/src/`, `@shared/` maps to `shared/`, `@assets/` maps to `attached_assets/`
+
+### Authentication
+- Replit OIDC-based authentication (OpenID Connect)
+- Passport.js strategy with session persistence in PostgreSQL
+- Auth routes: `/api/login`, `/api/logout`, `/api/auth/user`
+- Session secret via `SESSION_SECRET` environment variable
+- 7-day session TTL with HTTP-only secure cookies
+
+## External Dependencies
+
+### Required Environment Variables
+- `DATABASE_URL` — PostgreSQL connection string (provisioned by Replit)
+- `SESSION_SECRET` — Secret for signing express sessions
+- `ISSUER_URL` — OIDC issuer URL (defaults to `https://replit.com/oidc`)
+- `REPL_ID` — Replit environment identifier (auto-set by Replit)
+
+### Third-Party Services
+- **Replit Auth (OIDC):** User authentication via Replit's OpenID Connect provider
+- **PostgreSQL:** Primary data store for all application data and session storage
+
+### Key NPM Packages
+- `drizzle-orm` + `drizzle-kit` — Database ORM and schema management
+- `express` + `express-session` — HTTP server and session handling
+- `passport` + `openid-client` — Authentication
+- `connect-pg-simple` — PostgreSQL session store
+- `@tanstack/react-query` — Client-side data fetching/caching
+- `recharts` — Data visualization (bankroll charts, leaderboards)
+- `qrcode.react` — QR code generation for session joining
+- `zod` + `drizzle-zod` — Runtime validation
+- `wouter` — Client-side routing
+- `multer` — File upload handling for data import
+- `shadcn/ui` components (Radix UI primitives) — UI component library

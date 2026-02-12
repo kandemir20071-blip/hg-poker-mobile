@@ -4,7 +4,7 @@ import { useSessions, useCreateSession } from "@/hooks/use-sessions";
 import { StatCard } from "@/components/ui/StatCard";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Coins, Trophy, TrendingUp, History, Play, Plus, Loader2, ArrowRight } from "lucide-react";
+import { Coins, Trophy, TrendingUp, History, Play, Plus, Loader2, ArrowRight, Upload } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area } from "recharts";
 import { format } from "date-fns";
@@ -144,8 +144,13 @@ export default function Dashboard() {
                   </AreaChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="h-full flex items-center justify-center text-muted-foreground border border-dashed border-white/10 rounded-lg">
-                  No stats recorded yet
+                <div className="h-full flex flex-col items-center justify-center text-muted-foreground border border-dashed border-white/10 rounded-lg gap-3">
+                  <p>No stats recorded yet</p>
+                  <Link href="/import">
+                    <Button variant="outline" size="sm" data-testid="button-import-from-chart">
+                      <Upload className="mr-2 h-4 w-4" /> Import Game History
+                    </Button>
+                  </Link>
                 </div>
               )}
             </div>

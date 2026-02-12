@@ -132,6 +132,61 @@ export const api = {
       },
     },
   },
+  import: {
+    upload: {
+      method: 'POST' as const,
+      path: '/api/import/upload' as const,
+      responses: {
+        200: z.object({
+          rows: z.array(z.object({
+            date: z.string(),
+            playerName: z.string(),
+            buyIn: z.number(),
+            cashOut: z.number(),
+          })),
+          rawText: z.string().optional(),
+        }),
+        400: errorSchemas.validation,
+        401: errorSchemas.unauthorized,
+      },
+    },
+    save: {
+      method: 'POST' as const,
+      path: '/api/import/save' as const,
+      input: z.object({
+        rows: z.array(z.object({
+          date: z.string(),
+          playerName: z.string(),
+          buyIn: z.number(),
+          cashOut: z.number(),
+        })),
+      }),
+      responses: {
+        201: z.object({
+          imported: z.number(),
+          players: z.array(z.string()),
+        }),
+        400: errorSchemas.validation,
+        401: errorSchemas.unauthorized,
+      },
+    },
+    history: {
+      method: 'GET' as const,
+      path: '/api/import/history' as const,
+      responses: {
+        200: z.array(z.object({
+          id: z.number(),
+          playerName: z.string(),
+          date: z.string(),
+          buyIn: z.number(),
+          cashOut: z.number(),
+          netProfit: z.number(),
+          importedAt: z.string(),
+        })),
+        401: errorSchemas.unauthorized,
+      },
+    },
+  },
 };
 
 export function buildUrl(path: string, params?: Record<string, string | number>): string {

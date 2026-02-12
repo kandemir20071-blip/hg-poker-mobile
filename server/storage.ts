@@ -1,10 +1,11 @@
 import { db } from "./db";
 import { eq, and, desc } from "drizzle-orm";
 import {
-  pokerSessions, sessionPlayers, transactions,
+  pokerSessions, sessionPlayers, transactions, gameResults,
   type PokerSession, type InsertPokerSession,
   type SessionPlayer, type InsertSessionPlayer,
-  type Transaction, type InsertTransaction
+  type Transaction, type InsertTransaction,
+  type GameResult
 } from "@shared/schema";
 
 export interface IStorage {
@@ -25,6 +26,10 @@ export interface IStorage {
   addTransaction(transaction: InsertTransaction): Promise<Transaction>;
   getSessionTransactions(sessionId: number): Promise<Transaction[]>;
   updateTransactionStatus(id: number, status: 'approved' | 'rejected'): Promise<Transaction>;
+
+  // Game Results (Legacy Import)
+  addGameResult(result: { userId: string; playerName: string; date: Date; buyIn: number; cashOut: number; netProfit: number }): Promise<GameResult>;
+  getGameResults(userId: string): Promise<GameResult[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -94,6 +99,18 @@ export class DatabaseStorage implements IStorage {
       .where(eq(transactions.id, id))
       .returning();
     return updated;
+  }
+
+  async addGameResult(result: { userId: string; playerName: string; date: Date; buyIn: number; cashOut: number; netProfit: number }): Promise<GameResult> {
+    const [newResult] = await db.insert(gameResults).values(result).returning();
+    return newResult;
+  }
+
+  async getGameResults(userId: string): Promise<GameResult[]> {
+    return await db.select()
+      .from(gameResults)
+      .where(eq(gameResults.userId, userId))
+      .orderBy(desc(gameResults.date));
   }
 }
 

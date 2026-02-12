@@ -5,6 +5,22 @@ import { api } from "@shared/routes";
 import { setupAuth, registerAuthRoutes } from "./replit_integrations/auth";
 import { z } from "zod";
 import { randomBytes } from "crypto";
+import multer from "multer";
+import path from "path";
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const allowed = ['.csv', '.xlsx', '.xls', '.pdf', '.docx', '.doc', '.txt'];
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (allowed.includes(ext)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Unsupported file type'));
+    }
+  },
+});
 
 export async function registerRoutes(
   httpServer: Server,
@@ -203,51 +219,223 @@ export async function registerRoutes(
 
   app.get(api.stats.get.path, requireAuth, async (req, res) => {
     const userId = (req.user as any).claims.sub;
-    
-    // Get all sessions where the user participated (either as host or player)
-    // For MVP, let's focus on sessions where they are the host OR a player linked to their user ID.
-    // Ideally, we query transactions for this user across all sessions.
-    
-    // 1. Get all player records for this user
-    // We need a storage method for this. Let's add it to storage interface or do a direct db query here if needed, 
-    // but better to keep it in storage. For now, let's just get sessions they hosted.
-    
     const sessions = await storage.getUserSessions(userId);
-    // Also get sessions where they played?
-    // TODO: Add storage.getSessionsForPlayer(userId)
+    const importedResults = await storage.getGameResults(userId);
     
-    // For now, let's just use hosted sessions to calculate "House" stats? 
-    // Or maybe the user wants to track their *personal* play. 
-    // "The app serves as a digital bank and tournament manager... Users can login/signup to track their long-term stats".
-    // This implies personal player stats.
+    // Build bankroll history from imported results
+    const sortedResults = [...importedResults].sort((a, b) => 
+      new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
     
-    // We need to find all `sessionPlayers` where `userId` matches.
-    // Then sum up their buy-ins and cash-outs from `transactions`.
+    let cumulative = 0;
+    const bankrollHistory = sortedResults.map(r => {
+      cumulative += r.netProfit;
+      return {
+        date: new Date(r.date).toISOString().split('T')[0],
+        profit: r.netProfit,
+        cumulative,
+      };
+    });
     
-    // Let's do a direct DB query here for simplicity or add to storage.
-    // I'll add a helper to storage.ts to get player stats across sessions.
-    // For now, I'll stick to the dummy response but improved with actual logic if I can.
-    
-    // Since I can't easily change storage.ts interface without rewriting it, I'll use the existing methods 
-    // or just return the dummy data for now, but with a TODO.
-    // Actually, I can use `db` directly here if I import it.
-    
-    // Let's keep the dummy data but make it slightly more dynamic if possible, 
-    // or just leave it as is for the MVP and focus on the session management which is the core.
+    const totalProfit = importedResults.reduce((sum, r) => sum + r.netProfit, 0);
+    const totalBuyIn = importedResults.reduce((sum, r) => sum + r.buyIn, 0);
+    const roi = totalBuyIn > 0 ? Math.round((totalProfit / totalBuyIn) * 100) : 0;
     
     res.json({
-      totalGames: sessions.length,
-      totalProfit: 1250, // Mock for now
-      roi: 15,
-      bankrollHistory: [
-        { date: '2023-01-01', profit: 100, cumulative: 100 },
-        { date: '2023-02-01', profit: -50, cumulative: 50 },
-        { date: '2023-03-01', profit: 200, cumulative: 250 },
-        { date: '2023-04-01', profit: 150, cumulative: 400 },
-        { date: '2023-05-01', profit: -100, cumulative: 300 },
-      ]
+      totalGames: sessions.length + importedResults.length,
+      totalProfit,
+      roi,
+      bankrollHistory,
     });
   });
 
+  // --- Import ---
+
+  app.post(api.import.upload.path, requireAuth, upload.single('file'), async (req, res) => {
+    try {
+      const file = req.file;
+      if (!file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      const ext = path.extname(file.originalname).toLowerCase();
+      let rows: Array<{ date: string; playerName: string; buyIn: number; cashOut: number }> = [];
+      let rawText: string | undefined;
+
+      if (ext === '.csv') {
+        const content = file.buffer.toString('utf-8');
+        rows = parseCSV(content);
+      } else if (ext === '.xlsx' || ext === '.xls') {
+        const XLSX = await import('xlsx');
+        const workbook = XLSX.read(file.buffer, { type: 'buffer' });
+        const sheetName = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[sheetName];
+        const data = XLSX.utils.sheet_to_json<any>(sheet);
+        rows = mapSpreadsheetData(data);
+      } else if (ext === '.pdf') {
+        const pdfModule = await import('pdf-parse');
+        const pdfParse = pdfModule.default || pdfModule;
+        const pdfData = await pdfParse(file.buffer);
+        rawText = pdfData.text;
+        rows = tryParseText(rawText);
+      } else if (ext === '.docx' || ext === '.doc') {
+        const mammoth = await import('mammoth');
+        const result = await mammoth.extractRawText({ buffer: file.buffer });
+        rawText = result.value;
+        rows = tryParseText(rawText);
+      } else if (ext === '.txt') {
+        rawText = file.buffer.toString('utf-8');
+        rows = tryParseText(rawText);
+      }
+
+      res.json({ rows, rawText });
+    } catch (err: any) {
+      console.error("Import upload error:", err);
+      res.status(400).json({ message: err.message || "Failed to parse file" });
+    }
+  });
+
+  app.post(api.import.save.path, requireAuth, async (req, res) => {
+    try {
+      const { rows } = api.import.save.input.parse(req.body);
+      const userId = (req.user as any).claims.sub;
+
+      if (!rows || rows.length === 0) {
+        return res.status(400).json({ message: "No data to import" });
+      }
+
+      const playerNames = new Set<string>();
+
+      for (const row of rows) {
+        const dateVal = new Date(row.date);
+        if (isNaN(dateVal.getTime())) continue;
+
+        const buyIn = Math.round(Number(row.buyIn) || 0);
+        const cashOut = Math.round(Number(row.cashOut) || 0);
+        const netProfit = cashOut - buyIn;
+        
+        playerNames.add(row.playerName);
+
+        await storage.addGameResult({
+          userId,
+          playerName: row.playerName.trim(),
+          date: dateVal,
+          buyIn,
+          cashOut,
+          netProfit,
+        });
+      }
+
+      res.status(201).json({
+        imported: rows.length,
+        players: Array.from(playerNames),
+      });
+    } catch (err: any) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      console.error("Import save error:", err);
+      res.status(400).json({ message: err.message || "Failed to save data" });
+    }
+  });
+
+  app.get(api.import.history.path, requireAuth, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const results = await storage.getGameResults(userId);
+    res.json(results);
+  });
+
   return httpServer;
+}
+
+// --- Helper: CSV Parser ---
+function parseCSV(content: string): Array<{ date: string; playerName: string; buyIn: number; cashOut: number }> {
+  const lines = content.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  if (lines.length < 2) return [];
+
+  const header = lines[0].toLowerCase().split(',').map(h => h.trim());
+  
+  const dateIdx = header.findIndex(h => h.includes('date'));
+  const nameIdx = header.findIndex(h => h.includes('player') || h.includes('name'));
+  const buyInIdx = header.findIndex(h => h.includes('buy') || h.includes('buyin') || h.includes('buy_in') || h.includes('buy-in'));
+  const cashOutIdx = header.findIndex(h => h.includes('cash') || h.includes('cashout') || h.includes('cash_out') || h.includes('cash-out') || h.includes('payout') || h.includes('winnings'));
+
+  return lines.slice(1).map(line => {
+    const cols = line.split(',').map(c => c.trim().replace(/^["']|["']$/g, ''));
+    return {
+      date: cols[dateIdx >= 0 ? dateIdx : 0] || '',
+      playerName: cols[nameIdx >= 0 ? nameIdx : 1] || 'Unknown',
+      buyIn: parseFloat(cols[buyInIdx >= 0 ? buyInIdx : 2]?.replace(/[$€£,]/g, '') || '0') || 0,
+      cashOut: parseFloat(cols[cashOutIdx >= 0 ? cashOutIdx : 3]?.replace(/[$€£,]/g, '') || '0') || 0,
+    };
+  }).filter(r => r.date && r.playerName);
+}
+
+// --- Helper: Map spreadsheet rows ---
+function mapSpreadsheetData(data: any[]): Array<{ date: string; playerName: string; buyIn: number; cashOut: number }> {
+  return data.map(row => {
+    const keys = Object.keys(row);
+    const findKey = (patterns: string[]) => keys.find(k => 
+      patterns.some(p => k.toLowerCase().includes(p))
+    );
+
+    const dateKey = findKey(['date', 'day', 'when']) || keys[0];
+    const nameKey = findKey(['player', 'name', 'who']) || keys[1];
+    const buyInKey = findKey(['buy', 'buyin', 'buy_in', 'buy-in', 'cost', 'entry']) || keys[2];
+    const cashOutKey = findKey(['cash', 'cashout', 'cash_out', 'payout', 'winning', 'result', 'out']) || keys[3];
+
+    let dateVal = row[dateKey];
+    if (typeof dateVal === 'number') {
+      const epoch = new Date((dateVal - 25569) * 86400 * 1000);
+      dateVal = epoch.toISOString().split('T')[0];
+    }
+
+    return {
+      date: String(dateVal || ''),
+      playerName: String(row[nameKey] || 'Unknown'),
+      buyIn: parseFloat(String(row[buyInKey] || 0).replace(/[$€£,]/g, '')) || 0,
+      cashOut: parseFloat(String(row[cashOutKey] || 0).replace(/[$€£,]/g, '')) || 0,
+    };
+  }).filter(r => r.date && r.playerName);
+}
+
+// --- Helper: Try parse text from PDF/Word ---
+function tryParseText(text: string): Array<{ date: string; playerName: string; buyIn: number; cashOut: number }> {
+  const rows: Array<{ date: string; playerName: string; buyIn: number; cashOut: number }> = [];
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+
+  // Try to find lines that match patterns like: "2023-01-15  John  $50  $120"
+  // or "Jan 15, 2023 | John | 50 | 120"
+  const datePattern = /(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}|\d{4}[\/\-\.]\d{1,2}[\/\-\.]\d{1,2}|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\w*\s+\d{1,2},?\s*\d{2,4})/i;
+  const numberPattern = /[$€£]?\s*[\d,]+\.?\d*/g;
+
+  for (const line of lines) {
+    const dateMatch = line.match(datePattern);
+    if (!dateMatch) continue;
+
+    const dateStr = dateMatch[1];
+    const afterDate = line.substring(line.indexOf(dateStr) + dateStr.length);
+    
+    const numbers = afterDate.match(numberPattern)?.map(n => 
+      parseFloat(n.replace(/[$€£,\s]/g, ''))
+    ).filter(n => !isNaN(n) && n > 0) || [];
+
+    if (numbers.length < 2) continue;
+
+    // Try to extract player name: text between date and first number
+    const firstNumIdx = afterDate.search(/[$€£]?\s*\d/);
+    let playerName = 'Unknown';
+    if (firstNumIdx > 0) {
+      playerName = afterDate.substring(0, firstNumIdx).replace(/[|,;:\t]+/g, ' ').trim() || 'Unknown';
+    }
+
+    rows.push({
+      date: dateStr,
+      playerName,
+      buyIn: numbers[0],
+      cashOut: numbers[1],
+    });
+  }
+
+  return rows;
 }

@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { LogOut, LayoutDashboard, History, UserCircle, PlusCircle } from "lucide-react";
+import { LogOut, LayoutDashboard, History, UserCircle, PlusCircle, Upload } from "lucide-react";
 
 export default function Shell({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
@@ -44,6 +44,11 @@ export default function Shell({ children }: { children: React.ReactNode }) {
               <PlusCircle className="h-4 w-4" /> Join Game
             </Button>
           </Link>
+          <Link href="/import">
+            <Button variant={isActive("/import") ? "secondary" : "ghost"} className="w-full justify-start gap-3">
+              <Upload className="h-4 w-4" /> Import Data
+            </Button>
+          </Link>
           <div className="mt-8 pt-8 border-t border-white/5">
             <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-4">Account</h3>
             <div className="flex items-center gap-3 px-4 py-2 mb-4">
@@ -81,6 +86,12 @@ export default function Shell({ children }: { children: React.ReactNode }) {
           <div className={`flex flex-col items-center p-2 rounded-lg ${isActive("/join") ? "text-primary bg-primary/10" : "text-muted-foreground"}`}>
             <PlusCircle className="h-6 w-6" />
             <span className="text-[10px] font-medium mt-1">Join</span>
+          </div>
+        </Link>
+        <Link href="/import">
+          <div className={`flex flex-col items-center p-2 rounded-lg ${isActive("/import") ? "text-primary bg-primary/10" : "text-muted-foreground"}`}>
+            <Upload className="h-6 w-6" />
+            <span className="text-[10px] font-medium mt-1">Import</span>
           </div>
         </Link>
         <div onClick={() => logout()} className="flex flex-col items-center p-2 rounded-lg text-muted-foreground active:text-destructive active:bg-destructive/10">

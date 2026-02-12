@@ -12,6 +12,7 @@ import Landing from "@/pages/Landing";
 import Dashboard from "@/pages/Dashboard";
 import SessionView from "@/pages/SessionView";
 import JoinSession from "@/pages/JoinSession";
+import ImportWizard from "@/pages/ImportWizard";
 import { Loader2 } from "lucide-react";
 
 function PrivateRoute({ component: Component, ...rest }: any) {
@@ -43,6 +44,9 @@ function Router() {
       </Route>
       <Route path="/dashboard">
         <PrivateRoute component={() => <Shell><Dashboard /></Shell>} />
+      </Route>
+      <Route path="/import">
+        <PrivateRoute component={() => <Shell><ImportWizard /></Shell>} />
       </Route>
       <Route path="/session/:id">
         {(params) => (

@@ -120,5 +120,41 @@ export type UpdateTransactionStatusRequest = {
 };
 
 export type EndSessionRequest = {
-  cashOuts?: { playerId: number; amount: number }[]; // For bulk cashout at end
+  cashOuts?: { playerId: number; amount: number }[];
+};
+
+// Legacy Import - Game Results
+export const gameResults = pgTable("game_results", {
+  id: serial("id").primaryKey(),
+  userId: text("user_id").references(() => users.id).notNull(),
+  playerName: text("player_name").notNull(),
+  date: timestamp("date").notNull(),
+  buyIn: integer("buy_in").notNull(),
+  cashOut: integer("cash_out").notNull(),
+  netProfit: integer("net_profit").notNull(),
+  importedAt: timestamp("imported_at").defaultNow().notNull(),
+});
+
+export const gameResultsRelations = relations(gameResults, ({ one }) => ({
+  user: one(users, {
+    fields: [gameResults.userId],
+    references: [users.id],
+  }),
+}));
+
+export const insertGameResultSchema = createInsertSchema(gameResults).omit({ id: true, importedAt: true, netProfit: true });
+
+export type GameResult = typeof gameResults.$inferSelect;
+export type InsertGameResult = z.infer<typeof insertGameResultSchema>;
+
+export type ImportRow = {
+  date: string;
+  playerName: string;
+  buyIn: number;
+  cashOut: number;
+};
+
+export type ParsedFileResponse = {
+  rows: ImportRow[];
+  rawText?: string;
 };
