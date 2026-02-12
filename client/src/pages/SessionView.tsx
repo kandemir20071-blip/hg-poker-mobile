@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { QRCodeSVG } from "qrcode.react";
 import { Loader2, Share2, Copy, AlertTriangle, CheckCircle, XCircle, LogOut } from "lucide-react";
+import { SuitsLoader, SuitAccent } from "@/components/ui/Suits";
 import { format } from "date-fns";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -26,8 +27,8 @@ export default function SessionView() {
 
   if (isLoading || !data) {
     return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center text-muted-foreground">
-        <Loader2 className="w-10 h-10 animate-spin mb-4 text-primary" />
+      <div className="min-h-[60vh] flex flex-col items-center justify-center text-muted-foreground gap-4">
+        <SuitsLoader />
         <p>Loading table data...</p>
       </div>
     );
@@ -59,7 +60,10 @@ export default function SessionView() {
       <div className="glass-card rounded-xl p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <h1 className="text-2xl font-bold text-white capitalize" data-testid="text-session-title">{session.type} Game</h1>
+            <h1 className="text-2xl font-bold text-white capitalize flex items-center gap-2" data-testid="text-session-title">
+              <SuitAccent suit={session.type === 'cash' ? 'diamond' : 'spade'} size={16} className="text-primary opacity-40" />
+              {session.type} Game
+            </h1>
             <span className={`px-2 py-0.5 rounded-full text-xs font-bold uppercase ${isActive ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`} data-testid="badge-session-status">
               {session.status}
             </span>

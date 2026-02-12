@@ -2,6 +2,7 @@ import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { LogOut, LayoutDashboard, PlusCircle, Upload, Layers } from "lucide-react";
+import { SuitAccent } from "@/components/ui/Suits";
 
 export default function Shell({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
@@ -18,6 +19,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
           <span className="font-bold text-lg text-white cursor-pointer flex items-center gap-2">
             <Layers className="h-5 w-5 text-primary" />
             HG Poker
+            <SuitAccent suit="spade" size={10} className="text-primary opacity-20" />
           </span>
         </Link>
         <div className="flex items-center gap-3">
@@ -34,7 +36,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
             <Layers className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-white leading-none">HG Poker</h1>
+            <h1 className="text-lg font-bold text-white leading-none flex items-center gap-1.5">HG Poker <SuitAccent suit="spade" size={10} className="text-primary opacity-20" /></h1>
             <p className="text-[11px] text-muted-foreground mt-0.5">Tracker</p>
           </div>
         </div>

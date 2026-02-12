@@ -5,6 +5,7 @@ import { StatCard } from "@/components/ui/StatCard";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Coins, Trophy, TrendingUp, History, Play, Loader2, ArrowRight, Upload } from "lucide-react";
+import { SuitAccent, SuitsLoader, SuitsRow } from "@/components/ui/Suits";
 import { Link, useLocation } from "wouter";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { format } from "date-fns";
@@ -31,7 +32,10 @@ export default function Dashboard() {
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-bold text-white" data-testid="text-dashboard-title">Dashboard</h2>
+          <h2 className="text-3xl font-bold text-white flex items-center gap-3" data-testid="text-dashboard-title">
+            Dashboard
+            <SuitsRow size={10} className="text-muted-foreground/25" />
+          </h2>
           <p className="text-muted-foreground">Welcome back, {user?.firstName}.</p>
         </div>
         
@@ -49,9 +53,10 @@ export default function Dashboard() {
               <button 
                 onClick={() => handleCreateSession('cash')}
                 disabled={isCreating}
-                className="flex flex-col items-center justify-center p-8 rounded-xl bg-background/50 border border-white/[0.08] hover:border-primary/40 hover:bg-primary/5 transition-all group disabled:opacity-50"
+                className="flex flex-col items-center justify-center p-8 rounded-xl bg-background/50 border border-white/[0.08] hover:border-primary/40 hover:bg-primary/5 transition-all group disabled:opacity-50 relative overflow-hidden"
                 data-testid="button-cash-game"
               >
+                <div className="absolute top-2 right-2"><SuitAccent suit="diamond" size={16} /></div>
                 <Coins className="w-12 h-12 text-primary mb-4 group-hover:scale-105 transition-transform" />
                 <h3 className="font-bold text-lg text-white">Cash Game</h3>
                 <p className="text-xs text-muted-foreground text-center mt-2">Flexible buy-ins, cash out anytime.</p>
@@ -60,9 +65,10 @@ export default function Dashboard() {
               <button 
                 onClick={() => handleCreateSession('tournament')}
                 disabled={isCreating}
-                className="flex flex-col items-center justify-center p-8 rounded-xl bg-background/50 border border-white/[0.08] hover:border-primary/40 hover:bg-primary/5 transition-all group disabled:opacity-50"
+                className="flex flex-col items-center justify-center p-8 rounded-xl bg-background/50 border border-white/[0.08] hover:border-primary/40 hover:bg-primary/5 transition-all group disabled:opacity-50 relative overflow-hidden"
                 data-testid="button-tournament"
               >
+                <div className="absolute top-2 right-2"><SuitAccent suit="spade" size={16} /></div>
                 <Trophy className="w-12 h-12 text-primary mb-4 group-hover:scale-105 transition-transform" />
                 <h3 className="font-bold text-lg text-white">Tournament</h3>
                 <p className="text-xs text-muted-foreground text-center mt-2">Fixed buy-in, blinds increase, last one standing.</p>
@@ -70,7 +76,7 @@ export default function Dashboard() {
             </div>
             {isCreating && (
               <div className="flex justify-center mt-4">
-                <Loader2 className="animate-spin text-primary" />
+                <SuitsLoader />
               </div>
             )}
           </DialogContent>

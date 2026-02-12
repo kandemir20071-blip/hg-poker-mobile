@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
 import { ArrowRight, Layers } from "lucide-react";
+import { Heart, Spade, Club, Diamond, SuitsRow } from "@/components/ui/Suits";
 
 export default function Landing() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -21,6 +22,19 @@ export default function Landing() {
       <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/8 via-background to-background pointer-events-none" />
       <div className="absolute -top-40 -right-40 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[120px]" />
       <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-blue-500/5 rounded-full blur-[100px]" />
+
+      <div className="absolute top-8 left-8 text-primary opacity-[0.06] pointer-events-none" data-testid="watermark-heart">
+        <Heart size={140} />
+      </div>
+      <div className="absolute top-8 right-8 text-primary opacity-[0.06] pointer-events-none" data-testid="watermark-spade">
+        <Spade size={140} />
+      </div>
+      <div className="absolute bottom-16 left-8 text-primary opacity-[0.06] pointer-events-none" data-testid="watermark-club">
+        <Club size={140} />
+      </div>
+      <div className="absolute bottom-16 right-8 text-primary opacity-[0.06] pointer-events-none" data-testid="watermark-diamond">
+        <Diamond size={140} />
+      </div>
 
       <div className="relative z-10 max-w-2xl w-full text-center space-y-8">
         <div className="flex justify-center mb-6">
@@ -47,7 +61,8 @@ export default function Landing() {
         </div>
       </div>
 
-      <div className="absolute bottom-8 text-center text-xs text-muted-foreground/40 tracking-widest uppercase font-medium">
+      <div className="absolute bottom-8 text-center text-xs text-muted-foreground/40 tracking-widest uppercase font-medium flex flex-col items-center gap-2">
+        <SuitsRow size={10} className="text-muted-foreground/20" />
         Built for serious players
       </div>
     </div>
