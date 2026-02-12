@@ -1,12 +1,13 @@
 import { useParams, useLocation } from "wouter";
 import { useSession, useEndSession } from "@/hooks/use-sessions";
 import { useAuth } from "@/hooks/use-auth";
-import { useUpdateTransactionStatus } from "@/hooks/use-transactions";
+import { useUpdateTransactionStatus, useUpdateTransaction, useDeleteTransaction } from "@/hooks/use-transactions";
 import { PlayerList } from "@/components/game/PlayerList";
+import { AddPlayerDialog } from "@/components/game/AddPlayerDialog";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { QRCodeSVG } from "qrcode.react";
-import { Loader2, Share2, Copy, AlertTriangle, CheckCircle, XCircle, LogOut } from "lucide-react";
+import { Loader2, Share2, Copy, AlertTriangle, CheckCircle, XCircle, LogOut, Shield, Pencil, Trash2 } from "lucide-react";
 import { SuitsLoader, SuitAccent } from "@/components/ui/Suits";
 import { format } from "date-fns";
 import { useState } from "react";
@@ -22,8 +23,13 @@ export default function SessionView() {
   const { data, isLoading } = useSession(sessionId);
   const { mutate: endSession, isPending: isEnding } = useEndSession();
   const { mutate: updateTx } = useUpdateTransactionStatus();
+  const { mutate: editTx } = useUpdateTransaction();
+  const { mutate: deleteTx } = useDeleteTransaction();
 
   const [endDialogOpen, setEndDialogOpen] = useState(false);
+  const [adminMode, setAdminMode] = useState(false);
+  const [editingLedgerId, setEditingLedgerId] = useState<number | null>(null);
+  const [editLedgerAmount, setEditLedgerAmount] = useState("");
 
   if (isLoading || !data) {
     return (
@@ -39,6 +45,7 @@ export default function SessionView() {
   const isActive = session.status === 'active';
   
   const totalInPlay = players.reduce((sum, p) => sum + p.totalBuyIn, 0);
+  const totalCashOut = players.reduce((sum, p) => sum + p.totalCashOut, 0);
   const pendingTransactions = transactions.filter(t => t.status === 'pending');
 
   const handleCopyCode = () => {
@@ -55,11 +62,26 @@ export default function SessionView() {
     });
   };
 
+  const handleLedgerEdit = (txId: number) => {
+    if (editLedgerAmount && Number(editLedgerAmount) > 0) {
+      editTx({ id: txId, sessionId, data: { amount: Number(editLedgerAmount) } }, {
+        onSuccess: () => {
+          setEditingLedgerId(null);
+          setEditLedgerAmount("");
+        }
+      });
+    }
+  };
+
+  const handleLedgerDelete = (txId: number) => {
+    deleteTx({ id: txId, sessionId });
+  };
+
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
       <div className="glass-card rounded-xl p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-3 mb-1">
+          <div className="flex items-center gap-3 mb-1 flex-wrap">
             <h1 className="text-2xl font-bold text-white capitalize flex items-center gap-2" data-testid="text-session-title">
               <SuitAccent suit={session.type === 'cash' ? 'diamond' : 'spade'} size={16} className="text-primary opacity-40" />
               {session.type} Game
@@ -67,15 +89,32 @@ export default function SessionView() {
             <span className={`px-2 py-0.5 rounded-full text-xs font-bold uppercase ${isActive ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`} data-testid="badge-session-status">
               {session.status}
             </span>
+            {adminMode && (
+              <span className="px-2 py-0.5 rounded-full text-xs font-bold uppercase bg-amber-500/20 text-amber-400" data-testid="badge-admin-mode">
+                Admin Mode
+              </span>
+            )}
           </div>
-          <p className="text-sm text-muted-foreground flex items-center gap-2">
+          <p className="text-sm text-muted-foreground flex items-center gap-2 flex-wrap">
             Started {format(new Date(session.startTime), 'h:mm a')} 
             <span className="font-mono text-primary font-bold">{session.code}</span>
             <button onClick={handleCopyCode} className="hover:text-white" data-testid="button-copy-code"><Copy className="w-3 h-3" /></button>
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          {isHost && (
+            <Button
+              variant={adminMode ? "default" : "outline"}
+              size="sm"
+              className="gap-2"
+              onClick={() => setAdminMode(!adminMode)}
+              data-testid="button-toggle-admin"
+            >
+              <Shield className="w-4 h-4" /> {adminMode ? "Admin On" : "Admin Mode"}
+            </Button>
+          )}
+
           <Dialog>
             <DialogTrigger asChild>
               <Button variant="outline" size="sm" className="gap-2" data-testid="button-share">
@@ -132,11 +171,16 @@ export default function SessionView() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-4 flex-wrap">
             <h2 className="text-xl font-bold text-white">Players</h2>
-            <div className="glass-card px-4 py-2 rounded-lg">
-              <span className="text-xs text-muted-foreground uppercase tracking-wider mr-2">Total Pot</span>
-              <span className="text-xl font-mono font-bold text-primary" data-testid="text-total-pot">${totalInPlay}</span>
+            <div className="flex items-center gap-3 flex-wrap">
+              {adminMode && (
+                <AddPlayerDialog sessionId={sessionId} />
+              )}
+              <div className="glass-card px-4 py-2 rounded-lg">
+                <span className="text-xs text-muted-foreground uppercase tracking-wider mr-2">Total Pot</span>
+                <span className="text-xl font-mono font-bold text-primary" data-testid="text-total-pot">${totalInPlay}</span>
+              </div>
             </div>
           </div>
           
@@ -145,6 +189,8 @@ export default function SessionView() {
             hostId={session.hostId} 
             sessionId={sessionId} 
             currentUserId={user?.id}
+            adminMode={adminMode}
+            transactions={transactions}
           />
         </div>
 
@@ -160,7 +206,7 @@ export default function SessionView() {
                   const player = players.find(p => p.id === tx.playerId);
                   return (
                     <div key={tx.id} className="p-4 flex flex-col gap-3">
-                      <div className="flex justify-between items-start">
+                      <div className="flex justify-between items-start gap-2">
                         <div>
                           <p className="font-bold text-white">{player?.name}</p>
                           <p className="text-xs text-muted-foreground capitalize">{tx.type.replace('_', ' ')}</p>
@@ -201,18 +247,65 @@ export default function SessionView() {
                 .map(tx => {
                   const player = players.find(p => p.id === tx.playerId);
                   const isBuyIn = tx.type === 'buy_in';
+                  const isEditingThis = editingLedgerId === tx.id;
+
                   return (
-                    <div key={tx.id} className="flex items-center justify-between text-sm py-1" data-testid={`ledger-entry-${tx.id}`}>
-                      <div className="flex items-center gap-2">
-                        <span className="text-muted-foreground text-xs font-mono">
+                    <div key={tx.id} className="flex items-center justify-between gap-2 text-sm py-1" data-testid={`ledger-entry-${tx.id}`}>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-muted-foreground text-xs font-mono shrink-0">
                           {format(new Date(tx.timestamp), 'HH:mm')}
                         </span>
-                        <span className="font-medium text-white">{player?.name}</span>
-                        <span className="text-muted-foreground text-xs">{isBuyIn ? 'bought in' : 'cashed out'}</span>
+                        <span className="font-medium text-white truncate">{player?.name}</span>
+                        <span className="text-muted-foreground text-xs shrink-0">{isBuyIn ? 'bought in' : 'cashed out'}</span>
                       </div>
-                      <span className={`font-mono font-bold ${isBuyIn ? 'text-destructive' : 'text-emerald-400'}`}>
-                        {isBuyIn ? '-' : '+'}${tx.amount}
-                      </span>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {isEditingThis ? (
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="number"
+                              value={editLedgerAmount}
+                              onChange={(e) => setEditLedgerAmount(e.target.value)}
+                              className="w-20 bg-background/50 border border-white/[0.08] rounded px-2 py-0.5 text-xs font-mono text-white"
+                              autoFocus
+                              data-testid={`input-ledger-edit-${tx.id}`}
+                            />
+                            <Button size="icon" variant="ghost" onClick={() => handleLedgerEdit(tx.id)} data-testid={`button-ledger-save-${tx.id}`}>
+                              <CheckCircle className="w-3 h-3 text-primary" />
+                            </Button>
+                            <Button size="icon" variant="ghost" onClick={() => { setEditingLedgerId(null); setEditLedgerAmount(""); }} data-testid={`button-ledger-cancel-${tx.id}`}>
+                              <XCircle className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <>
+                            <span className={`font-mono font-bold ${isBuyIn ? 'text-destructive' : 'text-emerald-400'}`}>
+                              {isBuyIn ? '-' : '+'}${tx.amount}
+                            </span>
+                            {adminMode && (
+                              <div className="flex items-center gap-0.5">
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="opacity-50"
+                                  onClick={() => { setEditingLedgerId(tx.id); setEditLedgerAmount(tx.amount.toString()); }}
+                                  data-testid={`button-ledger-edit-${tx.id}`}
+                                >
+                                  <Pencil className="w-3 h-3" />
+                                </Button>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="opacity-50 text-destructive"
+                                  onClick={() => handleLedgerDelete(tx.id)}
+                                  data-testid={`button-ledger-delete-${tx.id}`}
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </div>
                     </div>
                   );
                 })}

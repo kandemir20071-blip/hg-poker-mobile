@@ -25,7 +25,10 @@ export interface IStorage {
   // Transactions
   addTransaction(transaction: InsertTransaction): Promise<Transaction>;
   getSessionTransactions(sessionId: number): Promise<Transaction[]>;
+  getTransaction(id: number): Promise<Transaction | undefined>;
   updateTransactionStatus(id: number, status: 'approved' | 'rejected'): Promise<Transaction>;
+  updateTransaction(id: number, data: { amount?: number; type?: 'buy_in' | 'cash_out'; paymentMethod?: 'cash' | 'digital' }): Promise<Transaction>;
+  deleteTransaction(id: number): Promise<void>;
 
   // Game Results (Legacy Import)
   addGameResult(result: { userId: string; playerName: string; date: Date; buyIn: number; cashOut: number; netProfit: number }): Promise<GameResult>;
@@ -93,12 +96,29 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(transactions).where(eq(transactions.sessionId, sessionId));
   }
 
+  async getTransaction(id: number): Promise<Transaction | undefined> {
+    const [tx] = await db.select().from(transactions).where(eq(transactions.id, id));
+    return tx;
+  }
+
   async updateTransactionStatus(id: number, status: 'approved' | 'rejected'): Promise<Transaction> {
     const [updated] = await db.update(transactions)
       .set({ status })
       .where(eq(transactions.id, id))
       .returning();
     return updated;
+  }
+
+  async updateTransaction(id: number, data: { amount?: number; type?: 'buy_in' | 'cash_out'; paymentMethod?: 'cash' | 'digital' }): Promise<Transaction> {
+    const [updated] = await db.update(transactions)
+      .set(data)
+      .where(eq(transactions.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteTransaction(id: number): Promise<void> {
+    await db.delete(transactions).where(eq(transactions.id, id));
   }
 
   async addGameResult(result: { userId: string; playerName: string; date: Date; buyIn: number; cashOut: number; netProfit: number }): Promise<GameResult> {

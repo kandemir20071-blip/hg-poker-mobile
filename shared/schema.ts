@@ -119,6 +119,16 @@ export type UpdateTransactionStatusRequest = {
   status: 'approved' | 'rejected';
 };
 
+export type UpdateTransactionRequest = {
+  amount?: number;
+  type?: 'buy_in' | 'cash_out';
+  paymentMethod?: 'cash' | 'digital';
+};
+
+export type AddManualPlayerRequest = {
+  name: string;
+};
+
 export type EndSessionRequest = {
   cashOuts?: { playerId: number; amount: number }[];
 };

@@ -170,6 +170,35 @@ export async function registerRoutes(
     res.json(updated);
   });
 
+  // --- Add Player Manually (Host only) ---
+
+  app.post(api.sessions.addPlayer.path, requireAuth, async (req, res) => {
+    try {
+      const sessionId = Number(req.params.id);
+      const input = api.sessions.addPlayer.input.parse(req.body);
+      const session = await storage.getSession(sessionId);
+      if (!session) return res.status(404).json({ message: "Session not found" });
+
+      const userId = (req.user as any).claims.sub;
+      if (session.hostId !== userId) {
+        return res.status(401).json({ message: "Only the host can add players manually" });
+      }
+
+      const player = await storage.addPlayer({
+        sessionId,
+        name: input.name,
+        userId: null,
+      });
+
+      res.status(201).json(player);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      res.status(500).json({ message: "Internal Server Error" });
+    }
+  });
+
   // --- Transactions ---
 
   app.post(api.transactions.create.path, async (req, res) => {
@@ -205,11 +234,60 @@ export async function registerRoutes(
       const transactionId = Number(req.params.id);
       const input = api.transactions.updateStatus.input.parse(req.body);
       
-      // TODO: Verify user is host of the session this transaction belongs to
-      // For now, assume auth is enough for MVP, or we'd need to fetch tx -> session -> check host.
-      
       const updated = await storage.updateTransactionStatus(transactionId, input.status);
       res.json(updated);
+    } catch (err) {
+      res.status(500).json({ message: "Internal Server Error" });
+    }
+  });
+
+  // --- Update Transaction (Host only, works after session end) ---
+
+  app.patch(api.transactions.update.path, requireAuth, async (req, res) => {
+    try {
+      const transactionId = Number(req.params.id);
+      const input = api.transactions.update.input.parse(req.body);
+
+      const tx = await storage.getTransaction(transactionId);
+      if (!tx) return res.status(404).json({ message: "Transaction not found" });
+
+      const session = await storage.getSession(tx.sessionId);
+      if (!session) return res.status(404).json({ message: "Session not found" });
+
+      const userId = (req.user as any).claims.sub;
+      if (session.hostId !== userId) {
+        return res.status(401).json({ message: "Only the host can edit transactions" });
+      }
+
+      const updated = await storage.updateTransaction(transactionId, input);
+      res.json(updated);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      res.status(500).json({ message: "Internal Server Error" });
+    }
+  });
+
+  // --- Delete Transaction (Host only, works after session end) ---
+
+  app.delete(api.transactions.delete.path, requireAuth, async (req, res) => {
+    try {
+      const transactionId = Number(req.params.id);
+
+      const tx = await storage.getTransaction(transactionId);
+      if (!tx) return res.status(404).json({ message: "Transaction not found" });
+
+      const session = await storage.getSession(tx.sessionId);
+      if (!session) return res.status(404).json({ message: "Session not found" });
+
+      const userId = (req.user as any).claims.sub;
+      if (session.hostId !== userId) {
+        return res.status(401).json({ message: "Only the host can delete transactions" });
+      }
+
+      await storage.deleteTransaction(transactionId);
+      res.json({ success: true });
     } catch (err) {
       res.status(500).json({ message: "Internal Server Error" });
     }

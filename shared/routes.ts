@@ -71,6 +71,18 @@ export const api = {
         404: errorSchemas.notFound,
       },
     },
+    addPlayer: {
+      method: 'POST' as const,
+      path: '/api/sessions/:id/players' as const,
+      input: z.object({
+        name: z.string().min(1, 'Name is required'),
+      }),
+      responses: {
+        201: z.custom<typeof sessionPlayers.$inferSelect>(),
+        401: errorSchemas.unauthorized,
+        404: errorSchemas.notFound,
+      },
+    },
     end: {
       method: 'POST' as const,
       path: '/api/sessions/:id/end' as const,
@@ -99,6 +111,29 @@ export const api = {
       responses: {
         201: z.custom<typeof transactions.$inferSelect>(),
         400: errorSchemas.validation,
+      },
+    },
+    update: {
+      method: 'PATCH' as const,
+      path: '/api/transactions/:id' as const,
+      input: z.object({
+        amount: z.number().optional(),
+        type: z.enum(['buy_in', 'cash_out']).optional(),
+        paymentMethod: z.enum(['cash', 'digital']).optional(),
+      }),
+      responses: {
+        200: z.custom<typeof transactions.$inferSelect>(),
+        404: errorSchemas.notFound,
+        401: errorSchemas.unauthorized,
+      },
+    },
+    delete: {
+      method: 'DELETE' as const,
+      path: '/api/transactions/:id' as const,
+      responses: {
+        200: z.object({ success: z.boolean() }),
+        404: errorSchemas.notFound,
+        401: errorSchemas.unauthorized,
       },
     },
     updateStatus: {

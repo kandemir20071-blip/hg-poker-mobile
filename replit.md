@@ -6,6 +6,15 @@ HomeGame Poker Tracker is a mobile-first web application that serves as a digita
 
 The app supports two input modes: **Host Mode** (host enters all data manually) and **Collaborative Mode** (players join via session code/QR and submit buy-in requests that the host approves). Sessions end with a settlement flow that validates totals and calculates optimal payouts (banker or peer-to-peer).
 
+### Game Master (Admin) Mode
+- **Toggle:** Host can enable "Admin Mode" via a button in the Session Header to reveal manual controls
+- **Manual Player Entry:** Host can add players by name without requiring them to join via code (creates guest players with null userId)
+- **Centralized Ledger Control:** "Manage" button per player opens a dialog to view/add/edit/delete all transactions for that player
+- **Full Editability:** Every transaction (buy-in/cash-out) can be edited or deleted at any time, including after session ends
+- **Ledger Edits:** The ledger panel also supports inline editing and deletion in admin mode
+- **API Endpoints:** `POST /api/sessions/:id/players` (add player), `PATCH /api/transactions/:id` (edit), `DELETE /api/transactions/:id` (delete) — all host-only
+- **Components:** `AddPlayerDialog`, `ManagePlayerDialog` in `client/src/components/game/`
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
