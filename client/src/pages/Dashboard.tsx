@@ -398,33 +398,48 @@ function LeaguesTab({
             </div>
           </div>
 
-          {leagueWithPlayers && (
-            <div className="glass-card rounded-xl p-5">
-              <div className="flex items-center justify-between mb-3 gap-2">
-                <h3 className="font-bold text-base text-white">League Info</h3>
-                {isCreator && <Shield className="h-4 w-4 text-primary" />}
-              </div>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Players</span>
-                  <span className="text-white">{leagueWithPlayers.players?.length || 0}</span>
+          {leagueWithPlayers && (() => {
+            const myClaimedPlayer = leagueWithPlayers.players?.find((p: any) => p.claimedByUserId === user?.id);
+            return (
+              <div className="glass-card rounded-xl p-5">
+                <div className="flex items-center justify-between mb-3 gap-2">
+                  <h3 className="font-bold text-base text-white">League Info</h3>
+                  {isCreator && <Shield className="h-4 w-4 text-primary" />}
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Members</span>
-                  <span className="text-white">{leagueWithPlayers.memberCount || 0}</span>
-                </div>
-                {isCreator && (
+                <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Invite Code</span>
-                    <span className="text-primary font-mono">{leagueWithPlayers.inviteCode}</span>
+                    <span className="text-muted-foreground">Players</span>
+                    <span className="text-white">{leagueWithPlayers.players?.length || 0}</span>
                   </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Members</span>
+                    <span className="text-white">{leagueWithPlayers.memberCount || 0}</span>
+                  </div>
+                  {myClaimedPlayer && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Your Name</span>
+                      <span className="text-emerald-400 font-medium">{myClaimedPlayer.name}</span>
+                    </div>
+                  )}
+                  {isCreator && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Invite Code</span>
+                      <span className="text-primary font-mono">{leagueWithPlayers.inviteCode}</span>
+                    </div>
+                  )}
+                </div>
+                {myClaimedPlayer ? (
+                  <div className="mt-3 p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-center" data-testid="text-claimed-name">
+                    <span className="text-xs text-emerald-400">You are playing as <strong>{myClaimedPlayer.name}</strong></span>
+                  </div>
+                ) : (
+                  <Button variant="outline" size="sm" className="w-full mt-3" onClick={() => setShowClaimDialog(true)} data-testid="button-claim-name">
+                    <User className="mr-2 h-3.5 w-3.5" /> Claim Your Name
+                  </Button>
                 )}
               </div>
-              <Button variant="outline" size="sm" className="w-full mt-3" onClick={() => setShowClaimDialog(true)} data-testid="button-claim-name">
-                <User className="mr-2 h-3.5 w-3.5" /> Claim Your Name
-              </Button>
-            </div>
-          )}
+            );
+          })()}
         </div>
       </div>
 

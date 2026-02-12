@@ -93,16 +93,22 @@ export function useClaimPlayer() {
         body: JSON.stringify({ playerId }),
         credentials: "include",
       });
-      if (!res.ok) throw new Error("Failed to claim player");
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => null);
+        throw new Error(errorData?.message || "Failed to claim player");
+      }
       return res.json();
     },
     onSuccess: (_, { leagueId }) => {
       queryClient.invalidateQueries({ queryKey: [api.leagues.get.path, leagueId] });
       queryClient.invalidateQueries({ queryKey: [api.leagues.list.path] });
-      toast({ title: "Name Claimed", description: "Your name has been linked to your account." });
+      queryClient.invalidateQueries({ queryKey: [api.stats.personal.path] });
+      queryClient.invalidateQueries({ queryKey: [api.stats.league.path] });
+      toast({ title: "Name Claimed", description: "Your name has been linked to your account. Your personal stats are now updated." });
     },
-    onError: () => {
-      toast({ title: "Error", description: "Could not claim player name", variant: "destructive" });
+    onError: (err: any) => {
+      const message = err?.message || "Could not claim player name";
+      toast({ title: "Error", description: message, variant: "destructive" });
     },
   });
 }

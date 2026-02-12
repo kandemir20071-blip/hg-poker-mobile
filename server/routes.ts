@@ -121,16 +121,32 @@ export async function registerRoutes(
       const isMember = await storage.isLeagueMember(leagueId, userId);
       if (!isMember) return res.status(401).json({ message: "Not a member of this league" });
 
+      const existingClaim = await storage.getLeaguePlayerByUserId(leagueId, userId);
+      if (existingClaim) {
+        return res.status(400).json({ message: `You have already claimed the name "${existingClaim.name}" in this league.` });
+      }
+
       const player = await storage.getLeaguePlayer(playerId);
       if (!player || player.leagueId !== leagueId) {
         return res.status(404).json({ message: "Player not found in this league" });
       }
 
       if (player.claimedByUserId) {
-        return res.status(400).json({ message: "Player already claimed" });
+        return res.status(400).json({ message: "Player already claimed by another user" });
       }
 
       const updated = await storage.claimLeaguePlayer(playerId, userId);
+
+      const { db: database } = await import("./db");
+      const { gameResults } = await import("@shared/schema");
+      const { eq: eqOp, and: andOp, sql: sqlOp } = await import("drizzle-orm");
+      await database.update(gameResults)
+        .set({ userId })
+        .where(andOp(
+          eqOp(gameResults.leagueId, leagueId),
+          sqlOp`LOWER(TRIM(${gameResults.playerName})) = LOWER(TRIM(${player.name}))`
+        ));
+
       res.json(updated);
     } catch (err) {
       if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });

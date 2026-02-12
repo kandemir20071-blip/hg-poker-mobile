@@ -51,6 +51,7 @@ export interface IStorage {
   addLeaguePlayer(player: InsertLeaguePlayer): Promise<LeaguePlayer>;
   getLeaguePlayers(leagueId: number): Promise<LeaguePlayer[]>;
   getLeaguePlayer(id: number): Promise<LeaguePlayer | undefined>;
+  getLeaguePlayerByUserId(leagueId: number, userId: string): Promise<LeaguePlayer | undefined>;
   claimLeaguePlayer(playerId: number, userId: string): Promise<LeaguePlayer>;
   getLeaguePlayerByName(leagueId: number, name: string): Promise<LeaguePlayer | undefined>;
 }
@@ -237,11 +238,18 @@ export class DatabaseStorage implements IStorage {
     return player;
   }
 
+  async getLeaguePlayerByUserId(leagueId: number, userId: string): Promise<LeaguePlayer | undefined> {
+    const [player] = await db.select().from(leaguePlayers)
+      .where(and(eq(leaguePlayers.leagueId, leagueId), eq(leaguePlayers.claimedByUserId, userId)));
+    return player;
+  }
+
   async claimLeaguePlayer(playerId: number, userId: string): Promise<LeaguePlayer> {
     const [updated] = await db.update(leaguePlayers)
       .set({ claimedByUserId: userId })
-      .where(eq(leaguePlayers.id, playerId))
+      .where(and(eq(leaguePlayers.id, playerId), sql`${leaguePlayers.claimedByUserId} IS NULL`))
       .returning();
+    if (!updated) throw new Error("Player already claimed or not found");
     return updated;
   }
 
