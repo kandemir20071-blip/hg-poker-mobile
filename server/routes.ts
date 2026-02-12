@@ -26,11 +26,9 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
-  // Setup Auth FIRST
   await setupAuth(app);
   registerAuthRoutes(app);
 
-  // Helper to check auth
   const requireAuth = (req: any, res: any, next: any) => {
     if (req.isAuthenticated()) {
       return next();
@@ -38,13 +36,125 @@ export async function registerRoutes(
     res.status(401).json({ message: "Unauthorized" });
   };
 
-  // --- Sessions ---
+  // ==================== LEAGUES ====================
+
+  app.post(api.leagues.create.path, requireAuth, async (req, res) => {
+    try {
+      const input = api.leagues.create.input.parse(req.body);
+      const userId = (req.user as any).claims.sub;
+      const inviteCode = randomBytes(3).toString('hex').toUpperCase();
+
+      const league = await storage.createLeague({
+        name: input.name,
+        creatorId: userId,
+        inviteCode,
+      });
+
+      await storage.addLeagueMember({ leagueId: league.id, userId });
+
+      res.status(201).json(league);
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
+      res.status(500).json({ message: "Internal Server Error" });
+    }
+  });
+
+  app.get(api.leagues.list.path, requireAuth, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const userLeagues = await storage.getUserLeagues(userId);
+    res.json(userLeagues);
+  });
+
+  app.get(api.leagues.get.path, requireAuth, async (req, res) => {
+    const leagueId = Number(req.params.id);
+    const league = await storage.getLeague(leagueId);
+    if (!league) return res.status(404).json({ message: "League not found" });
+
+    const userId = (req.user as any).claims.sub;
+    const isMember = await storage.isLeagueMember(leagueId, userId);
+    if (!isMember) return res.status(401).json({ message: "Not a member of this league" });
+
+    const members = await storage.getLeagueMembers(leagueId);
+    const players = await storage.getLeaguePlayers(leagueId);
+
+    res.json({ ...league, memberCount: members.length, players });
+  });
+
+  app.post(api.leagues.join.path, requireAuth, async (req, res) => {
+    try {
+      const { inviteCode } = api.leagues.join.input.parse(req.body);
+      const userId = (req.user as any).claims.sub;
+
+      const league = await storage.getLeagueByInviteCode(inviteCode.toUpperCase());
+      if (!league) return res.status(404).json({ message: "League not found" });
+
+      const alreadyMember = await storage.isLeagueMember(league.id, userId);
+      if (!alreadyMember) {
+        await storage.addLeagueMember({ leagueId: league.id, userId });
+      }
+
+      const players = await storage.getLeaguePlayers(league.id);
+      const unclaimedPlayers = players.filter(p => !p.claimedByUserId);
+
+      res.json({ league, unclaimedPlayers });
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
+      res.status(500).json({ message: "Internal Server Error" });
+    }
+  });
+
+  app.get(api.leagues.players.path, requireAuth, async (req, res) => {
+    const leagueId = Number(req.params.id);
+    const userId = (req.user as any).claims.sub;
+    const isMember = await storage.isLeagueMember(leagueId, userId);
+    if (!isMember) return res.status(401).json({ message: "Not a member of this league" });
+    const players = await storage.getLeaguePlayers(leagueId);
+    res.json(players);
+  });
+
+  app.post(api.leagues.claimPlayer.path, requireAuth, async (req, res) => {
+    try {
+      const leagueId = Number(req.params.id);
+      const { playerId } = api.leagues.claimPlayer.input.parse(req.body);
+      const userId = (req.user as any).claims.sub;
+
+      const isMember = await storage.isLeagueMember(leagueId, userId);
+      if (!isMember) return res.status(401).json({ message: "Not a member of this league" });
+
+      const player = await storage.getLeaguePlayer(playerId);
+      if (!player || player.leagueId !== leagueId) {
+        return res.status(404).json({ message: "Player not found in this league" });
+      }
+
+      if (player.claimedByUserId) {
+        return res.status(400).json({ message: "Player already claimed" });
+      }
+
+      const updated = await storage.claimLeaguePlayer(playerId, userId);
+      res.json(updated);
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
+      res.status(500).json({ message: "Internal Server Error" });
+    }
+  });
+
+  // League sessions endpoint
+  app.get('/api/leagues/:id/sessions', requireAuth, async (req, res) => {
+    const leagueId = Number(req.params.id);
+    const userId = (req.user as any).claims.sub;
+    const isMember = await storage.isLeagueMember(leagueId, userId);
+    if (!isMember) return res.status(401).json({ message: "Not a member of this league" });
+    const sessions = await storage.getLeagueSessions(leagueId);
+    res.json(sessions);
+  });
+
+  // ==================== SESSIONS ====================
 
   app.post(api.sessions.create.path, requireAuth, async (req, res) => {
     try {
       const input = api.sessions.create.input.parse(req.body);
       const hostId = (req.user as any).claims.sub;
-      const code = randomBytes(3).toString('hex').toUpperCase(); // 6 char code
+      const code = randomBytes(3).toString('hex').toUpperCase();
 
       const session = await storage.createSession({
         ...input,
@@ -52,14 +162,9 @@ export async function registerRoutes(
         code,
       });
 
-      // Add host as a player automatically? Maybe not strictly required, but good UX if they are playing.
-      // But maybe they are just hosting. Let's let them join explicitly if they want.
-
       res.status(201).json(session);
     } catch (err) {
-      if (err instanceof z.ZodError) {
-        return res.status(400).json({ message: err.errors[0].message });
-      }
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
       res.status(500).json({ message: "Internal Server Error" });
     }
   });
@@ -73,70 +178,36 @@ export async function registerRoutes(
   app.get(api.sessions.get.path, async (req, res) => {
     const sessionId = Number(req.params.id);
     const session = await storage.getSession(sessionId);
-    if (!session) {
-      return res.status(404).json({ message: "Session not found" });
-    }
+    if (!session) return res.status(404).json({ message: "Session not found" });
 
     const players = await storage.getSessionPlayers(sessionId);
-    const transactions = await storage.getSessionTransactions(sessionId);
+    const txns = await storage.getSessionTransactions(sessionId);
 
-    // Calculate derived stats for players
     const playersWithStats = players.map(p => {
-      const playerTransactions = transactions.filter(t => t.playerId === p.id && t.status === 'approved');
-      const totalBuyIn = playerTransactions
-        .filter(t => t.type === 'buy_in')
-        .reduce((sum, t) => sum + t.amount, 0);
-      const totalCashOut = playerTransactions
-        .filter(t => t.type === 'cash_out')
-        .reduce((sum, t) => sum + t.amount, 0);
-      const netProfit = totalCashOut - totalBuyIn;
-
-      return {
-        ...p,
-        totalBuyIn,
-        totalCashOut,
-        netProfit
-      };
+      const playerTransactions = txns.filter(t => t.playerId === p.id && t.status === 'approved');
+      const totalBuyIn = playerTransactions.filter(t => t.type === 'buy_in').reduce((sum, t) => sum + t.amount, 0);
+      const totalCashOut = playerTransactions.filter(t => t.type === 'cash_out').reduce((sum, t) => sum + t.amount, 0);
+      return { ...p, totalBuyIn, totalCashOut, netProfit: totalCashOut - totalBuyIn };
     });
 
-    res.json({ session, players: playersWithStats, transactions });
+    res.json({ session, players: playersWithStats, transactions: txns });
   });
 
   app.post(api.sessions.join.path, async (req, res) => {
     try {
       const { code, name } = api.sessions.join.input.parse(req.body);
       const session = await storage.getSessionByCode(code.toUpperCase());
-      
-      if (!session) {
-        return res.status(404).json({ message: "Session not found" });
-      }
-
-      if (session.status === 'completed') {
-        return res.status(400).json({ message: "Session completed" });
-      }
+      if (!session) return res.status(404).json({ message: "Session not found" });
+      if (session.status === 'completed') return res.status(400).json({ message: "Session completed" });
 
       const userId = req.isAuthenticated() ? (req.user as any).claims.sub : undefined;
-
-      // Check if already joined
       let player;
-      if (userId) {
-        player = await storage.getPlayerBySessionAndUser(session.id, userId);
-      }
-      
-      // If not joined (or guest), create player
-      if (!player) {
-        player = await storage.addPlayer({
-          sessionId: session.id,
-          name,
-          userId,
-        });
-      }
+      if (userId) player = await storage.getPlayerBySessionAndUser(session.id, userId);
+      if (!player) player = await storage.addPlayer({ sessionId: session.id, name, userId });
 
       res.json({ session, player });
     } catch (err) {
-       if (err instanceof z.ZodError) {
-        return res.status(400).json({ message: err.errors[0].message });
-      }
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
       res.status(500).json({ message: "Internal Server Error" });
     }
   });
@@ -145,44 +216,27 @@ export async function registerRoutes(
     const sessionId = Number(req.params.id);
     const session = await storage.getSession(sessionId);
     if (!session) return res.status(404).json({ message: "Session not found" });
-    
-    // Verify host
-    if (session.hostId !== (req.user as any).claims.sub) {
-      return res.status(401).json({ message: "Only host can end session" });
-    }
+    if (session.hostId !== (req.user as any).claims.sub) return res.status(401).json({ message: "Only host can end session" });
 
-    // Process final cashouts if provided
     if (req.body.cashOuts) {
       for (const cashOut of req.body.cashOuts) {
         await storage.addTransaction({
-          sessionId,
-          playerId: cashOut.playerId,
-          type: 'cash_out',
-          amount: cashOut.amount,
-          paymentMethod: 'cash', // Default
-          status: 'approved',
+          sessionId, playerId: cashOut.playerId, type: 'cash_out',
+          amount: cashOut.amount, paymentMethod: 'cash', status: 'approved',
         });
       }
     }
 
-    // Update status
     const updated = await storage.updateSessionStatus(sessionId, 'completed', new Date());
     res.json(updated);
   });
-
-  // --- Delete Session (Host only) ---
 
   app.delete('/api/sessions/:id', requireAuth, async (req, res) => {
     try {
       const sessionId = Number(req.params.id);
       const session = await storage.getSession(sessionId);
       if (!session) return res.status(404).json({ message: "Session not found" });
-
-      const userId = (req.user as any).claims.sub;
-      if (session.hostId !== userId) {
-        return res.status(401).json({ message: "Only the host can delete sessions" });
-      }
-
+      if (session.hostId !== (req.user as any).claims.sub) return res.status(401).json({ message: "Only the host can delete sessions" });
       await storage.deleteSession(sessionId);
       res.json({ success: true });
     } catch (err) {
@@ -190,36 +244,23 @@ export async function registerRoutes(
     }
   });
 
-  // --- Add Player Manually (Host only) ---
-
   app.post(api.sessions.addPlayer.path, requireAuth, async (req, res) => {
     try {
       const sessionId = Number(req.params.id);
       const input = api.sessions.addPlayer.input.parse(req.body);
       const session = await storage.getSession(sessionId);
       if (!session) return res.status(404).json({ message: "Session not found" });
+      if (session.hostId !== (req.user as any).claims.sub) return res.status(401).json({ message: "Only the host can add players manually" });
 
-      const userId = (req.user as any).claims.sub;
-      if (session.hostId !== userId) {
-        return res.status(401).json({ message: "Only the host can add players manually" });
-      }
-
-      const player = await storage.addPlayer({
-        sessionId,
-        name: input.name,
-        userId: null,
-      });
-
+      const player = await storage.addPlayer({ sessionId, name: input.name, userId: null });
       res.status(201).json(player);
     } catch (err) {
-      if (err instanceof z.ZodError) {
-        return res.status(400).json({ message: err.errors[0].message });
-      }
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
       res.status(500).json({ message: "Internal Server Error" });
     }
   });
 
-  // --- Transactions ---
+  // ==================== TRANSACTIONS ====================
 
   app.post(api.transactions.create.path, async (req, res) => {
     try {
@@ -228,23 +269,14 @@ export async function registerRoutes(
       const session = await storage.getSession(sessionId);
       if (!session) return res.status(404).json({ message: "Session not found" });
 
-      // If host is making the request, auto-approve. If guest/player, pending.
-      // We need to check if the user is the host.
       const userId = req.isAuthenticated() ? (req.user as any).claims.sub : null;
       const isHost = userId && userId === session.hostId;
       const status = isHost ? 'approved' : 'pending';
 
-      const transaction = await storage.addTransaction({
-        sessionId,
-        ...input,
-        status,
-      });
-
+      const transaction = await storage.addTransaction({ sessionId, ...input, status });
       res.status(201).json(transaction);
     } catch (err) {
-      if (err instanceof z.ZodError) {
-        return res.status(400).json({ message: err.errors[0].message });
-      }
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
       res.status(500).json({ message: "Internal Server Error" });
     }
   });
@@ -253,7 +285,6 @@ export async function registerRoutes(
     try {
       const transactionId = Number(req.params.id);
       const input = api.transactions.updateStatus.input.parse(req.body);
-      
       const updated = await storage.updateTransactionStatus(transactionId, input.status);
       res.json(updated);
     } catch (err) {
@@ -261,51 +292,32 @@ export async function registerRoutes(
     }
   });
 
-  // --- Update Transaction (Host only, works after session end) ---
-
   app.patch(api.transactions.update.path, requireAuth, async (req, res) => {
     try {
       const transactionId = Number(req.params.id);
       const input = api.transactions.update.input.parse(req.body);
-
       const tx = await storage.getTransaction(transactionId);
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
-
       const session = await storage.getSession(tx.sessionId);
       if (!session) return res.status(404).json({ message: "Session not found" });
-
-      const userId = (req.user as any).claims.sub;
-      if (session.hostId !== userId) {
-        return res.status(401).json({ message: "Only the host can edit transactions" });
-      }
+      if (session.hostId !== (req.user as any).claims.sub) return res.status(401).json({ message: "Only the host can edit transactions" });
 
       const updated = await storage.updateTransaction(transactionId, input);
       res.json(updated);
     } catch (err) {
-      if (err instanceof z.ZodError) {
-        return res.status(400).json({ message: err.errors[0].message });
-      }
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
       res.status(500).json({ message: "Internal Server Error" });
     }
   });
 
-  // --- Delete Transaction (Host only, works after session end) ---
-
   app.delete(api.transactions.delete.path, requireAuth, async (req, res) => {
     try {
       const transactionId = Number(req.params.id);
-
       const tx = await storage.getTransaction(transactionId);
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
-
       const session = await storage.getSession(tx.sessionId);
       if (!session) return res.status(404).json({ message: "Session not found" });
-
-      const userId = (req.user as any).claims.sub;
-      if (session.hostId !== userId) {
-        return res.status(401).json({ message: "Only the host can delete transactions" });
-      }
-
+      if (session.hostId !== (req.user as any).claims.sub) return res.status(401).json({ message: "Only the host can delete transactions" });
       await storage.deleteTransaction(transactionId);
       res.json({ success: true });
     } catch (err) {
@@ -313,31 +325,74 @@ export async function registerRoutes(
     }
   });
 
-  // --- Stats ---
+  // ==================== STATS ====================
 
-  app.get(api.stats.get.path, requireAuth, async (req, res) => {
+  app.get(api.stats.personal.path, requireAuth, async (req, res) => {
     const userId = (req.user as any).claims.sub;
-    const sessions = await storage.getUserSessions(userId);
-    const importedResults = await storage.getGameResults(userId);
-    
-    const sortedResults = [...importedResults].sort((a, b) => 
-      new Date(a.date).getTime() - new Date(b.date).getTime()
-    );
-    
+    const userLeagues = await storage.getUserLeagues(userId);
+
+    let allResults: Array<{ date: Date; profit: number; leagueName: string }> = [];
+
+    for (const league of userLeagues) {
+      const results = await storage.getLeagueGameResults(league.id);
+      const leaguePlayers = await storage.getLeaguePlayers(league.id);
+      const claimedPlayer = leaguePlayers.find(p => p.claimedByUserId === userId);
+      if (!claimedPlayer) continue;
+
+      const playerResults = results.filter(r =>
+        r.playerName.toLowerCase().trim() === claimedPlayer.name.toLowerCase().trim()
+      );
+
+      for (const r of playerResults) {
+        allResults.push({
+          date: new Date(r.date),
+          profit: r.netProfit,
+          leagueName: league.name,
+        });
+      }
+    }
+
+    allResults.sort((a, b) => a.date.getTime() - b.date.getTime());
+
     let cumulative = 0;
-    const bankrollHistory = sortedResults.map(r => {
-      cumulative += r.netProfit;
+    const bankrollHistory = allResults.map(r => {
+      cumulative += r.profit;
       return {
-        date: new Date(r.date).toISOString().split('T')[0],
-        profit: r.netProfit,
+        date: r.date.toISOString().split('T')[0],
+        profit: r.profit,
         cumulative,
       };
     });
-    
-    const totalProfit = importedResults.reduce((sum, r) => sum + r.netProfit, 0);
-    const totalBuyIn = importedResults.reduce((sum, r) => sum + r.buyIn, 0);
-    const roi = totalBuyIn > 0 ? Math.round((totalProfit / totalBuyIn) * 100) : 0;
-    
+
+    const totalProfit = allResults.reduce((sum, r) => sum + r.profit, 0);
+    const totalGames = new Set(allResults.map(r => r.date.toISOString().split('T')[0])).size;
+    const totalBuyInEstimate = allResults.length > 0 ? allResults.reduce((s, r) => s + Math.abs(r.profit) + (r.profit > 0 ? 0 : Math.abs(r.profit)), 0) : 0;
+    const roi = totalBuyInEstimate > 0 ? Math.round((totalProfit / totalBuyInEstimate) * 100) : 0;
+
+    const recentGames = allResults.slice(-20).reverse().map(r => ({
+      date: r.date.toISOString().split('T')[0],
+      leagueName: r.leagueName,
+      profit: r.profit,
+    }));
+
+    res.json({ totalGames, totalProfit, roi, bankrollHistory, recentGames });
+  });
+
+  app.get(api.stats.league.path, requireAuth, async (req, res) => {
+    const leagueId = Number(req.params.leagueId);
+    const userId = (req.user as any).claims.sub;
+    const isMember = await storage.isLeagueMember(leagueId, userId);
+    if (!isMember) return res.status(401).json({ message: "Not a member" });
+
+    const importedResults = await storage.getLeagueGameResults(leagueId);
+    const sortedResults = [...importedResults].sort((a, b) =>
+      new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+
+    const totalMoneyWagered = importedResults.reduce((sum, r) => sum + r.buyIn, 0);
+    const totalPot = importedResults.reduce((sum, r) => sum + r.cashOut, 0);
+    const totalGames = new Set(importedResults.map(r => new Date(r.date).toISOString().split('T')[0])).size;
+
     const playerMap = new Map<string, Map<string, number>>();
     for (const r of sortedResults) {
       const name = r.playerName;
@@ -346,7 +401,7 @@ export async function registerRoutes(
       const dateMap = playerMap.get(name)!;
       dateMap.set(dateStr, (dateMap.get(dateStr) || 0) + r.netProfit);
     }
-    
+
     const playerProfitHistory = Array.from(playerMap.entries()).map(([playerName, dateMap]) => {
       const sortedDates = Array.from(dateMap.entries()).sort((a, b) => a[0].localeCompare(b[0]));
       let cum = 0;
@@ -356,24 +411,118 @@ export async function registerRoutes(
       });
       return { playerName, totalProfit: cum, points };
     });
-    
+
+    res.json({ totalGames, totalMoneyWagered, totalPot, playerProfitHistory });
+  });
+
+  // Keep old stats endpoint for backward compat (redirects to league-based)
+  app.get(api.stats.get.path, requireAuth, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const importedResults = await storage.getGameResults(userId);
+    const sessions = await storage.getUserSessions(userId);
+
+    const sortedResults = [...importedResults].sort((a, b) =>
+      new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+
+    let cumulative = 0;
+    const bankrollHistory = sortedResults.map(r => {
+      cumulative += r.netProfit;
+      return {
+        date: new Date(r.date).toISOString().split('T')[0],
+        profit: r.netProfit,
+        cumulative,
+      };
+    });
+
+    const totalProfit = importedResults.reduce((sum, r) => sum + r.netProfit, 0);
+    const totalBuyIn = importedResults.reduce((sum, r) => sum + r.buyIn, 0);
+    const roi = totalBuyIn > 0 ? Math.round((totalProfit / totalBuyIn) * 100) : 0;
+
+    const playerMap = new Map<string, Map<string, number>>();
+    for (const r of sortedResults) {
+      const name = r.playerName;
+      const dateStr = new Date(r.date).toISOString().split('T')[0];
+      if (!playerMap.has(name)) playerMap.set(name, new Map());
+      const dateMap = playerMap.get(name)!;
+      dateMap.set(dateStr, (dateMap.get(dateStr) || 0) + r.netProfit);
+    }
+
+    const playerProfitHistory = Array.from(playerMap.entries()).map(([playerName, dateMap]) => {
+      const sortedDates = Array.from(dateMap.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+      let cum = 0;
+      const points = sortedDates.map(([date, profit]) => {
+        cum += profit;
+        return { date, cumulative: cum, profit };
+      });
+      return { playerName, totalProfit: cum, points };
+    });
+
     res.json({
       totalGames: sessions.length + new Set(importedResults.map(r => new Date(r.date).toISOString().split('T')[0])).size,
-      totalProfit,
-      roi,
-      bankrollHistory,
-      playerProfitHistory,
+      totalProfit, roi, bankrollHistory, playerProfitHistory,
     });
   });
 
-  // --- Import ---
+  // ==================== DATA MIGRATION ====================
+
+  app.post('/api/migrate-to-league', requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).claims.sub;
+      const { leagueId } = req.body;
+
+      if (!leagueId) return res.status(400).json({ message: "leagueId required" });
+
+      const league = await storage.getLeague(leagueId);
+      if (!league) return res.status(404).json({ message: "League not found" });
+      if (league.creatorId !== userId) return res.status(401).json({ message: "Only the creator can migrate data" });
+
+      const existingResults = await storage.getGameResults(userId);
+      const unassigned = existingResults.filter(r => !r.leagueId);
+
+      if (unassigned.length === 0) {
+        return res.json({ migrated: 0, playersCreated: 0 });
+      }
+
+      const existingPlayers = await storage.getLeaguePlayers(leagueId);
+      const playerNameSet = new Set(existingPlayers.map(p => p.name.toLowerCase().trim()));
+      let playersCreated = 0;
+
+      const uniqueNames = new Set(unassigned.map(r => r.playerName.trim()));
+      for (const name of uniqueNames) {
+        if (!playerNameSet.has(name.toLowerCase())) {
+          await storage.addLeaguePlayer({ leagueId, name, claimedByUserId: null });
+          playerNameSet.add(name.toLowerCase());
+          playersCreated++;
+        }
+      }
+
+      const { db: database } = await import("./db");
+      const { gameResults } = await import("@shared/schema");
+      const { eq: eqOp, inArray: inArrayOp } = await import("drizzle-orm");
+
+      const ids = unassigned.map(r => r.id);
+      const BATCH_SIZE = 500;
+      for (let i = 0; i < ids.length; i += BATCH_SIZE) {
+        const batch = ids.slice(i, i + BATCH_SIZE);
+        await database.update(gameResults)
+          .set({ leagueId })
+          .where(inArrayOp(gameResults.id, batch));
+      }
+
+      res.json({ migrated: unassigned.length, playersCreated });
+    } catch (err: any) {
+      console.error("Migration error:", err);
+      res.status(500).json({ message: err.message || "Migration failed" });
+    }
+  });
+
+  // ==================== IMPORT ====================
 
   app.post(api.import.upload.path, requireAuth, upload.single('file'), async (req, res) => {
     try {
       const file = req.file;
-      if (!file) {
-        return res.status(400).json({ message: "No file uploaded" });
-      }
+      if (!file) return res.status(400).json({ message: "No file uploaded" });
 
       const userId = (req.user as any).claims.sub;
       const ext = path.extname(file.originalname).toLowerCase();
@@ -381,45 +530,40 @@ export async function registerRoutes(
       let rawText: string | undefined;
 
       if (ext === '.csv') {
-        const content = file.buffer.toString('utf-8');
-        rows = parseCSV(content);
+        rows = parseCSV(file.buffer.toString('utf-8'));
       } else if (ext === '.xlsx' || ext === '.xls') {
         const XLSX = await import('xlsx');
         const workbook = XLSX.read(file.buffer, { type: 'buffer' });
-        const sheetName = workbook.SheetNames[0];
-        const sheet = workbook.Sheets[sheetName];
-        const data = XLSX.utils.sheet_to_json<any>(sheet);
-        rows = mapSpreadsheetData(data);
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        rows = mapSpreadsheetData(XLSX.utils.sheet_to_json<any>(sheet));
       } else if (ext === '.pdf') {
         const pdfParse = (await import('pdf-parse')).default;
         const pdfData = await pdfParse(file.buffer);
         rawText = pdfData.text;
         rows = parsePokerPdfText(rawText);
-        if (rows.length === 0) {
-          rows = tryParseText(rawText);
-        }
+        if (rows.length === 0) rows = tryParseText(rawText);
       } else if (ext === '.docx' || ext === '.doc') {
         const mammoth = await import('mammoth');
         const result = await mammoth.extractRawText({ buffer: file.buffer });
         rawText = result.value;
         rows = parsePokerPdfText(rawText);
-        if (rows.length === 0) {
-          rows = tryParseText(rawText);
-        }
+        if (rows.length === 0) rows = tryParseText(rawText);
       } else if (ext === '.txt') {
         rawText = file.buffer.toString('utf-8');
         rows = parsePokerPdfText(rawText);
-        if (rows.length === 0) {
-          rows = tryParseText(rawText);
-        }
+        if (rows.length === 0) rows = tryParseText(rawText);
       }
 
-      const existingResults = await storage.getGameResults(userId);
-      const existingNamesSet = new Set<string>();
-      for (const r of existingResults) {
-        existingNamesSet.add(r.playerName.trim().toLowerCase());
+      const leagueId = req.body?.leagueId ? Number(req.body.leagueId) : null;
+      let existingNames: string[] = [];
+      
+      if (leagueId) {
+        const leaguePlayers = await storage.getLeaguePlayers(leagueId);
+        existingNames = leaguePlayers.map(p => p.name.trim().toLowerCase());
+      } else {
+        const existingResults = await storage.getGameResults(userId);
+        existingNames = Array.from(new Set(existingResults.map(r => r.playerName.trim().toLowerCase())));
       }
-      const existingNames = Array.from(existingNamesSet);
 
       res.json({ rows, rawText, existingNames });
     } catch (err: any) {
@@ -430,19 +574,22 @@ export async function registerRoutes(
 
   app.post(api.import.save.path, requireAuth, async (req, res) => {
     try {
-      const { rows } = api.import.save.input.parse(req.body);
+      const { rows, leagueId } = api.import.save.input.parse(req.body);
       const userId = (req.user as any).claims.sub;
 
-      if (!rows || rows.length === 0) {
-        return res.status(400).json({ message: "No data to import" });
-      }
+      if (!rows || rows.length === 0) return res.status(400).json({ message: "No data to import" });
 
-      const existingResults = await storage.getGameResults(userId);
+      const league = await storage.getLeague(leagueId);
+      if (!league) return res.status(400).json({ message: "League not found" });
+
+      const existingResults = await storage.getLeagueGameResults(leagueId);
       const existingSet = new Set<string>();
       for (const r of existingResults) {
-        const key = `${r.playerName.trim().toLowerCase()}|${new Date(r.date).toISOString().split('T')[0]}|${r.buyIn}|${r.cashOut}`;
-        existingSet.add(key);
+        existingSet.add(`${r.playerName.trim().toLowerCase()}|${new Date(r.date).toISOString().split('T')[0]}|${r.buyIn}|${r.cashOut}`);
       }
+
+      const existingPlayers = await storage.getLeaguePlayers(leagueId);
+      const playerNameSet = new Set(existingPlayers.map(p => p.name.toLowerCase().trim()));
 
       const playerNames = new Set<string>();
       let imported = 0;
@@ -458,34 +605,26 @@ export async function registerRoutes(
         const normalizedName = row.playerName.trim();
 
         const dupeKey = `${normalizedName.toLowerCase()}|${dateVal.toISOString().split('T')[0]}|${buyIn}|${cashOut}`;
-        if (existingSet.has(dupeKey)) {
-          skipped++;
-          continue;
+        if (existingSet.has(dupeKey)) { skipped++; continue; }
+
+        if (!playerNameSet.has(normalizedName.toLowerCase())) {
+          await storage.addLeaguePlayer({ leagueId, name: normalizedName, claimedByUserId: null });
+          playerNameSet.add(normalizedName.toLowerCase());
         }
 
         playerNames.add(normalizedName);
         existingSet.add(dupeKey);
 
         await storage.addGameResult({
-          userId,
-          playerName: normalizedName,
-          date: dateVal,
-          buyIn,
-          cashOut,
-          netProfit,
+          userId, leagueId, playerName: normalizedName,
+          date: dateVal, buyIn, cashOut, netProfit,
         });
         imported++;
       }
 
-      res.status(201).json({
-        imported,
-        skipped,
-        players: Array.from(playerNames),
-      });
+      res.status(201).json({ imported, skipped, players: Array.from(playerNames) });
     } catch (err: any) {
-      if (err instanceof z.ZodError) {
-        return res.status(400).json({ message: err.errors[0].message });
-      }
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
       console.error("Import save error:", err);
       res.status(400).json({ message: err.message || "Failed to save data" });
     }
@@ -500,13 +639,13 @@ export async function registerRoutes(
   return httpServer;
 }
 
-// --- Helper: CSV Parser ---
+// ==================== PARSERS ====================
+
 function parseCSV(content: string): Array<{ date: string; playerName: string; buyIn: number; cashOut: number }> {
   const lines = content.split('\n').map(l => l.trim()).filter(l => l.length > 0);
   if (lines.length < 2) return [];
 
   const header = lines[0].toLowerCase().split(',').map(h => h.trim());
-  
   const dateIdx = header.findIndex(h => h.includes('date'));
   const nameIdx = header.findIndex(h => h.includes('player') || h.includes('name'));
   const buyInIdx = header.findIndex(h => h.includes('buy') || h.includes('buyin') || h.includes('buy_in') || h.includes('buy-in'));
@@ -523,13 +662,10 @@ function parseCSV(content: string): Array<{ date: string; playerName: string; bu
   }).filter(r => r.date && r.playerName);
 }
 
-// --- Helper: Map spreadsheet rows ---
 function mapSpreadsheetData(data: any[]): Array<{ date: string; playerName: string; buyIn: number; cashOut: number }> {
   return data.map(row => {
     const keys = Object.keys(row);
-    const findKey = (patterns: string[]) => keys.find(k => 
-      patterns.some(p => k.toLowerCase().includes(p))
-    );
+    const findKey = (patterns: string[]) => keys.find(k => patterns.some(p => k.toLowerCase().includes(p)));
 
     const dateKey = findKey(['date', 'day', 'when']) || keys[0];
     const nameKey = findKey(['player', 'name', 'who']) || keys[1];
@@ -551,8 +687,6 @@ function mapSpreadsheetData(data: any[]): Array<{ date: string; playerName: stri
   }).filter(r => r.date && r.playerName);
 }
 
-// --- Helper: Parse poker PDF text with German format ---
-// Handles: "Name Buy-in€ Endstand: Cash-out€" grouped under date headers like "15.11.2023"
 function parsePokerPdfText(text: string): Array<{ date: string; playerName: string; buyIn: number; cashOut: number }> {
   const rows: Array<{ date: string; playerName: string; buyIn: number; cashOut: number }> = [];
   const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
@@ -584,9 +718,7 @@ function parsePokerPdfText(text: string): Array<{ date: string; playerName: stri
       const name = match[1].trim();
       const buyIn = parseNum(match[2]);
       const cashOut = parseNum(match[3]);
-      if (name && (buyIn > 0 || cashOut > 0)) {
-        rows.push({ date: currentDate, playerName: name, buyIn, cashOut });
-      }
+      if (name && (buyIn > 0 || cashOut > 0)) rows.push({ date: currentDate, playerName: name, buyIn, cashOut });
       continue;
     }
 
@@ -595,9 +727,7 @@ function parsePokerPdfText(text: string): Array<{ date: string; playerName: stri
       const name = match[1].trim();
       const buyIn = parseNum(match[2]);
       const cashOut = parseNum(match[3]);
-      if (name && (buyIn > 0 || cashOut > 0)) {
-        rows.push({ date: currentDate, playerName: name, buyIn, cashOut });
-      }
+      if (name && (buyIn > 0 || cashOut > 0)) rows.push({ date: currentDate, playerName: name, buyIn, cashOut });
       continue;
     }
 
@@ -605,16 +735,13 @@ function parsePokerPdfText(text: string): Array<{ date: string; playerName: stri
     if (match) {
       const name = match[1].trim();
       const buyIn = parseNum(match[2]);
-      if (name && buyIn > 0) {
-        rows.push({ date: currentDate, playerName: name, buyIn, cashOut: 0 });
-      }
+      if (name && buyIn > 0) rows.push({ date: currentDate, playerName: name, buyIn, cashOut: 0 });
     }
   }
 
   return rows;
 }
 
-// --- Helper: Try parse text from PDF/Word (generic fallback) ---
 function tryParseText(text: string): Array<{ date: string; playerName: string; buyIn: number; cashOut: number }> {
   const rows: Array<{ date: string; playerName: string; buyIn: number; cashOut: number }> = [];
   const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
@@ -628,18 +755,13 @@ function tryParseText(text: string): Array<{ date: string; playerName: string; b
 
     const dateStr = dateMatch[1];
     const afterDate = line.substring(line.indexOf(dateStr) + dateStr.length);
-    
-    const numbers = afterDate.match(numberPattern)?.map(n => 
-      parseFloat(n.replace(/[$€£,\s]/g, ''))
-    ).filter(n => !isNaN(n) && n > 0) || [];
-
+    const numbers = Array.from(afterDate.matchAll(numberPattern))
+      .map(m => parseFloat(m[0].replace(/[$€£,\s]/g, '')))
+      .filter(n => !isNaN(n) && n > 0);
     if (numbers.length < 2) continue;
 
-    const firstNumIdx = afterDate.search(/[$€£]?\s*\d/);
-    let playerName = 'Unknown';
-    if (firstNumIdx > 0) {
-      playerName = afterDate.substring(0, firstNumIdx).replace(/[|,;:\t]+/g, ' ').trim() || 'Unknown';
-    }
+    const nameMatch = afterDate.match(/([A-Za-zÀ-ž][A-Za-zÀ-ž\s.'-]+)/);
+    const playerName = nameMatch ? nameMatch[1].trim() : 'Unknown';
 
     rows.push({
       date: dateStr,

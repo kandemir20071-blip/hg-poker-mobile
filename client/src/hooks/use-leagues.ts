@@ -1,0 +1,189 @@
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { api, buildUrl } from "@shared/routes";
+import { useToast } from "@/hooks/use-toast";
+
+export function useLeagues() {
+  return useQuery({
+    queryKey: [api.leagues.list.path],
+    queryFn: async () => {
+      const res = await fetch(api.leagues.list.path, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch leagues");
+      return res.json();
+    },
+  });
+}
+
+export function useLeague(id: number | null) {
+  return useQuery({
+    queryKey: [api.leagues.get.path, id],
+    queryFn: async () => {
+      if (!id) return null;
+      const url = buildUrl(api.leagues.get.path, { id });
+      const res = await fetch(url, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch league");
+      return res.json();
+    },
+    enabled: !!id,
+  });
+}
+
+export function useCreateLeague() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (data: { name: string }) => {
+      const res = await fetch(api.leagues.create.path, {
+        method: 'POST',
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to create league");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.leagues.list.path] });
+      toast({ title: "League Created", description: "Your league is ready. Share the invite code with your group." });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Could not create league", variant: "destructive" });
+    },
+  });
+}
+
+export function useJoinLeague() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (data: { inviteCode: string }) => {
+      const res = await fetch(api.leagues.join.path, {
+        method: 'POST',
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || "Failed to join league");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.leagues.list.path] });
+      toast({ title: "Joined League", description: "You've joined the league." });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    },
+  });
+}
+
+export function useClaimPlayer() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ leagueId, playerId }: { leagueId: number; playerId: number }) => {
+      const url = buildUrl(api.leagues.claimPlayer.path, { id: leagueId });
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ playerId }),
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to claim player");
+      return res.json();
+    },
+    onSuccess: (_, { leagueId }) => {
+      queryClient.invalidateQueries({ queryKey: [api.leagues.get.path, leagueId] });
+      queryClient.invalidateQueries({ queryKey: [api.leagues.list.path] });
+      toast({ title: "Name Claimed", description: "Your name has been linked to your account." });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Could not claim player name", variant: "destructive" });
+    },
+  });
+}
+
+export function useLeaguePlayers(leagueId: number | null) {
+  return useQuery({
+    queryKey: [api.leagues.players.path, leagueId],
+    queryFn: async () => {
+      if (!leagueId) return [];
+      const url = buildUrl(api.leagues.players.path, { id: leagueId });
+      const res = await fetch(url, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch league players");
+      return res.json();
+    },
+    enabled: !!leagueId,
+  });
+}
+
+export function useLeagueSessions(leagueId: number | null) {
+  return useQuery({
+    queryKey: ['/api/leagues/sessions', leagueId],
+    queryFn: async () => {
+      if (!leagueId) return [];
+      const res = await fetch(`/api/leagues/${leagueId}/sessions`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch league sessions");
+      return res.json();
+    },
+    enabled: !!leagueId,
+  });
+}
+
+export function useLeagueStats(leagueId: number | null) {
+  return useQuery({
+    queryKey: [api.stats.league.path, leagueId],
+    queryFn: async () => {
+      if (!leagueId) return null;
+      const url = buildUrl(api.stats.league.path, { leagueId });
+      const res = await fetch(url, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch league stats");
+      return res.json();
+    },
+    enabled: !!leagueId,
+  });
+}
+
+export function usePersonalStats() {
+  return useQuery({
+    queryKey: [api.stats.personal.path],
+    queryFn: async () => {
+      const res = await fetch(api.stats.personal.path, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch personal stats");
+      return res.json();
+    },
+  });
+}
+
+export function useMigrateToLeague() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (leagueId: number) => {
+      const res = await fetch('/api/migrate-to-league', {
+        method: 'POST',
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ leagueId }),
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Migration failed");
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: [api.leagues.list.path] });
+      queryClient.invalidateQueries({ queryKey: [api.stats.personal.path] });
+      toast({
+        title: "Data Migrated",
+        description: `Moved ${data.migrated} records, created ${data.playersCreated} new players.`,
+      });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Could not migrate data", variant: "destructive" });
+    },
+  });
+}

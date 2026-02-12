@@ -1,28 +1,30 @@
 import { db } from "./db";
-import { eq, and, desc, inArray } from "drizzle-orm";
+import { eq, and, desc, inArray, sql } from "drizzle-orm";
 import {
   pokerSessions, sessionPlayers, transactions, gameResults,
+  leagues, leagueMembers, leaguePlayers,
   type PokerSession, type InsertPokerSession,
   type SessionPlayer, type InsertSessionPlayer,
   type Transaction, type InsertTransaction,
-  type GameResult
+  type GameResult,
+  type League, type InsertLeague,
+  type LeagueMember, type InsertLeagueMember,
+  type LeaguePlayer, type InsertLeaguePlayer,
 } from "@shared/schema";
 
 export interface IStorage {
-  // Sessions
   createSession(session: InsertPokerSession): Promise<PokerSession>;
   getSession(id: number): Promise<PokerSession | undefined>;
   getSessionByCode(code: string): Promise<PokerSession | undefined>;
   getUserSessions(userId: string): Promise<PokerSession[]>;
+  getLeagueSessions(leagueId: number): Promise<PokerSession[]>;
   updateSessionStatus(id: number, status: 'active' | 'completed', endTime?: Date): Promise<PokerSession>;
 
-  // Players
   addPlayer(player: InsertSessionPlayer): Promise<SessionPlayer>;
   getSessionPlayers(sessionId: number): Promise<SessionPlayer[]>;
   getPlayer(id: number): Promise<SessionPlayer | undefined>;
   getPlayerBySessionAndUser(sessionId: number, userId: string): Promise<SessionPlayer | undefined>;
 
-  // Transactions
   addTransaction(transaction: InsertTransaction): Promise<Transaction>;
   getSessionTransactions(sessionId: number): Promise<Transaction[]>;
   getTransaction(id: number): Promise<Transaction | undefined>;
@@ -30,12 +32,27 @@ export interface IStorage {
   updateTransaction(id: number, data: { amount?: number; type?: 'buy_in' | 'cash_out'; paymentMethod?: 'cash' | 'digital' }): Promise<Transaction>;
   deleteTransaction(id: number): Promise<void>;
 
-  // Session management
   deleteSession(id: number): Promise<void>;
 
-  // Game Results (Legacy Import)
-  addGameResult(result: { userId: string; playerName: string; date: Date; buyIn: number; cashOut: number; netProfit: number }): Promise<GameResult>;
+  addGameResult(result: { userId: string; leagueId?: number; playerName: string; date: Date; buyIn: number; cashOut: number; netProfit: number }): Promise<GameResult>;
   getGameResults(userId: string): Promise<GameResult[]>;
+  getLeagueGameResults(leagueId: number): Promise<GameResult[]>;
+
+  createLeague(league: InsertLeague): Promise<League>;
+  getLeague(id: number): Promise<League | undefined>;
+  getLeagueByInviteCode(code: string): Promise<League | undefined>;
+  getUserLeagues(userId: string): Promise<League[]>;
+  updateLeague(id: number, data: { name?: string }): Promise<League>;
+
+  addLeagueMember(member: InsertLeagueMember): Promise<LeagueMember>;
+  getLeagueMembers(leagueId: number): Promise<LeagueMember[]>;
+  isLeagueMember(leagueId: number, userId: string): Promise<boolean>;
+
+  addLeaguePlayer(player: InsertLeaguePlayer): Promise<LeaguePlayer>;
+  getLeaguePlayers(leagueId: number): Promise<LeaguePlayer[]>;
+  getLeaguePlayer(id: number): Promise<LeaguePlayer | undefined>;
+  claimLeaguePlayer(playerId: number, userId: string): Promise<LeaguePlayer>;
+  getLeaguePlayerByName(leagueId: number, name: string): Promise<LeaguePlayer | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -58,6 +75,13 @@ export class DatabaseStorage implements IStorage {
     return await db.select()
       .from(pokerSessions)
       .where(eq(pokerSessions.hostId, userId))
+      .orderBy(desc(pokerSessions.startTime));
+  }
+
+  async getLeagueSessions(leagueId: number): Promise<PokerSession[]> {
+    return await db.select()
+      .from(pokerSessions)
+      .where(eq(pokerSessions.leagueId, leagueId))
       .orderBy(desc(pokerSessions.startTime));
   }
 
@@ -136,7 +160,7 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
-  async addGameResult(result: { userId: string; playerName: string; date: Date; buyIn: number; cashOut: number; netProfit: number }): Promise<GameResult> {
+  async addGameResult(result: { userId: string; leagueId?: number; playerName: string; date: Date; buyIn: number; cashOut: number; netProfit: number }): Promise<GameResult> {
     const [newResult] = await db.insert(gameResults).values(result).returning();
     return newResult;
   }
@@ -146,6 +170,84 @@ export class DatabaseStorage implements IStorage {
       .from(gameResults)
       .where(eq(gameResults.userId, userId))
       .orderBy(desc(gameResults.date));
+  }
+
+  async getLeagueGameResults(leagueId: number): Promise<GameResult[]> {
+    return await db.select()
+      .from(gameResults)
+      .where(eq(gameResults.leagueId, leagueId))
+      .orderBy(desc(gameResults.date));
+  }
+
+  async createLeague(league: InsertLeague): Promise<League> {
+    const [newLeague] = await db.insert(leagues).values(league).returning();
+    return newLeague;
+  }
+
+  async getLeague(id: number): Promise<League | undefined> {
+    const [league] = await db.select().from(leagues).where(eq(leagues.id, id));
+    return league;
+  }
+
+  async getLeagueByInviteCode(code: string): Promise<League | undefined> {
+    const [league] = await db.select().from(leagues).where(eq(leagues.inviteCode, code));
+    return league;
+  }
+
+  async getUserLeagues(userId: string): Promise<League[]> {
+    const memberships = await db.select({ leagueId: leagueMembers.leagueId })
+      .from(leagueMembers)
+      .where(eq(leagueMembers.userId, userId));
+    const leagueIds = memberships.map(m => m.leagueId);
+    if (leagueIds.length === 0) return [];
+    return await db.select().from(leagues).where(inArray(leagues.id, leagueIds));
+  }
+
+  async updateLeague(id: number, data: { name?: string }): Promise<League> {
+    const [updated] = await db.update(leagues).set(data).where(eq(leagues.id, id)).returning();
+    return updated;
+  }
+
+  async addLeagueMember(member: InsertLeagueMember): Promise<LeagueMember> {
+    const [newMember] = await db.insert(leagueMembers).values(member).returning();
+    return newMember;
+  }
+
+  async getLeagueMembers(leagueId: number): Promise<LeagueMember[]> {
+    return await db.select().from(leagueMembers).where(eq(leagueMembers.leagueId, leagueId));
+  }
+
+  async isLeagueMember(leagueId: number, userId: string): Promise<boolean> {
+    const [member] = await db.select().from(leagueMembers)
+      .where(and(eq(leagueMembers.leagueId, leagueId), eq(leagueMembers.userId, userId)));
+    return !!member;
+  }
+
+  async addLeaguePlayer(player: InsertLeaguePlayer): Promise<LeaguePlayer> {
+    const [newPlayer] = await db.insert(leaguePlayers).values(player).returning();
+    return newPlayer;
+  }
+
+  async getLeaguePlayers(leagueId: number): Promise<LeaguePlayer[]> {
+    return await db.select().from(leaguePlayers).where(eq(leaguePlayers.leagueId, leagueId));
+  }
+
+  async getLeaguePlayer(id: number): Promise<LeaguePlayer | undefined> {
+    const [player] = await db.select().from(leaguePlayers).where(eq(leaguePlayers.id, id));
+    return player;
+  }
+
+  async claimLeaguePlayer(playerId: number, userId: string): Promise<LeaguePlayer> {
+    const [updated] = await db.update(leaguePlayers)
+      .set({ claimedByUserId: userId })
+      .where(eq(leaguePlayers.id, playerId))
+      .returning();
+    return updated;
+  }
+
+  async getLeaguePlayerByName(leagueId: number, name: string): Promise<LeaguePlayer | undefined> {
+    const allPlayers = await db.select().from(leaguePlayers).where(eq(leaguePlayers.leagueId, leagueId));
+    return allPlayers.find(p => p.name.toLowerCase().trim() === name.toLowerCase().trim());
   }
 }
 

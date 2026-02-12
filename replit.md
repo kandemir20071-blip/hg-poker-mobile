@@ -2,9 +2,21 @@
 
 ## Overview
 
-HomeGame Poker Tracker is a mobile-first web application that serves as a digital bank and tournament manager for home poker games. It allows users to host and join poker sessions (cash games or tournaments), track buy-ins and cash-outs, manage blind timers, calculate settlements, and view long-term league statistics with bankroll graphs and leaderboards.
+HomeGame Poker Tracker is a mobile-first web application that serves as a digital bank and tournament manager for home poker games. It supports multi-league organization where users can create/join poker leagues via invite codes, claim their player names within leagues, and track both personal stats across all leagues and league-specific stats.
 
 The app supports two input modes: **Host Mode** (host enters all data manually) and **Collaborative Mode** (players join via session code/QR and submit buy-in requests that the host approves). Sessions end with a settlement flow that validates totals and calculates optimal payouts (banker or peer-to-peer).
+
+### Multi-League System
+- **Leagues:** Users create leagues with auto-generated 6-character invite codes; others join via code
+- **Tables:** `leagues`, `league_members`, `league_players` in the database
+- **Player Claiming:** Each league has players (from imports or sessions); users claim their name to link it to their account
+- **Personal Stats:** `GET /api/stats/personal` aggregates data across all leagues where user has claimed a name
+- **League Stats:** `GET /api/stats/league/:leagueId` shows all player performance within a league
+- **League Sessions:** `GET /api/leagues/:id/sessions` returns all sessions in a league (membership-gated)
+- **Data Migration:** `POST /api/migrate-to-league` moves existing game_results into a league, creating unclaimed players
+- **Dashboard Tabs:** "My Profile" (personal cross-league stats) and "My Leagues" (league selector + league-specific stats + sessions)
+- **Authorization:** All league endpoints check membership before returning data
+- **Hooks:** `client/src/hooks/use-leagues.ts` has useLeagues, useLeague, useLeagueSessions, useLeagueStats, usePersonalStats, useCreateLeague, useJoinLeague, useClaimPlayer, useMigrateToLeague
 
 ### Game Master (Admin) Mode
 - **Toggle:** Host can enable "Admin Mode" via a button in the Session Header to reveal manual controls
@@ -84,10 +96,13 @@ Preferred communication style: Simple, everyday language.
 - **Key Tables:**
   - `users` — User accounts (Replit Auth managed)
   - `sessions` (auth) — Express session storage
-  - `poker_sessions` — Game sessions with type (cash/tournament), status, host, join code, and config (JSON for blind structure etc.)
+  - `leagues` — Poker leagues with invite codes, creator reference
+  - `league_members` — League membership (userId + leagueId)
+  - `league_players` — Player names within a league, with optional `claimedByUserId` link
+  - `poker_sessions` — Game sessions with type (cash/tournament), status, host, join code, optional `leagueId`, and config (JSON for blind structure etc.)
   - `session_players` — Players in a session with status tracking (active/busted/cashed_out), tournament placement, and stack tracking
   - `transactions` — Buy-in and cash-out ledger entries with payment method (cash/digital), approval status (pending/approved/rejected)
-  - `game_results` — Historical game results for stats/leaderboard (also used for legacy data import)
+  - `game_results` — Historical game results for stats/leaderboard with optional `leagueId` for league-scoped data
 
 ### Key Design Patterns
 - **Typed API Contracts:** Route definitions in `shared/routes.ts` include method, path, Zod input schema, and response schemas — used by both server handlers and client hooks

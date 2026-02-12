@@ -24,6 +24,7 @@ export const api = {
       path: '/api/sessions' as const,
       input: z.object({
         type: z.enum(['cash', 'tournament']),
+        leagueId: z.number().optional(),
         config: z.any().optional(),
       }),
       responses: {
@@ -158,6 +159,49 @@ export const api = {
     },
   },
   stats: {
+    personal: {
+      method: 'GET' as const,
+      path: '/api/stats/personal' as const,
+      responses: {
+        200: z.object({
+          totalGames: z.number(),
+          totalProfit: z.number(),
+          roi: z.number(),
+          bankrollHistory: z.array(z.object({
+            date: z.string(),
+            profit: z.number(),
+            cumulative: z.number(),
+          })),
+          recentGames: z.array(z.object({
+            date: z.string(),
+            leagueName: z.string(),
+            profit: z.number(),
+          })),
+        }),
+        401: errorSchemas.unauthorized,
+      },
+    },
+    league: {
+      method: 'GET' as const,
+      path: '/api/stats/league/:leagueId' as const,
+      responses: {
+        200: z.object({
+          totalGames: z.number(),
+          totalMoneyWagered: z.number(),
+          totalPot: z.number(),
+          playerProfitHistory: z.array(z.object({
+            playerName: z.string(),
+            totalProfit: z.number(),
+            points: z.array(z.object({
+              date: z.string(),
+              cumulative: z.number(),
+              profit: z.number(),
+            })),
+          })),
+        }),
+        401: errorSchemas.unauthorized,
+      },
+    },
     get: {
       method: 'GET' as const,
       path: '/api/stats' as const,
@@ -185,6 +229,64 @@ export const api = {
       },
     },
   },
+  leagues: {
+    create: {
+      method: 'POST' as const,
+      path: '/api/leagues' as const,
+      input: z.object({
+        name: z.string().min(1, 'League name is required'),
+      }),
+      responses: {
+        201: z.any(),
+        401: errorSchemas.unauthorized,
+      },
+    },
+    list: {
+      method: 'GET' as const,
+      path: '/api/leagues' as const,
+      responses: {
+        200: z.array(z.any()),
+        401: errorSchemas.unauthorized,
+      },
+    },
+    get: {
+      method: 'GET' as const,
+      path: '/api/leagues/:id' as const,
+      responses: {
+        200: z.any(),
+        404: errorSchemas.notFound,
+      },
+    },
+    join: {
+      method: 'POST' as const,
+      path: '/api/leagues/join' as const,
+      input: z.object({
+        inviteCode: z.string().min(1),
+      }),
+      responses: {
+        200: z.any(),
+        404: errorSchemas.notFound,
+      },
+    },
+    players: {
+      method: 'GET' as const,
+      path: '/api/leagues/:id/players' as const,
+      responses: {
+        200: z.array(z.any()),
+      },
+    },
+    claimPlayer: {
+      method: 'POST' as const,
+      path: '/api/leagues/:id/claim' as const,
+      input: z.object({
+        playerId: z.number(),
+      }),
+      responses: {
+        200: z.any(),
+        400: errorSchemas.validation,
+      },
+    },
+  },
   import: {
     upload: {
       method: 'POST' as const,
@@ -208,6 +310,7 @@ export const api = {
       method: 'POST' as const,
       path: '/api/import/save' as const,
       input: z.object({
+        leagueId: z.number(),
         rows: z.array(z.object({
           date: z.string(),
           playerName: z.string(),

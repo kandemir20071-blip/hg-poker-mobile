@@ -1,0 +1,51 @@
+Objective: Overhaul the app architecture to support multiple distinct Leagues and separate Personal vs. League dashboards.
+
+1. Database Schema Overhaul (PostgreSQL):
+
+leagues Table: Create a table for leagues (id, name, invite_code, creator_id).
+
+players Table: This table tracks names within a league. Columns: id, league_id, name, and claimed_by_user_id (a nullable foreign key to the users table).
+
+Logic: If claimed_by_user_id is NULL, the player is a "Guest." If it is filled, that data belongs to a specific app user.
+
+sessions Table: Update to include a league_id.
+
+2. The 'Invite & Claim' Flow:
+
+League Creation: Only the creator can generate/see the 6-character 'Invite Code'.
+
+Joining: When a User enters a code, they join the league.
+
+Claiming Names: Upon joining, show a list of players in that league where claimed_by_user_id is NULL.
+
+The Mike/Maik Rule: A user can select their name (e.g., 'Mike') to link it to their account.
+
+Placeholders: If a user doesn't claim a name, or doesn't have the app, the name remains a "Guest" profile. These profiles must still appear in all league leaderboards and graphs.
+
+3. UI Restructure (Dashboard Folders):
+
+Folder 1: Personal Data (The Player's Career):
+
+Stats: 'Total Profit', 'Games Played', 'ROI', and 'Global Rank'.
+
+Recent Games: List every session the user has participated in across all leagues. Row format: [Date] | [League Name] | [+/- Profit].
+
+Cumulative Graph: A line chart of the user's profit over time. Include a toggle to filter by "All Leagues" or a "Specific League."
+
+Folder 2: League Data (The Group's History):
+
+League Selector: A dropdown to switch between active leagues.
+
+Stats: 'Total Money Wagered' (Sum of all buy-ins), 'Total Pot', 'Top Winners'.
+
+Recent Games: List all sessions for that league, titled by [Date].
+
+Graph: The "Shark Scope" multi-line chart for the league. Include filters for: "Top 10 Players", "Top 5 & Worst 5", and "Select Individual Player."
+
+4. Data Management & PDF Import:
+
+PDF Import: When importing data to a league, the parser should match names to the players table. If a name exists (claimed or unclaimed), update its stats. If a name is new, create a new "Guest" player entry.
+
+Edit/Delete: Allow the League Creator to edit or delete any session in their league history. Deletions must cascade to remove the associated transaction data.
+
+5. Navigation: > * Implement a clean "Folder" or "Tab" system on the main dashboard to switch between 'My Profile' and 'My Leagues.'

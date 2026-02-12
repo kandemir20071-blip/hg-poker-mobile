@@ -1,12 +1,15 @@
 import { useState, useCallback, useRef } from "react";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
+import { useLeagues } from "@/hooks/use-leagues";
+import { api } from "@shared/routes";
 import {
   Upload,
   FileText,
@@ -24,6 +27,7 @@ import {
   UserCheck,
   UserPlus,
   XCircle,
+  Users,
 } from "lucide-react";
 
 type ImportRow = {
@@ -47,6 +51,11 @@ export default function ImportWizard() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
+  const searchString = useSearch();
+  const searchParams = new URLSearchParams(searchString);
+  const initialLeagueId = searchParams.get('leagueId');
+  const [selectedLeagueId, setSelectedLeagueId] = useState<number | null>(initialLeagueId ? Number(initialLeagueId) : null);
+  const { data: leagues } = useLeagues();
 
   const fetchExistingNames = async () => {
     try {
@@ -106,10 +115,11 @@ export default function ImportWizard() {
 
   const saveMutation = useMutation({
     mutationFn: async (importRows: ImportRow[]) => {
+      if (!selectedLeagueId) throw new Error("Please select a league first");
       const res = await fetch("/api/import/save", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rows: importRows }),
+        body: JSON.stringify({ rows: importRows, leagueId: selectedLeagueId }),
         credentials: "include",
       });
       if (!res.ok) {
@@ -121,6 +131,8 @@ export default function ImportWizard() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
       queryClient.invalidateQueries({ queryKey: ["/api/import/history"] });
+      queryClient.invalidateQueries({ queryKey: [api.stats.league.path, selectedLeagueId] });
+      queryClient.invalidateQueries({ queryKey: [api.leagues.list.path] });
       setStep("confirm");
       const skippedMsg = data.skipped > 0 ? ` (${data.skipped} duplicates skipped)` : "";
       toast({
@@ -229,6 +241,24 @@ export default function ImportWizard() {
           </p>
         </div>
       </div>
+
+      <Card className="p-4 flex items-center gap-4 flex-wrap bg-card/50 border-white/[0.06]" data-testid="card-league-selector">
+        <Users className="h-5 w-5 text-primary shrink-0" />
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-white">Import to League</p>
+          <p className="text-xs text-muted-foreground">Select which league this data belongs to.</p>
+        </div>
+        <Select value={selectedLeagueId?.toString() || ""} onValueChange={(v) => setSelectedLeagueId(Number(v))}>
+          <SelectTrigger className="w-[200px] bg-background/50 border-white/[0.08]" data-testid="select-import-league">
+            <SelectValue placeholder="Select league" />
+          </SelectTrigger>
+          <SelectContent>
+            {(leagues || []).map((league: any) => (
+              <SelectItem key={league.id} value={league.id.toString()}>{league.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </Card>
 
       <div className="flex items-center gap-2 text-sm">
         {[
@@ -640,7 +670,7 @@ export default function ImportWizard() {
             </div>
             <Button
               className="rounded-full font-semibold"
-              disabled={validRows.length === 0 || saveMutation.isPending}
+              disabled={validRows.length === 0 || saveMutation.isPending || !selectedLeagueId}
               onClick={() => saveMutation.mutate(validRows)}
               data-testid="button-confirm-commit"
             >
