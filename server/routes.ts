@@ -358,7 +358,7 @@ export async function registerRoutes(
     });
     
     res.json({
-      totalGames: sessions.length + importedResults.length,
+      totalGames: sessions.length + new Set(importedResults.map(r => new Date(r.date).toISOString().split('T')[0])).size,
       totalProfit,
       roi,
       bankrollHistory,
