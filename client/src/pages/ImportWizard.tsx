@@ -129,10 +129,12 @@ export default function ImportWizard() {
       return res.json() as Promise<{ imported: number; skipped: number; players: string[] }>;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/import/history"] });
-      queryClient.invalidateQueries({ queryKey: [api.stats.league.path, selectedLeagueId] });
-      queryClient.invalidateQueries({ queryKey: [api.leagues.list.path] });
+      queryClient.invalidateQueries({ queryKey: ["/api/stats"], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ["/api/import/history"], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: [api.stats.league.path], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: [api.stats.personal.path], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: [api.leagues.list.path], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ['/api/leagues/sessions'], refetchType: 'all' });
       setStep("confirm");
       const skippedMsg = data.skipped > 0 ? ` (${data.skipped} duplicates skipped)` : "";
       toast({

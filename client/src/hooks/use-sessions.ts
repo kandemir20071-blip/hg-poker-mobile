@@ -94,12 +94,13 @@ export function useEndSession() {
       return api.sessions.end.responses[200].parse(await res.json());
     },
     onSuccess: (_data, { id }) => {
-      queryClient.invalidateQueries({ queryKey: [api.sessions.list.path] });
-      queryClient.invalidateQueries({ queryKey: [api.sessions.get.path, id] });
-      queryClient.invalidateQueries({ queryKey: [api.stats.get.path] });
-      queryClient.invalidateQueries({ queryKey: [api.stats.league.path] });
-      queryClient.invalidateQueries({ queryKey: [api.stats.personal.path] });
-      queryClient.invalidateQueries({ queryKey: ['/api/leagues'] });
+      queryClient.invalidateQueries({ queryKey: [api.sessions.list.path], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: [api.sessions.get.path, id], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: [api.stats.get.path], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: [api.stats.league.path], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: [api.stats.personal.path], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ['/api/leagues'], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ['/api/leagues/sessions'], refetchType: 'all' });
       toast({ title: "Session Ended", description: "Stats have been updated." });
     },
   });
@@ -120,12 +121,13 @@ export function useDeleteSession() {
       return res.json();
     },
     onSuccess: (_data, id) => {
-      queryClient.invalidateQueries({ queryKey: [api.sessions.list.path] });
-      queryClient.invalidateQueries({ queryKey: [api.sessions.get.path, id] });
-      queryClient.invalidateQueries({ queryKey: [api.stats.get.path] });
-      queryClient.invalidateQueries({ queryKey: [api.stats.league.path] });
-      queryClient.invalidateQueries({ queryKey: [api.stats.personal.path] });
-      queryClient.invalidateQueries({ queryKey: ['/api/leagues'] });
+      queryClient.invalidateQueries({ queryKey: [api.sessions.list.path], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: [api.sessions.get.path, id], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: [api.stats.get.path], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: [api.stats.league.path], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: [api.stats.personal.path], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ['/api/leagues'], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ['/api/leagues/sessions'], refetchType: 'all' });
       toast({ title: "Session Deleted", description: "The session and all transactions have been removed." });
     },
     onError: () => {

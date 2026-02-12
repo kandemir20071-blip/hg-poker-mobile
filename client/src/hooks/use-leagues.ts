@@ -100,10 +100,11 @@ export function useClaimPlayer() {
       return res.json();
     },
     onSuccess: (_, { leagueId }) => {
-      queryClient.invalidateQueries({ queryKey: [api.leagues.get.path, leagueId] });
-      queryClient.invalidateQueries({ queryKey: [api.leagues.list.path] });
-      queryClient.invalidateQueries({ queryKey: [api.stats.personal.path] });
-      queryClient.invalidateQueries({ queryKey: [api.stats.league.path] });
+      queryClient.invalidateQueries({ queryKey: [api.leagues.get.path, leagueId], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: [api.leagues.list.path], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: [api.stats.personal.path], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: [api.stats.league.path], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: [api.stats.get.path], refetchType: 'all' });
       toast({ title: "Name Claimed", description: "Your name has been linked to your account. Your personal stats are now updated." });
     },
     onError: (err: any) => {
@@ -181,8 +182,11 @@ export function useMigrateToLeague() {
       return res.json();
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: [api.leagues.list.path] });
-      queryClient.invalidateQueries({ queryKey: [api.stats.personal.path] });
+      queryClient.invalidateQueries({ queryKey: [api.leagues.list.path], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: [api.stats.personal.path], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: [api.stats.league.path], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: [api.stats.get.path], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ['/api/leagues/sessions'], refetchType: 'all' });
       toast({
         title: "Data Migrated",
         description: `Moved ${data.migrated} records, created ${data.playersCreated} new players.`,
