@@ -40,11 +40,11 @@ export function BuyInDialog({ sessionId, playerId, trigger, defaultAmount = 100 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        {trigger || <Button className="w-full bg-primary text-primary-foreground font-bold hover:bg-primary/90">Buy In</Button>}
+        {trigger || <Button className="w-full font-semibold" data-testid="button-buy-in">Buy In</Button>}
       </DialogTrigger>
-      <DialogContent className="bg-card border-white/10 sm:max-w-md">
+      <DialogContent className="glass-card sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="font-display text-2xl text-center text-primary">Add Chips</DialogTitle>
+          <DialogTitle className="text-2xl text-center">Add Chips</DialogTitle>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-6 mt-4">
@@ -58,10 +58,11 @@ export function BuyInDialog({ sessionId, playerId, trigger, defaultAmount = 100 
                   type="number"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  className="pl-10 text-xl font-mono bg-background/50 border-white/10 h-14"
+                  className="pl-10 text-xl font-mono bg-background/50 border-white/[0.08] h-14"
                   placeholder="0.00"
                   required
                   min="1"
+                  data-testid="input-buy-in-amount"
                 />
               </div>
             </div>
@@ -74,7 +75,7 @@ export function BuyInDialog({ sessionId, playerId, trigger, defaultAmount = 100 
                   <Label
                     htmlFor="cash"
                     className={cn(
-                      "flex flex-col items-center justify-between rounded-xl border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:text-primary cursor-pointer transition-all",
+                      "flex flex-col items-center justify-between rounded-xl border border-white/[0.08] bg-background/50 p-4 hover:bg-white/[0.04] peer-data-[state=checked]:border-primary peer-data-[state=checked]:text-primary cursor-pointer transition-all",
                       method === "cash" && "border-primary bg-primary/5"
                     )}
                   >
@@ -87,7 +88,7 @@ export function BuyInDialog({ sessionId, playerId, trigger, defaultAmount = 100 
                   <Label
                     htmlFor="digital"
                     className={cn(
-                      "flex flex-col items-center justify-between rounded-xl border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:text-primary cursor-pointer transition-all",
+                      "flex flex-col items-center justify-between rounded-xl border border-white/[0.08] bg-background/50 p-4 hover:bg-white/[0.04] peer-data-[state=checked]:border-primary peer-data-[state=checked]:text-primary cursor-pointer transition-all",
                       method === "digital" && "border-primary bg-primary/5"
                     )}
                   >
@@ -101,8 +102,9 @@ export function BuyInDialog({ sessionId, playerId, trigger, defaultAmount = 100 
 
           <Button 
             type="submit" 
-            className="w-full h-12 text-lg font-bold bg-gold-gradient text-black hover:opacity-90 shadow-lg shadow-primary/20"
+            className="w-full rounded-full font-semibold"
             disabled={isPending}
+            data-testid="button-confirm-buy-in"
           >
             {isPending ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "Confirm Buy-In"}
           </Button>

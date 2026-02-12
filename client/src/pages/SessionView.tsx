@@ -37,7 +37,6 @@ export default function SessionView() {
   const isHost = session.hostId === user?.id;
   const isActive = session.status === 'active';
   
-  // Calculations
   const totalInPlay = players.reduce((sum, p) => sum + p.totalBuyIn, 0);
   const pendingTransactions = transactions.filter(t => t.status === 'pending');
 
@@ -57,30 +56,29 @@ export default function SessionView() {
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-card rounded-xl p-6 border border-white/5 shadow-lg">
+      <div className="glass-card rounded-xl p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <h1 className="text-2xl font-display font-bold text-white capitalize">{session.type} Game</h1>
-            <span className={`px-2 py-0.5 rounded-full text-xs font-bold uppercase ${isActive ? 'bg-green-500/20 text-green-500' : 'bg-red-500/20 text-red-500'}`}>
+            <h1 className="text-2xl font-bold text-white capitalize" data-testid="text-session-title">{session.type} Game</h1>
+            <span className={`px-2 py-0.5 rounded-full text-xs font-bold uppercase ${isActive ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`} data-testid="badge-session-status">
               {session.status}
             </span>
           </div>
           <p className="text-sm text-muted-foreground flex items-center gap-2">
-            Started {format(new Date(session.startTime), 'h:mm a')} • Code: 
+            Started {format(new Date(session.startTime), 'h:mm a')} 
             <span className="font-mono text-primary font-bold">{session.code}</span>
-            <button onClick={handleCopyCode} className="hover:text-white"><Copy className="w-3 h-3" /></button>
+            <button onClick={handleCopyCode} className="hover:text-white" data-testid="button-copy-code"><Copy className="w-3 h-3" /></button>
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           <Dialog>
             <DialogTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-2">
+              <Button variant="outline" size="sm" className="gap-2" data-testid="button-share">
                 <Share2 className="w-4 h-4" /> Share
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-card border-white/10 text-center">
+            <DialogContent className="glass-card text-center">
               <DialogHeader>
                 <DialogTitle>Join Code</DialogTitle>
               </DialogHeader>
@@ -90,7 +88,7 @@ export default function SessionView() {
                 </div>
                 <div className="text-center space-y-2">
                   <p className="text-muted-foreground text-sm">Scan or enter code to join</p>
-                  <div className="text-4xl font-mono font-bold text-primary tracking-widest">{session.code}</div>
+                  <div className="text-4xl font-mono font-bold text-primary tracking-widest" data-testid="text-session-code">{session.code}</div>
                 </div>
               </div>
             </DialogContent>
@@ -99,11 +97,11 @@ export default function SessionView() {
           {isHost && isActive && (
             <Dialog open={endDialogOpen} onOpenChange={setEndDialogOpen}>
               <DialogTrigger asChild>
-                <Button variant="destructive" size="sm" className="gap-2">
+                <Button variant="destructive" size="sm" className="gap-2" data-testid="button-end-session">
                   <LogOut className="w-4 h-4" /> End Session
                 </Button>
               </DialogTrigger>
-              <DialogContent className="bg-card border-white/10">
+              <DialogContent className="glass-card">
                 <DialogHeader>
                   <DialogTitle>End Session?</DialogTitle>
                 </DialogHeader>
@@ -129,13 +127,12 @@ export default function SessionView() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Content: Player List */}
         <div className="lg:col-span-2 space-y-6">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-display font-bold text-white">Players</h2>
-            <div className="bg-card px-4 py-2 rounded-lg border border-white/5">
+            <h2 className="text-xl font-bold text-white">Players</h2>
+            <div className="glass-card px-4 py-2 rounded-lg">
               <span className="text-xs text-muted-foreground uppercase tracking-wider mr-2">Total Pot</span>
-              <span className="text-xl font-mono font-bold text-primary">${totalInPlay}</span>
+              <span className="text-xl font-mono font-bold text-primary" data-testid="text-total-pot">${totalInPlay}</span>
             </div>
           </div>
           
@@ -147,16 +144,14 @@ export default function SessionView() {
           />
         </div>
 
-        {/* Sidebar: Activity / Approval Queue */}
         <div className="space-y-6">
-          {/* Approval Queue (Host Only) */}
           {isHost && pendingTransactions.length > 0 && (
-            <div className="bg-card rounded-xl border border-primary/30 overflow-hidden shadow-lg shadow-primary/5">
+            <div className="glass-card rounded-xl overflow-hidden border-primary/20">
               <div className="bg-primary/10 p-4 border-b border-primary/20 flex items-center gap-2">
                 <AlertTriangle className="w-5 h-5 text-primary animate-pulse" />
                 <h3 className="font-bold text-primary">Approvals Needed</h3>
               </div>
-              <div className="divide-y divide-white/5">
+              <div className="divide-y divide-white/[0.06]">
                 {pendingTransactions.map(tx => {
                   const player = players.find(p => p.id === tx.playerId);
                   return (
@@ -164,7 +159,7 @@ export default function SessionView() {
                       <div className="flex justify-between items-start">
                         <div>
                           <p className="font-bold text-white">{player?.name}</p>
-                          <p className="text-xs text-muted-foreground capitalize">{tx.type.replace('_', ' ')} • {tx.paymentMethod}</p>
+                          <p className="text-xs text-muted-foreground capitalize">{tx.type.replace('_', ' ')}</p>
                         </div>
                         <div className="text-xl font-mono font-bold text-white">${tx.amount}</div>
                       </div>
@@ -172,15 +167,16 @@ export default function SessionView() {
                         <Button 
                           size="sm" 
                           variant="ghost" 
-                          className="text-destructive hover:bg-destructive/10"
+                          className="text-destructive"
                           onClick={() => updateTx({ id: tx.id, sessionId, data: { status: 'rejected' } })}
+                          data-testid={`button-reject-${tx.id}`}
                         >
                           <XCircle className="w-4 h-4 mr-1" /> Reject
                         </Button>
                         <Button 
                           size="sm" 
-                          className="bg-green-600 hover:bg-green-700 text-white"
                           onClick={() => updateTx({ id: tx.id, sessionId, data: { status: 'approved' } })}
+                          data-testid={`button-approve-${tx.id}`}
                         >
                           <CheckCircle className="w-4 h-4 mr-1" /> Approve
                         </Button>
@@ -192,10 +188,9 @@ export default function SessionView() {
             </div>
           )}
 
-          {/* Recent Activity Stream */}
-          <div className="bg-card rounded-xl border border-white/5 p-4">
-            <h3 className="font-display font-bold text-lg mb-4 text-white">Ledger</h3>
-            <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+          <div className="glass-card rounded-xl p-4">
+            <h3 className="font-bold text-base mb-4 text-white">Ledger</h3>
+            <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
               {transactions
                 .filter(t => t.status !== 'pending')
                 .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
@@ -203,7 +198,7 @@ export default function SessionView() {
                   const player = players.find(p => p.id === tx.playerId);
                   const isBuyIn = tx.type === 'buy_in';
                   return (
-                    <div key={tx.id} className="flex items-center justify-between text-sm py-1">
+                    <div key={tx.id} className="flex items-center justify-between text-sm py-1" data-testid={`ledger-entry-${tx.id}`}>
                       <div className="flex items-center gap-2">
                         <span className="text-muted-foreground text-xs font-mono">
                           {format(new Date(tx.timestamp), 'HH:mm')}
@@ -211,7 +206,7 @@ export default function SessionView() {
                         <span className="font-medium text-white">{player?.name}</span>
                         <span className="text-muted-foreground text-xs">{isBuyIn ? 'bought in' : 'cashed out'}</span>
                       </div>
-                      <span className={`font-mono font-bold ${isBuyIn ? 'text-destructive' : 'text-green-500'}`}>
+                      <span className={`font-mono font-bold ${isBuyIn ? 'text-destructive' : 'text-emerald-400'}`}>
                         {isBuyIn ? '-' : '+'}${tx.amount}
                       </span>
                     </div>

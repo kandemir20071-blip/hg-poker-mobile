@@ -189,7 +189,7 @@ export default function ImportWizard() {
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
-          <h2 className="text-2xl md:text-3xl font-display font-bold text-white">
+          <h2 className="text-2xl md:text-3xl font-bold text-white">
             Import Game History
           </h2>
           <p className="text-muted-foreground text-sm">
@@ -340,7 +340,7 @@ export default function ImportWizard() {
                 data-testid="textarea-paste"
               />
               <Button
-                className="w-full bg-primary text-black font-bold"
+                className="w-full rounded-full font-semibold"
                 onClick={handlePasteSubmit}
                 disabled={!pasteText.trim()}
                 data-testid="button-parse-text"
@@ -371,10 +371,10 @@ export default function ImportWizard() {
           )}
 
           {rows.length === 0 && (
-            <Card className="bg-yellow-500/10 border-yellow-500/20 p-4 flex items-start gap-3">
-              <AlertTriangle className="h-5 w-5 text-yellow-500 shrink-0 mt-0.5" />
+            <Card className="bg-amber-500/10 border-amber-500/20 p-4 flex items-start gap-3">
+              <AlertTriangle className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-medium text-yellow-500">
+                <p className="text-sm font-medium text-amber-400">
                   No records detected
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
@@ -523,7 +523,7 @@ export default function ImportWizard() {
               {validRows.length} of {rows.length} rows valid
             </div>
             <Button
-              className="bg-primary text-black font-bold"
+              className="rounded-full font-semibold"
               disabled={validRows.length === 0 || saveMutation.isPending}
               onClick={() => saveMutation.mutate(validRows)}
               data-testid="button-import"
@@ -546,7 +546,7 @@ export default function ImportWizard() {
             <CheckCircle className="h-8 w-8 text-green-500" />
           </div>
           <div>
-            <h3 className="text-xl font-display font-bold text-white mb-2">
+            <h3 className="text-xl font-bold text-white mb-2">
               Import Complete
             </h3>
             <p className="text-muted-foreground text-sm">
@@ -556,7 +556,7 @@ export default function ImportWizard() {
           </div>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Button
-              className="bg-primary text-black font-bold"
+              className="rounded-full font-semibold"
               onClick={() => setLocation("/dashboard")}
               data-testid="button-go-dashboard"
             >

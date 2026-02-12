@@ -26,8 +26,8 @@ export default function JoinSession() {
 
   return (
     <div className="max-w-md mx-auto mt-10 md:mt-20">
-      <div className="bg-card rounded-2xl p-8 border border-white/10 shadow-2xl">
-        <h1 className="font-display text-3xl font-bold text-center mb-2 text-white">Join Table</h1>
+      <div className="glass-card rounded-2xl p-8" data-testid="card-join">
+        <h1 className="text-3xl font-bold text-center mb-2 text-white">Join Table</h1>
         <p className="text-center text-muted-foreground mb-8">Enter the session code to take your seat.</p>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -38,9 +38,10 @@ export default function JoinSession() {
               value={code}
               onChange={e => setCode(e.target.value.toUpperCase())}
               placeholder="e.g. A7X9"
-              className="text-center text-2xl font-mono tracking-widest uppercase h-14 bg-background border-white/10 focus:border-primary/50"
+              className="text-center text-2xl font-mono tracking-widest uppercase h-14 bg-background border-white/[0.08] focus:border-primary/50"
               maxLength={6}
               required
+              data-testid="input-session-code"
             />
           </div>
 
@@ -51,15 +52,17 @@ export default function JoinSession() {
               value={name}
               onChange={e => setName(e.target.value)}
               placeholder="Your Name"
-              className="h-12 bg-background border-white/10"
+              className="h-12 bg-background border-white/[0.08]"
               required
+              data-testid="input-display-name"
             />
           </div>
 
           <Button 
             type="submit" 
-            className="w-full h-12 text-lg font-bold bg-primary text-black hover:bg-primary/90 mt-4"
+            className="w-full rounded-full font-semibold mt-4"
             disabled={isPending}
+            data-testid="button-join-game"
           >
             {isPending ? <Loader2 className="animate-spin" /> : <span className="flex items-center gap-2">Join Game <ArrowRight className="w-4 h-4" /></span>}
           </Button>

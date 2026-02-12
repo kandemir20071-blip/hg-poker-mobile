@@ -13,29 +13,28 @@ interface StatCardProps {
 export function StatCard({ title, value, icon: Icon, trend, trendUp, className }: StatCardProps) {
   return (
     <div className={cn(
-      "bg-card rounded-xl p-6 border border-white/5 shadow-lg relative overflow-hidden group hover:border-primary/20 transition-all duration-300",
+      "glass-card rounded-xl p-5 relative overflow-hidden group hover:border-primary/20 transition-all duration-300",
       className
-    )}>
-      {/* Background decoration */}
-      <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-        <Icon className="w-24 h-24 transform translate-x-4 -translate-y-4 text-primary" />
+    )} data-testid={`stat-card-${title.toLowerCase().replace(/\s+/g, '-')}`}>
+      <div className="absolute top-0 right-0 p-4 opacity-[0.04] group-hover:opacity-[0.08] transition-opacity">
+        <Icon className="w-20 h-20 transform translate-x-4 -translate-y-4 text-primary" />
       </div>
 
       <div className="relative z-10 flex flex-col h-full justify-between">
-        <div className="flex items-center gap-3 mb-2">
+        <div className="flex items-center gap-3 mb-3">
           <div className="p-2 bg-primary/10 rounded-lg text-primary">
-            <Icon className="w-5 h-5" />
+            <Icon className="w-4 h-4" />
           </div>
-          <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">{title}</h3>
+          <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{title}</h3>
         </div>
         
         <div className="space-y-1">
-          <div className="text-2xl md:text-3xl font-display font-bold text-white tracking-tight">
+          <div className="text-2xl md:text-3xl font-bold text-white tracking-tight">
             {value}
           </div>
           {trend && (
             <div className={cn("text-xs font-medium flex items-center gap-1", 
-              trendUp ? "text-green-500" : "text-destructive"
+              trendUp ? "text-emerald-400" : "text-destructive"
             )}>
               <span>{trend}</span>
             </div>

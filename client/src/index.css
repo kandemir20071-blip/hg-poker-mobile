@@ -1,92 +1,103 @@
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  /* Casino Dark Theme Palette */
-  --font-display: 'Cinzel', serif;
-  --font-body: 'Inter', sans-serif;
+  --font-body: 'Inter', system-ui, -apple-system, sans-serif;
 
-  /* Deep Black/Gray Backgrounds */
-  --background: 240 5% 8%;      /* #131316 */
-  --foreground: 0 0% 95%;       /* #f2f2f2 */
+  --background: 222 47% 11%;
+  --foreground: 210 40% 98%;
 
-  --card: 240 5% 12%;           /* #1d1d21 */
-  --card-foreground: 0 0% 95%;
+  --card: 222 47% 14%;
+  --card-foreground: 210 40% 98%;
 
-  --popover: 240 5% 12%;
-  --popover-foreground: 0 0% 95%;
+  --popover: 222 47% 14%;
+  --popover-foreground: 210 40% 98%;
 
-  /* Luxury Gold Primary */
-  --primary: 43 96% 58%;        /* #FFD700 - Gold */
-  --primary-foreground: 240 5% 10%;
+  --primary: 160 84% 39%;
+  --primary-foreground: 210 40% 98%;
 
-  /* Silver/Muted Secondary */
-  --secondary: 240 4% 20%;
-  --secondary-foreground: 0 0% 90%;
+  --secondary: 217 33% 17%;
+  --secondary-foreground: 210 40% 90%;
 
-  --muted: 240 4% 20%;
-  --muted-foreground: 240 5% 60%;
+  --muted: 217 33% 17%;
+  --muted-foreground: 215 20% 55%;
 
-  --accent: 43 96% 58%;
-  --accent-foreground: 240 5% 10%;
+  --accent: 160 84% 39%;
+  --accent-foreground: 210 40% 98%;
 
-  /* Action Colors */
-  --destructive: 0 84% 60%;     /* Red for losses/danger */
+  --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 98%;
-  
-  --success: 142 71% 45%;       /* Green for wins/money */
+
+  --success: 160 84% 39%;
   --success-foreground: 0 0% 98%;
 
-  --border: 240 5% 20%;
-  --input: 240 5% 20%;
-  --ring: 43 96% 58%;
+  --border: 217 33% 20%;
+  --input: 217 33% 20%;
+  --ring: 160 84% 39%;
 
   --radius: 0.75rem;
+
+  --chart-1: 160 84% 39%;
+  --chart-2: 217 91% 60%;
+  --chart-3: 271 81% 56%;
+  --chart-4: 43 96% 58%;
+  --chart-5: 27 96% 61%;
+
+  --sidebar: 222 47% 12%;
+  --sidebar-foreground: 210 40% 98%;
+  --sidebar-border: 217 33% 18%;
+  --sidebar-ring: 160 84% 39%;
+  --sidebar-primary: 160 84% 39%;
+  --sidebar-primary-foreground: 210 40% 98%;
+  --sidebar-accent: 217 33% 20%;
+  --sidebar-accent-foreground: 210 40% 98%;
 }
 
 @layer base {
   body {
-    @apply bg-background text-foreground antialiased selection:bg-primary/30 selection:text-primary;
+    @apply bg-background text-foreground antialiased;
     font-family: var(--font-body);
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: var(--font-display);
+    font-family: var(--font-body);
     @apply font-bold tracking-tight text-white;
   }
 }
 
 @layer utilities {
-  .text-gold {
-    @apply text-primary;
+  .glass-panel {
+    @apply bg-card/60 backdrop-blur-xl border border-white/[0.08] shadow-xl;
   }
-  
-  .bg-gold-gradient {
-    background: linear-gradient(135deg, #FFD700 0%, #FDB931 100%);
+
+  .glass-card {
+    background: hsla(222, 47%, 14%, 0.6);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
   }
 
   .text-shadow {
     text-shadow: 0 2px 4px rgba(0,0,0,0.5);
   }
 
-  .glass-panel {
-    @apply bg-card/80 backdrop-blur-md border border-white/5 shadow-xl;
+  .glow-emerald {
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.15), 0 0 60px rgba(16, 185, 129, 0.05);
   }
 }
 
-/* Custom Scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
 }
 ::-webkit-scrollbar-track {
-  @apply bg-background;
+  @apply bg-transparent;
 }
 ::-webkit-scrollbar-thumb {
-  @apply bg-secondary rounded-full;
+  @apply bg-white/10 rounded-full;
 }
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-primary/50;
+  @apply bg-white/20;
 }
