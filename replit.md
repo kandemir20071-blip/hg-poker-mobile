@@ -14,6 +14,7 @@ The app supports two input modes: **Host Mode** (host enters all data manually) 
 - **League Stats:** `GET /api/stats/league/:leagueId` shows all player performance within a league
 - **League Sessions:** `GET /api/leagues/:id/sessions` returns all sessions in a league (membership-gated)
 - **Data Migration:** `POST /api/migrate-to-league` moves existing game_results into a league, creating unclaimed players
+- **Invite Code Visibility:** Invite code shown to ALL league members (not just creators) in both the top bar copy button and the League Info card, so any member can invite others
 - **Dashboard Tabs:** "My Profile" (personal cross-league stats) and "My Leagues" (league selector + league-specific stats + sessions)
 - **Authorization:** All league endpoints check membership before returning data
 - **Hooks:** `client/src/hooks/use-leagues.ts` has useLeagues, useLeague, useLeagueSessions, useLeagueStats, usePersonalStats, useCreateLeague, useJoinLeague, useClaimPlayer, useMigrateToLeague

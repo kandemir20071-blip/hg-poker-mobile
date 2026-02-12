@@ -104,10 +104,10 @@ export const transactionsRelations = relations(transactions, ({ one }) => ({
   player: one(sessionPlayers, { fields: [transactions.playerId], references: [sessionPlayers.id] }),
 }));
 
-export const insertPokerSessionSchema = createInsertSchema(pokerSessions).omit({ id: true, startTime: true, endTime: true, status: true, code: true });
+export const insertPokerSessionSchema = createInsertSchema(pokerSessions).omit({ id: true });
 export const insertSessionPlayerSchema = createInsertSchema(sessionPlayers).omit({ id: true, joinedAt: true, leftAt: true, status: true, tournamentPlace: true, currentStack: true });
-export const insertTransactionSchema = createInsertSchema(transactions).omit({ id: true, timestamp: true, status: true });
-export const insertLeagueSchema = createInsertSchema(leagues).omit({ id: true, createdAt: true, inviteCode: true });
+export const insertTransactionSchema = createInsertSchema(transactions).omit({ id: true, timestamp: true });
+export const insertLeagueSchema = createInsertSchema(leagues).omit({ id: true, createdAt: true });
 export const insertLeagueMemberSchema = createInsertSchema(leagueMembers).omit({ id: true, joinedAt: true });
 export const insertLeaguePlayerSchema = createInsertSchema(leaguePlayers).omit({ id: true });
 

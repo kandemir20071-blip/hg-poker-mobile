@@ -505,7 +505,7 @@ export async function registerRoutes(
       const playerNameSet = new Set(existingPlayers.map(p => p.name.toLowerCase().trim()));
       let playersCreated = 0;
 
-      const uniqueNames = new Set(unassigned.map(r => r.playerName.trim()));
+      const uniqueNames = Array.from(new Set(unassigned.map(r => r.playerName.trim())));
       for (const name of uniqueNames) {
         if (!playerNameSet.has(name.toLowerCase())) {
           await storage.addLeaguePlayer({ leagueId, name, claimedByUserId: null });
@@ -527,7 +527,7 @@ export async function registerRoutes(
           .where(inArrayOp(gameResults.id, batch));
       }
 
-      const uniqueDates = new Set(unassigned.map(r => new Date(r.date).toISOString().split('T')[0]));
+      const uniqueDates = Array.from(new Set(unassigned.map(r => new Date(r.date).toISOString().split('T')[0])));
       const existingSessions = await storage.getLeagueSessions(leagueId);
       const existingSessionDates = new Set(existingSessions.map(s => new Date(s.startTime).toISOString().split('T')[0]));
       let sessionsCreated = 0;
@@ -571,11 +571,12 @@ export async function registerRoutes(
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
         rows = mapSpreadsheetData(XLSX.utils.sheet_to_json<any>(sheet));
       } else if (ext === '.pdf') {
-        const pdfParse = (await import('pdf-parse')).default;
+        const pdfModule = await import('pdf-parse');
+        const pdfParse = (pdfModule as any).default || pdfModule;
         const pdfData = await pdfParse(file.buffer);
-        rawText = pdfData.text;
-        rows = parsePokerPdfText(rawText);
-        if (rows.length === 0) rows = tryParseText(rawText);
+        rawText = pdfData.text || '';
+        rows = parsePokerPdfText(rawText!);
+        if (rows.length === 0) rows = tryParseText(rawText!);
       } else if (ext === '.docx' || ext === '.doc') {
         const mammoth = await import('mammoth');
         const result = await mammoth.extractRawText({ buffer: file.buffer });
@@ -704,7 +705,7 @@ export async function registerRoutes(
       if (!isMember) return res.status(401).json({ message: "Not a member" });
 
       const gameResults = await storage.getLeagueGameResults(leagueId);
-      const uniqueDates = new Set(gameResults.map(r => new Date(r.date).toISOString().split('T')[0]));
+      const uniqueDates = Array.from(new Set(gameResults.map(r => new Date(r.date).toISOString().split('T')[0])));
 
       const existingSessions = await storage.getLeagueSessions(leagueId);
       const existingSessionDates = new Set(
@@ -730,7 +731,7 @@ export async function registerRoutes(
         }
       }
 
-      res.json({ created, totalUniqueDates: uniqueDates.size, existingSessionsBefore: existingSessions.length });
+      res.json({ created, totalUniqueDates: uniqueDates.length, existingSessionsBefore: existingSessions.length });
     } catch (err: any) {
       console.error("Backfill sessions error:", err);
       res.status(500).json({ message: err.message || "Failed to backfill sessions" });

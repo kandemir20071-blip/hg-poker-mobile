@@ -199,7 +199,7 @@ function LeaguesTab({
   const activeSessions = (leagueSessions || []).filter((s: any) => s.status === 'active');
   const recentSessions = (leagueSessions || []).filter((s: any) => s.status === 'completed').slice(0, 10);
 
-  const hasUnmigratedData = legacyStats?.totalGames > 0 && selectedLeagueId;
+  const hasUnmigratedData = (legacyStats?.totalGames ?? 0) > 0 && selectedLeagueId;
 
   const [deleteTarget, setDeleteTarget] = useState<{ id: number; type: string; date: string } | null>(null);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
@@ -271,7 +271,7 @@ function LeaguesTab({
         </div>
 
         <div className="flex items-center gap-2">
-          {isCreator && currentLeague && (
+          {currentLeague && (
             <Button variant="outline" size="sm" onClick={copyInviteCode} data-testid="button-copy-invite">
               {copiedCode ? <Check className="mr-2 h-3.5 w-3.5" /> : <Copy className="mr-2 h-3.5 w-3.5" />}
               {copiedCode ? "Copied" : currentLeague.inviteCode}
@@ -421,12 +421,10 @@ function LeaguesTab({
                       <span className="text-emerald-400 font-medium">{myClaimedPlayer.name}</span>
                     </div>
                   )}
-                  {isCreator && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Invite Code</span>
-                      <span className="text-primary font-mono">{leagueWithPlayers.inviteCode}</span>
-                    </div>
-                  )}
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Invite Code</span>
+                    <span className="text-primary font-mono">{leagueWithPlayers.inviteCode}</span>
+                  </div>
                 </div>
                 {myClaimedPlayer ? (
                   <div className="mt-3 p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-center" data-testid="text-claimed-name">
