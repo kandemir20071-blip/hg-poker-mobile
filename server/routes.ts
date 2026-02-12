@@ -388,7 +388,7 @@ export async function registerRoutes(
     const userId = (req.user as any).claims.sub;
     const userLeagues = await storage.getUserLeagues(userId);
 
-    let allResults: Array<{ date: Date; profit: number; buyIn: number; leagueName: string }> = [];
+    let allResults: Array<{ date: Date; profit: number; buyIn: number; cashOut: number; leagueName: string }> = [];
 
     for (const league of userLeagues) {
       const results = await storage.getLeagueGameResults(league.id);
@@ -405,6 +405,7 @@ export async function registerRoutes(
           date: new Date(r.date),
           profit: r.netProfit,
           buyIn: r.buyIn,
+          cashOut: r.cashOut,
           leagueName: league.name,
         });
       }
@@ -425,6 +426,7 @@ export async function registerRoutes(
     const totalProfit = allResults.reduce((sum, r) => sum + r.profit, 0);
     const totalGames = new Set(allResults.map(r => r.date.toISOString().split('T')[0])).size;
     const totalBuyIn = allResults.reduce((sum, r) => sum + r.buyIn, 0);
+    const totalCashOut = allResults.reduce((sum, r) => sum + r.cashOut, 0);
     const roi = totalBuyIn > 0 ? Math.round((totalProfit / totalBuyIn) * 100) : 0;
 
     const recentGames = allResults.slice(-20).reverse().map(r => ({
@@ -433,7 +435,7 @@ export async function registerRoutes(
       profit: r.profit,
     }));
 
-    res.json({ totalGames, totalProfit, totalBuyIn, roi, bankrollHistory, recentGames });
+    res.json({ totalGames, totalProfit, totalBuyIn, totalCashOut, roi, bankrollHistory, recentGames });
   });
 
   app.get(api.stats.league.path, requireAuth, async (req, res) => {

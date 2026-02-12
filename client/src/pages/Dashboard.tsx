@@ -9,7 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Coins, Trophy, TrendingUp, History, Play, Loader2, ArrowRight, Upload, Pencil, Trash2, AlertTriangle, Users, Plus, LogIn, User, Shield, Copy, Check } from "lucide-react";
+import { Coins, Trophy, TrendingUp, History, Play, Loader2, ArrowRight, Upload, Pencil, Trash2, AlertTriangle, Users, Plus, LogIn, User, Shield, Copy, Check, ArrowDownLeft, ArrowUpRight } from "lucide-react";
 import { SuitAccent, SuitsLoader, SuitsRow } from "@/components/ui/Suits";
 import { Link, useLocation } from "wouter";
 import { format } from "date-fns";
@@ -104,10 +104,20 @@ function ProfileTab() {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <StatCard title="Total Profit" value={`$${stats?.totalProfit || 0}`} icon={Coins} subtitle={personalStats?.totalBuyIn ? `$${personalStats.totalBuyIn} total buy-in` : undefined} trend={stats?.roi ? `${stats.roi}% ROI` : undefined} trendUp={(stats?.roi || 0) > 0} />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+        <StatCard
+          title="Total Profit"
+          value={`$${stats?.totalProfit || 0}`}
+          icon={Coins}
+          prominent
+          valueColor={(stats?.totalProfit || 0) >= 0 ? "text-emerald-400" : "text-destructive"}
+          trend={stats?.roi ? `${stats.roi}% ROI` : undefined}
+          trendUp={(stats?.roi || 0) > 0}
+          className="col-span-2 md:col-span-1"
+        />
+        <StatCard title="Money Wagered" value={`$${personalStats?.totalBuyIn || 0}`} icon={ArrowUpRight} />
+        <StatCard title="Total Cash Out" value={`$${personalStats?.totalCashOut || 0}`} icon={ArrowDownLeft} />
         <StatCard title="Games Played" value={stats?.totalGames || 0} icon={History} />
-        <StatCard title="ROI" value={`${stats?.roi || 0}%`} icon={TrendingUp} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

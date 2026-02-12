@@ -167,6 +167,7 @@ export const api = {
           totalGames: z.number(),
           totalProfit: z.number(),
           totalBuyIn: z.number(),
+          totalCashOut: z.number(),
           roi: z.number(),
           bankrollHistory: z.array(z.object({
             date: z.string(),
