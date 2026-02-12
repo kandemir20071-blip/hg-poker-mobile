@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useStats } from "@/hooks/use-stats";
 import { useCreateSession, useDeleteSession } from "@/hooks/use-sessions";
-import { useLeagues, useLeagueStats, useLeagueSessions, usePersonalStats, useCreateLeague, useJoinLeague, useClaimPlayer, useMigrateToLeague } from "@/hooks/use-leagues";
+import { useLeagues, useLeague, useLeagueStats, useLeagueSessions, usePersonalStats, useCreateLeague, useJoinLeague, useClaimPlayer, useMigrateToLeague } from "@/hooks/use-leagues";
 import { StatCard } from "@/components/ui/StatCard";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -190,8 +190,10 @@ function LeaguesTab({
   const { data: leagueStats } = useLeagueStats(selectedLeagueId);
   const { data: legacyStats } = useStats();
   const { data: leagueSessions } = useLeagueSessions(selectedLeagueId);
+  const { data: leagueDetail } = useLeague(selectedLeagueId);
 
   const currentLeague = leagues.find((l: any) => l.id === selectedLeagueId);
+  const leagueWithPlayers = leagueDetail || currentLeague;
   const isCreator = currentLeague?.creatorId === user?.id;
 
   const activeSessions = (leagueSessions || []).filter((s: any) => s.status === 'active');
@@ -396,7 +398,7 @@ function LeaguesTab({
             </div>
           </div>
 
-          {currentLeague && (
+          {leagueWithPlayers && (
             <div className="glass-card rounded-xl p-5">
               <div className="flex items-center justify-between mb-3 gap-2">
                 <h3 className="font-bold text-base text-white">League Info</h3>
@@ -405,16 +407,16 @@ function LeaguesTab({
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Players</span>
-                  <span className="text-white">{currentLeague.players?.length || 0}</span>
+                  <span className="text-white">{leagueWithPlayers.players?.length || 0}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Members</span>
-                  <span className="text-white">{currentLeague.memberCount || 0}</span>
+                  <span className="text-white">{leagueWithPlayers.memberCount || 0}</span>
                 </div>
                 {isCreator && (
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Invite Code</span>
-                    <span className="text-primary font-mono">{currentLeague.inviteCode}</span>
+                    <span className="text-primary font-mono">{leagueWithPlayers.inviteCode}</span>
                   </div>
                 )}
               </div>
@@ -428,7 +430,7 @@ function LeaguesTab({
 
       <CreateLeagueDialog open={showCreateDialog} onOpenChange={setShowCreateDialog} name={newLeagueName} onNameChange={setNewLeagueName} onCreate={() => { createLeague({ name: newLeagueName }, { onSuccess: () => { setShowCreateDialog(false); setNewLeagueName(""); } }); }} isCreating={isCreating} />
       <JoinLeagueDialog open={showJoinDialog} onOpenChange={setShowJoinDialog} code={joinCode} onCodeChange={setJoinCode} onJoin={() => { joinLeague({ inviteCode: joinCode }, { onSuccess: () => { setShowJoinDialog(false); setJoinCode(""); } }); }} isJoining={isJoining} />
-      <ClaimNameDialog open={showClaimDialog} onOpenChange={setShowClaimDialog} league={currentLeague} onClaim={(playerId: number) => { if (selectedLeagueId) claimPlayer({ leagueId: selectedLeagueId, playerId }, { onSuccess: () => setShowClaimDialog(false) }); }} />
+      <ClaimNameDialog open={showClaimDialog} onOpenChange={setShowClaimDialog} league={leagueWithPlayers} onClaim={(playerId: number) => { if (selectedLeagueId) claimPlayer({ leagueId: selectedLeagueId, playerId }, { onSuccess: () => setShowClaimDialog(false) }); }} />
 
       <Dialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) { setDeleteTarget(null); setDeleteConfirmText(""); } }}>
         <DialogContent className="glass-card sm:max-w-md">
