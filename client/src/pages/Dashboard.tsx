@@ -105,7 +105,7 @@ function ProfileTab() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <StatCard title="Total Profit" value={`$${stats?.totalProfit || 0}`} icon={Coins} trend={stats?.roi ? `${stats.roi}% ROI` : undefined} trendUp={(stats?.roi || 0) > 0} />
+        <StatCard title="Total Profit" value={`$${stats?.totalProfit || 0}`} icon={Coins} subtitle={personalStats?.totalBuyIn ? `$${personalStats.totalBuyIn} total buy-in` : undefined} trend={stats?.roi ? `${stats.roi}% ROI` : undefined} trendUp={(stats?.roi || 0) > 0} />
         <StatCard title="Games Played" value={stats?.totalGames || 0} icon={History} />
         <StatCard title="ROI" value={`${stats?.roi || 0}%`} icon={TrendingUp} />
       </div>

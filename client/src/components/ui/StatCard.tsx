@@ -7,10 +7,11 @@ interface StatCardProps {
   icon: LucideIcon;
   trend?: string;
   trendUp?: boolean;
+  subtitle?: string;
   className?: string;
 }
 
-export function StatCard({ title, value, icon: Icon, trend, trendUp, className }: StatCardProps) {
+export function StatCard({ title, value, icon: Icon, trend, trendUp, subtitle, className }: StatCardProps) {
   return (
     <div className={cn(
       "glass-card rounded-xl p-5 relative overflow-hidden group hover:border-primary/20 transition-all duration-300",
@@ -32,6 +33,11 @@ export function StatCard({ title, value, icon: Icon, trend, trendUp, className }
           <div className="text-2xl md:text-3xl font-bold text-white tracking-tight">
             {value}
           </div>
+          {subtitle && (
+            <div className="text-xs text-muted-foreground" data-testid={`stat-subtitle-${title.toLowerCase().replace(/\s+/g, '-')}`}>
+              {subtitle}
+            </div>
+          )}
           {trend && (
             <div className={cn("text-xs font-medium flex items-center gap-1", 
               trendUp ? "text-emerald-400" : "text-destructive"
