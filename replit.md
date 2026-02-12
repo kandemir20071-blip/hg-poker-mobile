@@ -15,6 +15,24 @@ The app supports two input modes: **Host Mode** (host enters all data manually) 
 - **API Endpoints:** `POST /api/sessions/:id/players` (add player), `PATCH /api/transactions/:id` (edit), `DELETE /api/transactions/:id` (delete) — all host-only
 - **Components:** `AddPlayerDialog`, `ManagePlayerDialog` in `client/src/components/game/`
 
+### Player Performance Chart
+- **Multi-Line Chart:** Replaced single-line bankroll chart with per-player cumulative profit LineChart (Recharts)
+- **Data:** Server computes cumulative profit per player from game_results, aggregating same-day entries
+- **Filters:** Dropdown above chart: "Top 10 Winners", "Heroes & Villains" (Top 5 + Bottom 5), "All Players", "Select Player" (search)
+- **Visuals:** Smooth monotone lines, 15 distinct colors, hover-highlight in "All Players" mode, interactive legend
+- **Tooltip:** Custom dark tooltip showing session date with per-player cumulative values color-coded green/red
+- **Component:** `PlayerProfitChart` in `client/src/components/PlayerProfitChart.tsx`
+- **API:** `GET /api/stats` returns `playerProfitHistory` array with per-player cumulative points
+
+### Session Management (Edit/Delete)
+- **Edit:** Pencil icon on completed sessions navigates to `/session/:id?admin=true` to reopen in Admin Mode
+- **Delete:** Trash icon opens confirmation dialog requiring user to type "DELETE" before proceeding
+- **Cascade:** Delete removes all transactions, session_players, and the session itself in a database transaction
+- **Cache:** Invalidates sessions list, per-session data, and stats queries on delete
+- **Mobile:** Controls always visible on mobile, hover-reveal on desktop
+- **API:** `DELETE /api/sessions/:id` (host-only, cascade delete)
+- **Storage:** `deleteSession(id)` uses Drizzle transaction with `inArray` for batch transaction deletion
+
 ### PDF Data Import
 - **PDF Parser:** Regex-based engine handles German poker format: date headers (dd.mm.yyyy) grouping player entries like `Name Buy-in€ Endstand: Cash-out€`
 - **Fallback Parser:** Generic text parser for other formats (CSV, Excel, Word, plain text also supported)

@@ -170,6 +170,26 @@ export async function registerRoutes(
     res.json(updated);
   });
 
+  // --- Delete Session (Host only) ---
+
+  app.delete('/api/sessions/:id', requireAuth, async (req, res) => {
+    try {
+      const sessionId = Number(req.params.id);
+      const session = await storage.getSession(sessionId);
+      if (!session) return res.status(404).json({ message: "Session not found" });
+
+      const userId = (req.user as any).claims.sub;
+      if (session.hostId !== userId) {
+        return res.status(401).json({ message: "Only the host can delete sessions" });
+      }
+
+      await storage.deleteSession(sessionId);
+      res.json({ success: true });
+    } catch (err) {
+      res.status(500).json({ message: "Internal Server Error" });
+    }
+  });
+
   // --- Add Player Manually (Host only) ---
 
   app.post(api.sessions.addPlayer.path, requireAuth, async (req, res) => {
@@ -300,7 +320,6 @@ export async function registerRoutes(
     const sessions = await storage.getUserSessions(userId);
     const importedResults = await storage.getGameResults(userId);
     
-    // Build bankroll history from imported results
     const sortedResults = [...importedResults].sort((a, b) => 
       new Date(a.date).getTime() - new Date(b.date).getTime()
     );
@@ -319,11 +338,31 @@ export async function registerRoutes(
     const totalBuyIn = importedResults.reduce((sum, r) => sum + r.buyIn, 0);
     const roi = totalBuyIn > 0 ? Math.round((totalProfit / totalBuyIn) * 100) : 0;
     
+    const playerMap = new Map<string, Map<string, number>>();
+    for (const r of sortedResults) {
+      const name = r.playerName;
+      const dateStr = new Date(r.date).toISOString().split('T')[0];
+      if (!playerMap.has(name)) playerMap.set(name, new Map());
+      const dateMap = playerMap.get(name)!;
+      dateMap.set(dateStr, (dateMap.get(dateStr) || 0) + r.netProfit);
+    }
+    
+    const playerProfitHistory = Array.from(playerMap.entries()).map(([playerName, dateMap]) => {
+      const sortedDates = Array.from(dateMap.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+      let cum = 0;
+      const points = sortedDates.map(([date, profit]) => {
+        cum += profit;
+        return { date, cumulative: cum, profit };
+      });
+      return { playerName, totalProfit: cum, points };
+    });
+    
     res.json({
       totalGames: sessions.length + importedResults.length,
       totalProfit,
       roi,
       bankrollHistory,
+      playerProfitHistory,
     });
   });
 

@@ -100,6 +100,32 @@ export function useEndSession() {
   });
 }
 
+export function useDeleteSession() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (id: number) => {
+      const url = buildUrl('/api/sessions/:id', { id });
+      const res = await fetch(url, {
+        method: 'DELETE',
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to delete session");
+      return res.json();
+    },
+    onSuccess: (_data, id) => {
+      queryClient.invalidateQueries({ queryKey: [api.sessions.list.path] });
+      queryClient.invalidateQueries({ queryKey: [api.sessions.get.path, id] });
+      queryClient.invalidateQueries({ queryKey: [api.stats.get.path] });
+      toast({ title: "Session Deleted", description: "The session and all transactions have been removed." });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Could not delete session", variant: "destructive" });
+    },
+  });
+}
+
 export function useAddPlayerManually() {
   const queryClient = useQueryClient();
   const { toast } = useToast();

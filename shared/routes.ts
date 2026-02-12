@@ -94,7 +94,16 @@ export const api = {
       }),
       responses: {
         200: z.custom<typeof pokerSessions.$inferSelect>(),
-        400: errorSchemas.validation, // e.g. totals don't match
+        400: errorSchemas.validation,
+      },
+    },
+    delete: {
+      method: 'DELETE' as const,
+      path: '/api/sessions/:id' as const,
+      responses: {
+        200: z.object({ success: z.boolean() }),
+        401: errorSchemas.unauthorized,
+        404: errorSchemas.notFound,
       },
     },
   },
@@ -161,6 +170,15 @@ export const api = {
             date: z.string(),
             profit: z.number(),
             cumulative: z.number(),
+          })),
+          playerProfitHistory: z.array(z.object({
+            playerName: z.string(),
+            totalProfit: z.number(),
+            points: z.array(z.object({
+              date: z.string(),
+              cumulative: z.number(),
+              profit: z.number(),
+            })),
           })),
         }),
         401: errorSchemas.unauthorized,

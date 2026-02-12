@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, inArray } from "drizzle-orm";
 import {
   pokerSessions, sessionPlayers, transactions, gameResults,
   type PokerSession, type InsertPokerSession,
@@ -29,6 +29,9 @@ export interface IStorage {
   updateTransactionStatus(id: number, status: 'approved' | 'rejected'): Promise<Transaction>;
   updateTransaction(id: number, data: { amount?: number; type?: 'buy_in' | 'cash_out'; paymentMethod?: 'cash' | 'digital' }): Promise<Transaction>;
   deleteTransaction(id: number): Promise<void>;
+
+  // Session management
+  deleteSession(id: number): Promise<void>;
 
   // Game Results (Legacy Import)
   addGameResult(result: { userId: string; playerName: string; date: Date; buyIn: number; cashOut: number; netProfit: number }): Promise<GameResult>;
@@ -119,6 +122,18 @@ export class DatabaseStorage implements IStorage {
 
   async deleteTransaction(id: number): Promise<void> {
     await db.delete(transactions).where(eq(transactions.id, id));
+  }
+
+  async deleteSession(id: number): Promise<void> {
+    await db.transaction(async (tx) => {
+      const players = await tx.select({ id: sessionPlayers.id }).from(sessionPlayers).where(eq(sessionPlayers.sessionId, id));
+      const playerIds = players.map(p => p.id);
+      if (playerIds.length > 0) {
+        await tx.delete(transactions).where(inArray(transactions.playerId, playerIds));
+      }
+      await tx.delete(sessionPlayers).where(eq(sessionPlayers.sessionId, id));
+      await tx.delete(pokerSessions).where(eq(pokerSessions.id, id));
+    });
   }
 
   async addGameResult(result: { userId: string; playerName: string; date: Date; buyIn: number; cashOut: number; netProfit: number }): Promise<GameResult> {

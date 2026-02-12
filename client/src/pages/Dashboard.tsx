@@ -1,21 +1,26 @@
+import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useStats } from "@/hooks/use-stats";
-import { useSessions, useCreateSession } from "@/hooks/use-sessions";
+import { useSessions, useCreateSession, useDeleteSession } from "@/hooks/use-sessions";
 import { StatCard } from "@/components/ui/StatCard";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Coins, Trophy, TrendingUp, History, Play, Loader2, ArrowRight, Upload } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Coins, Trophy, TrendingUp, History, Play, Loader2, ArrowRight, Upload, Pencil, Trash2, AlertTriangle } from "lucide-react";
 import { SuitAccent, SuitsLoader, SuitsRow } from "@/components/ui/Suits";
 import { Link, useLocation } from "wouter";
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { format } from "date-fns";
+import { PlayerProfitChart } from "@/components/PlayerProfitChart";
 
 export default function Dashboard() {
   const { user } = useAuth();
   const { data: stats } = useStats();
   const { data: sessions, isLoading: sessionsLoading } = useSessions();
   const { mutate: createSession, isPending: isCreating } = useCreateSession();
+  const { mutate: deleteSession, isPending: isDeleting } = useDeleteSession();
   const [, setLocation] = useLocation();
+  const [deleteTarget, setDeleteTarget] = useState<{ id: number; type: string; date: string } | null>(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
 
   const handleCreateSession = (type: "cash" | "tournament") => {
     createSession({ type }, {
@@ -105,66 +110,9 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
-          <div className="glass-card rounded-xl p-6" data-testid="chart-bankroll">
-            <h3 className="font-bold text-base mb-6 flex items-center gap-2 text-white">
-              <TrendingUp className="h-5 w-5 text-primary" /> Bankroll History
-            </h3>
-            <div className="h-[300px] w-full">
-              {stats?.bankrollHistory && stats.bankrollHistory.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={stats.bankrollHistory}>
-                    <defs>
-                      <linearGradient id="colorProfit" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.25}/>
-                        <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <XAxis 
-                      dataKey="date" 
-                      stroke="#475569" 
-                      fontSize={12} 
-                      tickLine={false}
-                      axisLine={false}
-                      tickFormatter={(value) => format(new Date(value), 'MMM d')}
-                    />
-                    <YAxis 
-                      stroke="#475569" 
-                      fontSize={12} 
-                      tickLine={false}
-                      axisLine={false}
-                      tickFormatter={(value) => `$${value}`}
-                    />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: 'hsla(222, 47%, 14%, 0.9)', 
-                        border: '1px solid rgba(255,255,255,0.08)', 
-                        borderRadius: '12px',
-                        backdropFilter: 'blur(12px)',
-                      }}
-                      itemStyle={{ color: '#e2e8f0' }}
-                    />
-                    <Area 
-                      type="monotone" 
-                      dataKey="cumulative" 
-                      stroke="#10b981" 
-                      strokeWidth={2}
-                      fillOpacity={1} 
-                      fill="url(#colorProfit)" 
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="h-full flex flex-col items-center justify-center text-muted-foreground border border-dashed border-white/10 rounded-lg gap-3">
-                  <p>No stats recorded yet</p>
-                  <Link href="/import">
-                    <Button variant="outline" size="sm" data-testid="button-import-from-chart">
-                      <Upload className="mr-2 h-4 w-4" /> Import Game History
-                    </Button>
-                  </Link>
-                </div>
-              )}
-            </div>
-          </div>
+          <PlayerProfitChart
+            playerProfitHistory={stats?.playerProfitHistory || []}
+          />
         </div>
 
         <div className="space-y-6">
@@ -197,14 +145,44 @@ export default function Dashboard() {
             <h3 className="font-bold text-base mb-4 text-white">Recent Games</h3>
             <div className="space-y-2">
               {recentSessions.length > 0 ? recentSessions.map(session => (
-                <Link key={session.id} href={`/session/${session.id}`}>
-                  <div className="flex items-center justify-between p-3 rounded-lg hover:bg-white/[0.04] transition-colors cursor-pointer" data-testid={`card-recent-${session.id}`}>
+                <div key={session.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-white/[0.04] transition-colors group" data-testid={`card-recent-${session.id}`}>
+                  <Link href={`/session/${session.id}`} className="flex-1 cursor-pointer">
                     <div>
                       <div className="font-medium text-white capitalize">{session.type}</div>
                       <div className="text-xs text-muted-foreground">{format(new Date(session.startTime), 'MMM d, yyyy')}</div>
                     </div>
-                  </div>
-                </Link>
+                  </Link>
+                  {session.hostId === user?.id && (
+                    <div className="flex items-center gap-1">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setLocation(`/session/${session.id}?admin=true`);
+                        }}
+                        data-testid={`button-edit-session-${session.id}`}
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteTarget({
+                            id: session.id,
+                            type: session.type,
+                            date: format(new Date(session.startTime), 'MMM d, yyyy'),
+                          });
+                        }}
+                        data-testid={`button-delete-session-${session.id}`}
+                      >
+                        <Trash2 className="h-3.5 w-3.5 text-red-400" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
               )) : (
                 <p className="text-sm text-muted-foreground">No recent games found.</p>
               )}
@@ -212,6 +190,83 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      <Dialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleteTarget(null);
+            setDeleteConfirmText("");
+          }
+        }}
+      >
+        <DialogContent className="glass-card sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-400">
+              <AlertTriangle className="h-5 w-5" /> Delete Session
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              This will permanently delete the{" "}
+              <span className="text-white font-medium capitalize">
+                {deleteTarget?.type}
+              </span>{" "}
+              game from{" "}
+              <span className="text-white font-medium">
+                {deleteTarget?.date}
+              </span>{" "}
+              and all associated transactions. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 mt-2">
+            <div>
+              <p className="text-sm text-muted-foreground mb-2">
+                Type <span className="text-white font-bold">DELETE</span> to confirm:
+              </p>
+              <Input
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder="Type DELETE"
+                className="bg-background/50 border-white/[0.08]"
+                data-testid="input-delete-confirm"
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setDeleteTarget(null);
+                  setDeleteConfirmText("");
+                }}
+                data-testid="button-cancel-delete"
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                disabled={deleteConfirmText !== "DELETE" || isDeleting}
+                onClick={() => {
+                  if (deleteTarget) {
+                    deleteSession(deleteTarget.id, {
+                      onSuccess: () => {
+                        setDeleteTarget(null);
+                        setDeleteConfirmText("");
+                      },
+                    });
+                  }
+                }}
+                data-testid="button-confirm-delete"
+              >
+                {isDeleting ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <Trash2 className="h-4 w-4 mr-2" />
+                )}
+                Delete Session
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
