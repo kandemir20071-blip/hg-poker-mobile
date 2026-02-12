@@ -93,8 +93,13 @@ export function useEndSession() {
       if (!res.ok) throw new Error("Failed to end session");
       return api.sessions.end.responses[200].parse(await res.json());
     },
-    onSuccess: () => {
+    onSuccess: (_data, { id }) => {
       queryClient.invalidateQueries({ queryKey: [api.sessions.list.path] });
+      queryClient.invalidateQueries({ queryKey: [api.sessions.get.path, id] });
+      queryClient.invalidateQueries({ queryKey: [api.stats.get.path] });
+      queryClient.invalidateQueries({ queryKey: [api.stats.league.path] });
+      queryClient.invalidateQueries({ queryKey: [api.stats.personal.path] });
+      queryClient.invalidateQueries({ queryKey: ['/api/leagues'] });
       toast({ title: "Session Ended", description: "Stats have been updated." });
     },
   });
@@ -118,6 +123,9 @@ export function useDeleteSession() {
       queryClient.invalidateQueries({ queryKey: [api.sessions.list.path] });
       queryClient.invalidateQueries({ queryKey: [api.sessions.get.path, id] });
       queryClient.invalidateQueries({ queryKey: [api.stats.get.path] });
+      queryClient.invalidateQueries({ queryKey: [api.stats.league.path] });
+      queryClient.invalidateQueries({ queryKey: [api.stats.personal.path] });
+      queryClient.invalidateQueries({ queryKey: ['/api/leagues'] });
       toast({ title: "Session Deleted", description: "The session and all transactions have been removed." });
     },
     onError: () => {

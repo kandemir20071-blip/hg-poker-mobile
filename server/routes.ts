@@ -232,7 +232,8 @@ export async function registerRoutes(
     const sessionId = Number(req.params.id);
     const session = await storage.getSession(sessionId);
     if (!session) return res.status(404).json({ message: "Session not found" });
-    if (session.hostId !== (req.user as any).claims.sub) return res.status(401).json({ message: "Only host can end session" });
+    const hostId = (req.user as any).claims.sub;
+    if (session.hostId !== hostId) return res.status(401).json({ message: "Only host can end session" });
 
     if (req.body.cashOuts) {
       for (const cashOut of req.body.cashOuts) {
@@ -244,6 +245,46 @@ export async function registerRoutes(
     }
 
     const updated = await storage.updateSessionStatus(sessionId, 'completed', new Date());
+
+    try {
+      const players = await storage.getSessionPlayers(sessionId);
+      const allTransactions = await storage.getSessionTransactions(sessionId);
+      const approvedTx = allTransactions.filter(t => t.status === 'approved');
+
+      for (const player of players) {
+        const playerTx = approvedTx.filter(t => t.playerId === player.id);
+        const buyIn = playerTx.filter(t => t.type === 'buy_in').reduce((sum, t) => sum + t.amount, 0);
+        const cashOut = playerTx.filter(t => t.type === 'cash_out').reduce((sum, t) => sum + t.amount, 0);
+
+        if (buyIn > 0 || cashOut > 0) {
+          await storage.addGameResult({
+            userId: player.userId || hostId,
+            leagueId: session.leagueId ?? undefined,
+            playerName: player.name,
+            date: updated.endTime || new Date(),
+            buyIn,
+            cashOut,
+            netProfit: cashOut - buyIn,
+          });
+
+          if (session.leagueId) {
+            const existingPlayers = await storage.getLeaguePlayers(session.leagueId);
+            const normalizedName = player.name.toLowerCase().trim();
+            const exists = existingPlayers.some(p => p.name.toLowerCase().trim() === normalizedName);
+            if (!exists) {
+              await storage.addLeaguePlayer({
+                leagueId: session.leagueId,
+                name: player.name,
+                claimedByUserId: player.userId,
+              });
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Error generating game results from session:", err);
+    }
+
     res.json(updated);
   });
 
