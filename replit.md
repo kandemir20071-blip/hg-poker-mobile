@@ -15,6 +15,17 @@ The app supports two input modes: **Host Mode** (host enters all data manually) 
 - **API Endpoints:** `POST /api/sessions/:id/players` (add player), `PATCH /api/transactions/:id` (edit), `DELETE /api/transactions/:id` (delete) — all host-only
 - **Components:** `AddPlayerDialog`, `ManagePlayerDialog` in `client/src/components/game/`
 
+### PDF Data Import
+- **PDF Parser:** Regex-based engine handles German poker format: date headers (dd.mm.yyyy) grouping player entries like `Name Buy-in€ Endstand: Cash-out€`
+- **Fallback Parser:** Generic text parser for other formats (CSV, Excel, Word, plain text also supported)
+- **Duplicate Prevention:** On save, each row is checked against existing game_results using normalized key (name+date+buyIn+cashOut); exact duplicates are skipped
+- **Name Normalization:** Names are lowercased and trimmed before comparison to prevent duplicate player records
+- **Staging Table:** Parsed data shown in editable review table before committing — user can fix amounts, names, dates
+- **Name Matching Indicators:** Each row shows "Exists" (green) or "New" (amber) badge based on cross-reference with database
+- **Data Integrity Disclaimer:** Prominent notice explaining name matching behavior
+- **Template Tooltip:** Info icon shows example of perfect PDF format
+- **API:** `POST /api/import/upload` (parse file, return rows + existingNames), `POST /api/import/save` (commit with dupe check)
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.

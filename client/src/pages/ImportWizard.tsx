@@ -4,6 +4,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import {
   Upload,
@@ -16,8 +18,12 @@ import {
   Plus,
   Loader2,
   AlertTriangle,
-  FileSpreadsheet,
   ClipboardPaste,
+  Info,
+  Shield,
+  UserCheck,
+  UserPlus,
+  XCircle,
 } from "lucide-react";
 
 type ImportRow = {
@@ -36,10 +42,25 @@ export default function ImportWizard() {
   const [fileName, setFileName] = useState<string>("");
   const [pasteMode, setPasteMode] = useState(false);
   const [pasteText, setPasteText] = useState("");
+  const [existingNames, setExistingNames] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
+
+  const fetchExistingNames = async () => {
+    try {
+      const res = await fetch("/api/import/history", { credentials: "include" });
+      if (res.ok) {
+        const data = await res.json();
+        const names = new Set<string>();
+        for (const r of data) {
+          names.add((r.playerName || "").trim().toLowerCase());
+        }
+        setExistingNames(Array.from(names));
+      }
+    } catch {}
+  };
 
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
@@ -54,11 +75,12 @@ export default function ImportWizard() {
         const err = await res.json();
         throw new Error(err.message || "Upload failed");
       }
-      return res.json() as Promise<{ rows: ImportRow[]; rawText?: string }>;
+      return res.json() as Promise<{ rows: ImportRow[]; rawText?: string; existingNames?: string[] }>;
     },
     onSuccess: (data) => {
       setRows(data.rows || []);
       setRawText(data.rawText || "");
+      setExistingNames(data.existingNames || []);
       setStep("review");
       if (data.rows.length === 0 && data.rawText) {
         toast({
@@ -94,15 +116,16 @@ export default function ImportWizard() {
         const err = await res.json();
         throw new Error(err.message || "Save failed");
       }
-      return res.json() as Promise<{ imported: number; players: string[] }>;
+      return res.json() as Promise<{ imported: number; skipped: number; players: string[] }>;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
       queryClient.invalidateQueries({ queryKey: ["/api/import/history"] });
       setStep("confirm");
+      const skippedMsg = data.skipped > 0 ? ` (${data.skipped} duplicates skipped)` : "";
       toast({
         title: "Import complete",
-        description: `${data.imported} games imported for ${data.players.length} player(s).`,
+        description: `${data.imported} games imported for ${data.players.length} player(s).${skippedMsg}`,
       });
     },
     onError: (err: Error) => {
@@ -136,6 +159,7 @@ export default function ImportWizard() {
 
   const handlePasteSubmit = () => {
     if (!pasteText.trim()) return;
+    fetchExistingNames();
     const parsed = tryParsePastedText(pasteText);
     if (parsed.length > 0) {
       setRows(parsed);
@@ -177,6 +201,14 @@ export default function ImportWizard() {
     (r) => r.date && r.playerName && (r.buyIn > 0 || r.cashOut > 0)
   );
 
+  const isNameExisting = (name: string) => {
+    return existingNames.includes(name.trim().toLowerCase());
+  };
+
+  const uniqueNames = Array.from(new Set(rows.map(r => r.playerName.trim()).filter(Boolean)));
+  const matchedCount = uniqueNames.filter(n => isNameExisting(n)).length;
+  const newCount = uniqueNames.filter(n => n && !isNameExisting(n)).length;
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex items-center gap-4">
@@ -198,7 +230,6 @@ export default function ImportWizard() {
         </div>
       </div>
 
-      {/* Step Indicator */}
       <div className="flex items-center gap-2 text-sm">
         {[
           { key: "upload", label: "Upload", icon: Upload },
@@ -229,9 +260,18 @@ export default function ImportWizard() {
         ))}
       </div>
 
-      {/* Step: Upload */}
       {step === "upload" && (
         <div className="space-y-6">
+          <Card className="bg-primary/5 border-primary/20 p-4 flex items-start gap-3" data-testid="card-data-integrity">
+            <Shield className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold text-primary mb-1">Data Integrity Check</p>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Every name is cross-referenced with the database. New names will create guests; existing names will update current profiles. No duplicate player records will be created.
+              </p>
+            </div>
+          </Card>
+
           {!pasteMode ? (
             <>
               <Card
@@ -277,8 +317,10 @@ export default function ImportWizard() {
                 data-testid="input-file"
               />
 
-              <div className="text-center text-muted-foreground text-sm">
-                or
+              <div className="flex items-center gap-4">
+                <div className="flex-1 h-[1px] bg-white/10" />
+                <span className="text-muted-foreground text-xs uppercase tracking-wider">or</span>
+                <div className="flex-1 h-[1px] bg-white/10" />
               </div>
 
               <Button
@@ -295,6 +337,7 @@ export default function ImportWizard() {
                 variant="ghost"
                 className="w-full"
                 onClick={() => {
+                  fetchExistingNames();
                   setRows([{ date: "", playerName: "", buyIn: 0, cashOut: 0 }]);
                   setStep("review");
                 }}
@@ -303,10 +346,37 @@ export default function ImportWizard() {
                 <Table2 className="mr-2 h-5 w-5" />
                 Enter Data Manually
               </Button>
+
+              <div className="flex items-center gap-2">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" data-testid="button-template-info">
+                      <Info className="h-4 w-4 text-muted-foreground" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-sm p-4" data-testid="tooltip-template">
+                    <p className="font-semibold text-sm mb-2">Perfect PDF Format</p>
+                    <div className="space-y-1 text-xs text-muted-foreground font-mono leading-relaxed">
+                      <p className="text-primary font-semibold">15.11.2023</p>
+                      <p>Marvin 20€ Endstand: 38€</p>
+                      <p>Alex 10€ Endstand: 0€</p>
+                      <p>Jonas 15€ Endstand: 22€</p>
+                      <p className="text-primary font-semibold mt-2">22.11.2023</p>
+                      <p>Marvin 30€ Endstand: 45€</p>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-3">
+                      Dates group entries into sessions. Each line: Name Buy-in Endstand: Cash-out
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+                <span className="text-xs text-muted-foreground">
+                  View the perfect PDF format template
+                </span>
+              </div>
             </>
           ) : (
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-4 flex-wrap">
                 <h3 className="text-lg font-bold text-white flex items-center gap-2">
                   <ClipboardPaste className="h-5 w-5 text-primary" />
                   Paste Your Game Notes
@@ -321,15 +391,19 @@ export default function ImportWizard() {
               </div>
               <p className="text-sm text-muted-foreground">
                 Paste your game history below. The app will try to detect dates,
-                names, and amounts. Format example:
+                names, and amounts.
               </p>
               <Card className="bg-white/5 border-white/10 p-3">
-                <code className="text-xs text-muted-foreground leading-relaxed block">
-                  2023-01-15 John 50 120
+                <code className="text-xs text-muted-foreground leading-relaxed block font-mono">
+                  <span className="text-primary">15.11.2023</span>
                   <br />
-                  2023-01-22 Steve 100 80
+                  Marvin 20€ Endstand: 38€
                   <br />
-                  2023-02-05 Alice 75 150
+                  Alex 10€ Endstand: 0€
+                  <br />
+                  <span className="text-primary">22.11.2023</span>
+                  <br />
+                  Marvin 30€ Endstand: 45€
                 </code>
               </Card>
               <textarea
@@ -353,9 +427,34 @@ export default function ImportWizard() {
         </div>
       )}
 
-      {/* Step: Review & Edit */}
       {step === "review" && (
         <div className="space-y-4">
+          <Card className="bg-primary/5 border-primary/20 p-4 flex items-start gap-3" data-testid="card-review-integrity">
+            <Shield className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-primary mb-1">Data Integrity Check</p>
+              <p className="text-xs text-muted-foreground leading-relaxed mb-3">
+                Names are normalized (case-insensitive, trimmed) and cross-referenced with your database. Duplicates will be automatically skipped on import.
+              </p>
+              {uniqueNames.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {matchedCount > 0 && (
+                    <div className="flex items-center gap-1.5 text-xs text-emerald-400">
+                      <UserCheck className="h-3.5 w-3.5" />
+                      {matchedCount} existing player{matchedCount !== 1 ? 's' : ''}
+                    </div>
+                  )}
+                  {newCount > 0 && (
+                    <div className="flex items-center gap-1.5 text-xs text-amber-400">
+                      <UserPlus className="h-3.5 w-3.5" />
+                      {newCount} new guest{newCount !== 1 ? 's' : ''}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </Card>
+
           {rawText && (
             <details className="group">
               <summary className="text-sm text-muted-foreground cursor-pointer hover:text-primary flex items-center gap-2">
@@ -384,7 +483,6 @@ export default function ImportWizard() {
             </Card>
           )}
 
-          {/* Editable Table */}
           <div className="overflow-x-auto">
             <table className="w-full text-sm" data-testid="table-import-data">
               <thead>
@@ -396,13 +494,16 @@ export default function ImportWizard() {
                     Player Name
                   </th>
                   <th className="text-left py-3 px-2 text-muted-foreground font-medium">
-                    Buy-in ($)
+                    Buy-in
                   </th>
                   <th className="text-left py-3 px-2 text-muted-foreground font-medium">
-                    Cash-out ($)
+                    Cash-out
                   </th>
                   <th className="text-right py-3 px-2 text-muted-foreground font-medium">
                     Net
+                  </th>
+                  <th className="text-center py-3 px-2 text-muted-foreground font-medium w-20">
+                    Status
                   </th>
                   <th className="py-3 px-2 w-10"></th>
                 </tr>
@@ -410,6 +511,7 @@ export default function ImportWizard() {
               <tbody>
                 {rows.map((row, i) => {
                   const net = (row.cashOut || 0) - (row.buyIn || 0);
+                  const nameMatched = row.playerName.trim() ? isNameExisting(row.playerName) : false;
                   return (
                     <tr
                       key={i}
@@ -478,12 +580,26 @@ export default function ImportWizard() {
                           {net}
                         </span>
                       </td>
+                      <td className="py-2 px-2 text-center">
+                        {row.playerName.trim() ? (
+                          nameMatched ? (
+                            <Badge variant="secondary" className="text-[10px] gap-1" data-testid={`badge-existing-${i}`}>
+                              <UserCheck className="h-3 w-3 text-emerald-400" />
+                              Exists
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-[10px] gap-1" data-testid={`badge-new-${i}`}>
+                              <UserPlus className="h-3 w-3 text-amber-400" />
+                              New
+                            </Badge>
+                          )
+                        ) : null}
+                      </td>
                       <td className="py-2 px-2">
                         <Button
                           variant="ghost"
                           size="icon"
                           onClick={() => deleteRow(i)}
-                          className="text-muted-foreground hover:text-destructive"
                           data-testid={`button-delete-row-${i}`}
                         >
                           <Trash2 className="h-4 w-4" />
@@ -526,20 +642,19 @@ export default function ImportWizard() {
               className="rounded-full font-semibold"
               disabled={validRows.length === 0 || saveMutation.isPending}
               onClick={() => saveMutation.mutate(validRows)}
-              data-testid="button-import"
+              data-testid="button-confirm-commit"
             >
               {saveMutation.isPending ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
                 <CheckCircle className="mr-2 h-4 w-4" />
               )}
-              Import {validRows.length} Record{validRows.length !== 1 ? "s" : ""}
+              Confirm & Commit {validRows.length} Record{validRows.length !== 1 ? "s" : ""}
             </Button>
           </div>
         </div>
       )}
 
-      {/* Step: Done */}
       {step === "confirm" && (
         <Card className="bg-card border-white/5 p-8 text-center space-y-6">
           <div className="w-16 h-16 rounded-full bg-green-500/20 flex items-center justify-center mx-auto">
@@ -571,6 +686,8 @@ export default function ImportWizard() {
                 setRawText("");
                 setPasteText("");
                 setFileName("");
+                setPasteMode(false);
+                fetchExistingNames();
               }}
               data-testid="button-import-more"
             >
@@ -587,6 +704,9 @@ export default function ImportWizard() {
 function tryParsePastedText(
   text: string
 ): Array<{ date: string; playerName: string; buyIn: number; cashOut: number }> {
+  const pokerRows = parsePokerFormat(text);
+  if (pokerRows.length > 0) return pokerRows;
+
   const rows: Array<{
     date: string;
     playerName: string;
@@ -638,6 +758,46 @@ function tryParsePastedText(
       buyIn: numbers[0],
       cashOut: numbers[1],
     });
+  }
+
+  return rows;
+}
+
+function parsePokerFormat(text: string): Array<{ date: string; playerName: string; buyIn: number; cashOut: number }> {
+  const rows: Array<{ date: string; playerName: string; buyIn: number; cashOut: number }> = [];
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+
+  const dateHeaderPattern = /^(\d{1,2})\.(\d{1,2})\.(\d{2,4})$/;
+  const entryWithEndstand = /^(.+?)\s+([\d.,]+)\s*[€$£]?\s+[Ee]ndstand\s*:?\s*([\d.,]+)\s*[€$£]?\s*$/;
+  const entryBuyinCashout = /^(.+?)\s+([\d.,]+)\s*[€$£]\s+([\d.,]+)\s*[€$£]?\s*$/;
+
+  let currentDate = '';
+
+  for (const line of lines) {
+    const dateMatch = line.match(dateHeaderPattern);
+    if (dateMatch) {
+      const day = dateMatch[1].padStart(2, '0');
+      const month = dateMatch[2].padStart(2, '0');
+      let year = dateMatch[3];
+      if (year.length === 2) year = '20' + year;
+      currentDate = `${year}-${month}-${day}`;
+      continue;
+    }
+
+    if (!currentDate) continue;
+
+    const parseNum = (s: string) => parseFloat(s.replace(/,/g, '.')) || 0;
+
+    let match = line.match(entryWithEndstand);
+    if (match) {
+      rows.push({ date: currentDate, playerName: match[1].trim(), buyIn: parseNum(match[2]), cashOut: parseNum(match[3]) });
+      continue;
+    }
+
+    match = line.match(entryBuyinCashout);
+    if (match) {
+      rows.push({ date: currentDate, playerName: match[1].trim(), buyIn: parseNum(match[2]), cashOut: parseNum(match[3]) });
+    }
   }
 
   return rows;

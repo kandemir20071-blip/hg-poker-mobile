@@ -180,6 +180,7 @@ export const api = {
             cashOut: z.number(),
           })),
           rawText: z.string().optional(),
+          existingNames: z.array(z.string()).optional(),
         }),
         400: errorSchemas.validation,
         401: errorSchemas.unauthorized,
@@ -199,6 +200,7 @@ export const api = {
       responses: {
         201: z.object({
           imported: z.number(),
+          skipped: z.number(),
           players: z.array(z.string()),
         }),
         400: errorSchemas.validation,

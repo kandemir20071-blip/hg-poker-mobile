@@ -336,6 +336,7 @@ export async function registerRoutes(
         return res.status(400).json({ message: "No file uploaded" });
       }
 
+      const userId = (req.user as any).claims.sub;
       const ext = path.extname(file.originalname).toLowerCase();
       let rows: Array<{ date: string; playerName: string; buyIn: number; cashOut: number }> = [];
       let rawText: string | undefined;
@@ -351,22 +352,37 @@ export async function registerRoutes(
         const data = XLSX.utils.sheet_to_json<any>(sheet);
         rows = mapSpreadsheetData(data);
       } else if (ext === '.pdf') {
-        const pdfModule = await import('pdf-parse');
-        const pdfParse = pdfModule.default || pdfModule;
+        const pdfParse = (await import('pdf-parse')).default;
         const pdfData = await pdfParse(file.buffer);
         rawText = pdfData.text;
-        rows = tryParseText(rawText);
+        rows = parsePokerPdfText(rawText);
+        if (rows.length === 0) {
+          rows = tryParseText(rawText);
+        }
       } else if (ext === '.docx' || ext === '.doc') {
         const mammoth = await import('mammoth');
         const result = await mammoth.extractRawText({ buffer: file.buffer });
         rawText = result.value;
-        rows = tryParseText(rawText);
+        rows = parsePokerPdfText(rawText);
+        if (rows.length === 0) {
+          rows = tryParseText(rawText);
+        }
       } else if (ext === '.txt') {
         rawText = file.buffer.toString('utf-8');
-        rows = tryParseText(rawText);
+        rows = parsePokerPdfText(rawText);
+        if (rows.length === 0) {
+          rows = tryParseText(rawText);
+        }
       }
 
-      res.json({ rows, rawText });
+      const existingResults = await storage.getGameResults(userId);
+      const existingNamesSet = new Set<string>();
+      for (const r of existingResults) {
+        existingNamesSet.add(r.playerName.trim().toLowerCase());
+      }
+      const existingNames = Array.from(existingNamesSet);
+
+      res.json({ rows, rawText, existingNames });
     } catch (err: any) {
       console.error("Import upload error:", err);
       res.status(400).json({ message: err.message || "Failed to parse file" });
@@ -382,7 +398,16 @@ export async function registerRoutes(
         return res.status(400).json({ message: "No data to import" });
       }
 
+      const existingResults = await storage.getGameResults(userId);
+      const existingSet = new Set<string>();
+      for (const r of existingResults) {
+        const key = `${r.playerName.trim().toLowerCase()}|${new Date(r.date).toISOString().split('T')[0]}|${r.buyIn}|${r.cashOut}`;
+        existingSet.add(key);
+      }
+
       const playerNames = new Set<string>();
+      let imported = 0;
+      let skipped = 0;
 
       for (const row of rows) {
         const dateVal = new Date(row.date);
@@ -391,21 +416,31 @@ export async function registerRoutes(
         const buyIn = Math.round(Number(row.buyIn) || 0);
         const cashOut = Math.round(Number(row.cashOut) || 0);
         const netProfit = cashOut - buyIn;
-        
-        playerNames.add(row.playerName);
+        const normalizedName = row.playerName.trim();
+
+        const dupeKey = `${normalizedName.toLowerCase()}|${dateVal.toISOString().split('T')[0]}|${buyIn}|${cashOut}`;
+        if (existingSet.has(dupeKey)) {
+          skipped++;
+          continue;
+        }
+
+        playerNames.add(normalizedName);
+        existingSet.add(dupeKey);
 
         await storage.addGameResult({
           userId,
-          playerName: row.playerName.trim(),
+          playerName: normalizedName,
           date: dateVal,
           buyIn,
           cashOut,
           netProfit,
         });
+        imported++;
       }
 
       res.status(201).json({
-        imported: rows.length,
+        imported,
+        skipped,
         players: Array.from(playerNames),
       });
     } catch (err: any) {
@@ -477,13 +512,74 @@ function mapSpreadsheetData(data: any[]): Array<{ date: string; playerName: stri
   }).filter(r => r.date && r.playerName);
 }
 
-// --- Helper: Try parse text from PDF/Word ---
+// --- Helper: Parse poker PDF text with German format ---
+// Handles: "Name Buy-in€ Endstand: Cash-out€" grouped under date headers like "15.11.2023"
+function parsePokerPdfText(text: string): Array<{ date: string; playerName: string; buyIn: number; cashOut: number }> {
+  const rows: Array<{ date: string; playerName: string; buyIn: number; cashOut: number }> = [];
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+
+  const dateHeaderPattern = /^(\d{1,2})\.(\d{1,2})\.(\d{2,4})$/;
+  const entryWithEndstand = /^(.+?)\s+([\d.,]+)\s*[€$£]?\s+[Ee]ndstand\s*:?\s*([\d.,]+)\s*[€$£]?\s*$/;
+  const entryBuyinCashout = /^(.+?)\s+([\d.,]+)\s*[€$£]\s+([\d.,]+)\s*[€$£]?\s*$/;
+  const entrySimple = /^([A-Za-zÀ-ž]+(?:\s+[A-Za-zÀ-ž]+)*)\s+([\d.,]+)\s*[€$£]?\s*$/;
+
+  let currentDate = '';
+
+  for (const line of lines) {
+    const dateMatch = line.match(dateHeaderPattern);
+    if (dateMatch) {
+      const day = dateMatch[1].padStart(2, '0');
+      const month = dateMatch[2].padStart(2, '0');
+      let year = dateMatch[3];
+      if (year.length === 2) year = '20' + year;
+      currentDate = `${year}-${month}-${day}`;
+      continue;
+    }
+
+    if (!currentDate) continue;
+
+    const parseNum = (s: string) => parseFloat(s.replace(/,/g, '.')) || 0;
+
+    let match = line.match(entryWithEndstand);
+    if (match) {
+      const name = match[1].trim();
+      const buyIn = parseNum(match[2]);
+      const cashOut = parseNum(match[3]);
+      if (name && (buyIn > 0 || cashOut > 0)) {
+        rows.push({ date: currentDate, playerName: name, buyIn, cashOut });
+      }
+      continue;
+    }
+
+    match = line.match(entryBuyinCashout);
+    if (match) {
+      const name = match[1].trim();
+      const buyIn = parseNum(match[2]);
+      const cashOut = parseNum(match[3]);
+      if (name && (buyIn > 0 || cashOut > 0)) {
+        rows.push({ date: currentDate, playerName: name, buyIn, cashOut });
+      }
+      continue;
+    }
+
+    match = line.match(entrySimple);
+    if (match) {
+      const name = match[1].trim();
+      const buyIn = parseNum(match[2]);
+      if (name && buyIn > 0) {
+        rows.push({ date: currentDate, playerName: name, buyIn, cashOut: 0 });
+      }
+    }
+  }
+
+  return rows;
+}
+
+// --- Helper: Try parse text from PDF/Word (generic fallback) ---
 function tryParseText(text: string): Array<{ date: string; playerName: string; buyIn: number; cashOut: number }> {
   const rows: Array<{ date: string; playerName: string; buyIn: number; cashOut: number }> = [];
   const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
 
-  // Try to find lines that match patterns like: "2023-01-15  John  $50  $120"
-  // or "Jan 15, 2023 | John | 50 | 120"
   const datePattern = /(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}|\d{4}[\/\-\.]\d{1,2}[\/\-\.]\d{1,2}|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\w*\s+\d{1,2},?\s*\d{2,4})/i;
   const numberPattern = /[$€£]?\s*[\d,]+\.?\d*/g;
 
@@ -500,7 +596,6 @@ function tryParseText(text: string): Array<{ date: string; playerName: string; b
 
     if (numbers.length < 2) continue;
 
-    // Try to extract player name: text between date and first number
     const firstNumIdx = afterDate.search(/[$€£]?\s*\d/);
     let playerName = 'Unknown';
     if (firstNumIdx > 0) {
