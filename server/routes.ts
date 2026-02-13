@@ -260,6 +260,7 @@ export async function registerRoutes(
           await storage.addGameResult({
             userId: player.userId || hostId,
             leagueId: session.leagueId ?? undefined,
+            sessionId,
             playerName: player.name,
             date: updated.endTime || new Date(),
             buyIn,

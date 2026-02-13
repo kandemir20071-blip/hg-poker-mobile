@@ -34,7 +34,7 @@ export interface IStorage {
 
   deleteSession(id: number): Promise<void>;
 
-  addGameResult(result: { userId: string; leagueId?: number; playerName: string; date: Date; buyIn: number; cashOut: number; netProfit: number }): Promise<GameResult>;
+  addGameResult(result: { userId: string; leagueId?: number; sessionId?: number; playerName: string; date: Date; buyIn: number; cashOut: number; netProfit: number }): Promise<GameResult>;
   getGameResults(userId: string): Promise<GameResult[]>;
   getLeagueGameResults(leagueId: number): Promise<GameResult[]>;
 
@@ -156,12 +156,13 @@ export class DatabaseStorage implements IStorage {
       if (playerIds.length > 0) {
         await tx.delete(transactions).where(inArray(transactions.playerId, playerIds));
       }
+      await tx.delete(gameResults).where(eq(gameResults.sessionId, id));
       await tx.delete(sessionPlayers).where(eq(sessionPlayers.sessionId, id));
       await tx.delete(pokerSessions).where(eq(pokerSessions.id, id));
     });
   }
 
-  async addGameResult(result: { userId: string; leagueId?: number; playerName: string; date: Date; buyIn: number; cashOut: number; netProfit: number }): Promise<GameResult> {
+  async addGameResult(result: { userId: string; leagueId?: number; sessionId?: number; playerName: string; date: Date; buyIn: number; cashOut: number; netProfit: number }): Promise<GameResult> {
     const [newResult] = await db.insert(gameResults).values(result).returning();
     return newResult;
   }

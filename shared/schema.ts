@@ -165,6 +165,7 @@ export const gameResults = pgTable("game_results", {
   id: serial("id").primaryKey(),
   userId: text("user_id").references(() => users.id).notNull(),
   leagueId: integer("league_id").references(() => leagues.id),
+  sessionId: integer("session_id").references(() => pokerSessions.id, { onDelete: 'set null' }),
   playerName: text("player_name").notNull(),
   date: timestamp("date").notNull(),
   buyIn: integer("buy_in").notNull(),
