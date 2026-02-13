@@ -25,8 +25,16 @@ The app supports two input modes: **Host Mode** (host enters all data manually) 
 - **Centralized Ledger Control:** "Manage" button per player opens a dialog to view/add/edit/delete all transactions for that player
 - **Full Editability:** Every transaction (buy-in/cash-out) can be edited or deleted at any time, including after session ends
 - **Ledger Edits:** The ledger panel also supports inline editing and deletion in admin mode
-- **API Endpoints:** `POST /api/sessions/:id/players` (add player), `PATCH /api/transactions/:id` (edit), `DELETE /api/transactions/:id` (delete) — all host-only
-- **Components:** `AddPlayerDialog`, `ManagePlayerDialog` in `client/src/components/game/`
+- **Cash Out & Leave:** Admin can cash out individual players mid-session via "Cash Out" button; creates cash_out transaction + updates player status to `cashed_out`; player moves to "Finished Players" section with "LEFT" badge
+- **API Endpoints:** `POST /api/sessions/:id/players` (add player), `POST /api/sessions/:id/players/:playerId/cashout` (cash out & leave), `PATCH /api/transactions/:id` (edit), `DELETE /api/transactions/:id` (delete) — all host-only
+- **Components:** `AddPlayerDialog`, `ManagePlayerDialog`, `CashOutDialog` (inline in PlayerList) in `client/src/components/game/`
+
+### Cash Game Engine
+- **Liquidity Metrics:** Session header shows "Wagered" (sum of all buy-ins) and "In Play" (wagered minus cash-outs) as separate stats
+- **Optimistic Updates:** Buy-in/cash-out transactions appear instantly in the UI via React Query cache injection, with automatic rollback on server error
+- **Server Validation:** Transaction amounts validated server-side: must be > 0 and < 100,000 (via Zod on create and update schemas)
+- **Profit Colors:** Standardized across all components: emerald-500 (profit), red-500 (loss), muted-foreground (even)
+- **Player Separation:** Active players shown at top sorted by net profit; cashed-out players shown in "Finished Players" section below
 
 ### Player Performance Chart
 - **Multi-Line Chart:** Replaced single-line bankroll chart with per-player cumulative profit LineChart (Recharts)
