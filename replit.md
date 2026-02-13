@@ -36,14 +36,16 @@ The app supports two input modes: **Host Mode** (host enters all data manually) 
 - **Profit Colors:** Standardized across all components: emerald-500 (profit), red-500 (loss), muted-foreground (even)
 - **Player Separation:** Active players shown at top sorted by net profit; cashed-out players shown in "Finished Players" section below
 
-### Player Performance Chart
-- **Multi-Line Chart:** Replaced single-line bankroll chart with per-player cumulative profit LineChart (Recharts)
-- **Data:** Server computes cumulative profit per player from game_results, aggregating same-day entries
-- **Filters:** Dropdown above chart: "Top 10 Winners", "Heroes & Villains" (Top 5 + Bottom 5), "All Players", "Select Player" (search)
-- **Visuals:** Smooth monotone lines, 15 distinct colors, hover-highlight in "All Players" mode, interactive legend
-- **Tooltip:** Custom dark tooltip showing session date with per-player cumulative values color-coded green/red
-- **Component:** `PlayerProfitChart` in `client/src/components/PlayerProfitChart.tsx`
-- **API:** `GET /api/stats` returns `playerProfitHistory` array with per-player cumulative points
+### League Analytics Engine
+- **Component:** `LeagueAnalytics` in `client/src/components/LeagueAnalytics.tsx` with 4 visualization modes via dropdown
+- **Player Performance:** Multi-line cumulative profit chart (Recharts LineChart) with filters: Top 10, Heroes & Villains, All Players, Select Player — embedded from `PlayerProfitChart` component
+- **Skill Map:** Scatter plot (ScatterChart) — X: Games Played, Y: ROI% — bubble size scales with experience; green = profitable, red = losing; filterable by min games (All/5+/10+)
+- **Volatility Index:** Bar chart showing each player's biggest single-session win (green) vs biggest loss (red); sortable by biggest win, biggest loss, or most stable
+- **League Pulse:** Area chart tracking pot size (total wagered) per session date over time; filterable by last 10 sessions, last year, all time
+- **Help Bubbles:** Each view has a tooltip explaining what the chart shows and how to interpret it
+- **API:** `GET /api/stats/league/:leagueId` returns `playerAnalytics` (gamesPlayed, totalBuyIn, totalProfit, roi, biggestWin, biggestLoss per player), `sessionHistory` (date + totalWagered), `totalPlayerEntries`, plus existing `playerProfitHistory`
+- **Stat Cards:** 3 cards — Games Played, Total Money Wagered (with pot/diff subtitle), Avg Buy-in (with info tooltip explaining "weight class")
+- **Recent Games:** Scrollable list (fixed 400px height), no limit, clickable rows navigate to session, "Cash" renamed to "Cash Game"
 
 ### Session Management (Edit/Delete)
 - **Edit:** Pencil icon on completed sessions navigates to `/session/:id?admin=true` to reopen in Admin Mode
