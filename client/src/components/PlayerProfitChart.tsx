@@ -27,7 +27,7 @@ type PlayerSeries = {
   points: { date: string; cumulative: number; profit: number }[];
 };
 
-type FilterMode = "top10" | "heroes_villains" | "all" | "select";
+export type FilterMode = "top10" | "heroes_villains" | "all" | "select";
 
 const COLORS = [
   "#10b981",
@@ -54,13 +54,20 @@ function getColor(index: number) {
 export function PlayerProfitChart({
   playerProfitHistory,
   embedded = false,
+  externalFilterMode,
+  externalSearchQuery,
 }: {
   playerProfitHistory: PlayerSeries[];
   embedded?: boolean;
+  externalFilterMode?: FilterMode;
+  externalSearchQuery?: string;
 }) {
-  const [filterMode, setFilterMode] = useState<FilterMode>("top10");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [internalFilterMode, setFilterMode] = useState<FilterMode>("top10");
+  const [internalSearchQuery, setSearchQuery] = useState("");
   const [hoveredPlayer, setHoveredPlayer] = useState<string | null>(null);
+
+  const filterMode = externalFilterMode ?? internalFilterMode;
+  const searchQuery = externalSearchQuery ?? internalSearchQuery;
 
   const sortedByProfit = useMemo(
     () => [...playerProfitHistory].sort((a, b) => b.totalProfit - a.totalProfit),
@@ -190,55 +197,57 @@ export function PlayerProfitChart({
 
   return (
     <div className={embedded ? "" : "glass-card rounded-xl p-6"} data-testid="chart-bankroll">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
-        {!embedded && (
-          <h3 className="font-bold text-base flex items-center gap-2 text-white">
-            <TrendingUp className="h-5 w-5 text-primary" /> Player Performance
-          </h3>
-        )}
-        <div className="flex items-center gap-2">
-          <Select
-            value={filterMode}
-            onValueChange={(v) => {
-              setFilterMode(v as FilterMode);
-              setSearchQuery("");
-            }}
-          >
-            <SelectTrigger
-              className="w-[180px] bg-background/50 border-white/[0.08]"
-              data-testid="select-chart-filter"
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="top10" data-testid="filter-top10">
-                Top 10 Winners
-              </SelectItem>
-              <SelectItem value="heroes_villains" data-testid="filter-heroes-villains">
-                Heroes & Villains
-              </SelectItem>
-              <SelectItem value="all" data-testid="filter-all">
-                All Players
-              </SelectItem>
-              <SelectItem value="select" data-testid="filter-select">
-                Select Player
-              </SelectItem>
-            </SelectContent>
-          </Select>
-          {filterMode === "select" && (
-            <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-              <Input
-                placeholder="Search player..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-8 w-[160px] bg-background/50 border-white/[0.08]"
-                data-testid="input-player-search"
-              />
-            </div>
+      {!externalFilterMode && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+          {!embedded && (
+            <h3 className="font-bold text-base flex items-center gap-2 text-white">
+              <TrendingUp className="h-5 w-5 text-primary" /> Player Performance
+            </h3>
           )}
+          <div className="flex items-center gap-2">
+            <Select
+              value={filterMode}
+              onValueChange={(v) => {
+                setFilterMode(v as FilterMode);
+                setSearchQuery("");
+              }}
+            >
+              <SelectTrigger
+                className="w-[180px] bg-background/50 border-white/[0.08]"
+                data-testid="select-chart-filter"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="top10" data-testid="filter-top10">
+                  Top 10 Winners
+                </SelectItem>
+                <SelectItem value="heroes_villains" data-testid="filter-heroes-villains">
+                  Heroes & Villains
+                </SelectItem>
+                <SelectItem value="all" data-testid="filter-all">
+                  All Players
+                </SelectItem>
+                <SelectItem value="select" data-testid="filter-select">
+                  Select Player
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            {filterMode === "select" && (
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <Input
+                  placeholder="Search player..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-8 w-[160px] bg-background/50 border-white/[0.08]"
+                  data-testid="input-player-search"
+                />
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="h-[350px] w-full">
         {chartData.length > 0 ? (

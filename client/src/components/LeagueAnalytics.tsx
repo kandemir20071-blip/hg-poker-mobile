@@ -27,8 +27,10 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { HelpCircle } from "lucide-react";
-import { PlayerProfitChart } from "./PlayerProfitChart";
+import { Input } from "@/components/ui/input";
+import { HelpCircle, Search, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { PlayerProfitChart, type FilterMode } from "./PlayerProfitChart";
 
 type PlayerSeries = {
   playerName: string;
@@ -75,10 +77,10 @@ function HelpBubble({ text }: { text: string }) {
 }
 
 const VIEW_HELP: Record<AnalyticsView, string> = {
-  performance: "Cumulative profit over time. Rising lines indicate consistent winners.",
-  skill_map: "X-Axis: Experience. Y-Axis: ROI. Top Right = Sharks (High Volume, High Win Rate). Bottom Right = Donators.",
-  volatility: "Green = Biggest Win. Red = Biggest Loss. Shows play style variance. Large bars = Maniac, Small bars = Rock.",
-  pulse: "Tracks the health of the league and pot sizes over time.",
+  performance: "Tracks cumulative profit/loss over time. Visualize winning streaks vs. downswings.",
+  skill_map: "Scatter plot of Experience (X) vs. Efficiency (Y). Top-Right = Sharks (High Vol/Win). Bottom-Right = Donators.",
+  volatility: "Analyzes play style variance. Green Bar = Biggest Win. Red Bar = Biggest Loss. Large bars = High Volatility.",
+  pulse: "Health monitor. Shows Total Money Wagered per session to track league growth.",
 };
 
 export function LeagueAnalytics({ playerProfitHistory, playerAnalytics, sessionHistory }: LeagueAnalyticsProps) {
@@ -86,6 +88,8 @@ export function LeagueAnalytics({ playerProfitHistory, playerAnalytics, sessionH
   const [skillFilter, setSkillFilter] = useState("all");
   const [volatilitySort, setVolatilitySort] = useState("biggest_win");
   const [pulseTimeframe, setPulseTimeframe] = useState("all");
+  const [perfFilterMode, setPerfFilterMode] = useState<FilterMode>("top10");
+  const [perfSearchQuery, setPerfSearchQuery] = useState("");
 
   const skillFiltered = useMemo(() => {
     const min = skillFilter === "5" ? 5 : skillFilter === "10" ? 10 : 0;
@@ -94,7 +98,53 @@ export function LeagueAnalytics({ playerProfitHistory, playerAnalytics, sessionH
       .sort((a, b) => a.gamesPlayed - b.gamesPlayed);
   }, [playerAnalytics, skillFilter]);
 
-  const renderSecondaryFilter = () => {
+  const renderToolbarControls = () => {
+    if (view === "performance") {
+      return (
+        <>
+          <Select
+            value={perfFilterMode}
+            onValueChange={(v) => {
+              setPerfFilterMode(v as FilterMode);
+              setPerfSearchQuery("");
+            }}
+          >
+            <SelectTrigger className="w-[180px] bg-background/50 border-white/[0.08]" data-testid="select-chart-filter">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="top10" data-testid="filter-top10">Top 10 Winners</SelectItem>
+              <SelectItem value="heroes_villains" data-testid="filter-heroes-villains">Heroes & Villains</SelectItem>
+              <SelectItem value="all" data-testid="filter-all">All Players</SelectItem>
+              <SelectItem value="select" data-testid="filter-select">Select Player</SelectItem>
+            </SelectContent>
+          </Select>
+          {perfFilterMode === "select" && (
+            <div className="relative flex-1 min-w-[160px]">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                placeholder="Search player..."
+                value={perfSearchQuery}
+                onChange={(e) => setPerfSearchQuery(e.target.value)}
+                className="pl-8 pr-8 bg-background/50 border-white/[0.08]"
+                data-testid="input-player-search"
+              />
+              {perfSearchQuery && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-0.5 top-1/2 -translate-y-1/2 h-7 w-7"
+                  onClick={() => setPerfSearchQuery("")}
+                  data-testid="button-clear-search"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+              )}
+            </div>
+          )}
+        </>
+      );
+    }
     if (view === "skill_map") {
       return (
         <Select value={skillFilter} onValueChange={setSkillFilter}>
@@ -160,15 +210,18 @@ export function LeagueAnalytics({ playerProfitHistory, playerAnalytics, sessionH
             </SelectContent>
           </Select>
         </div>
-        {view !== "performance" && (
-          <div className="flex justify-end">
-            {renderSecondaryFilter()}
-          </div>
-        )}
+        <div className="flex flex-wrap gap-2 justify-end">
+          {renderToolbarControls()}
+        </div>
       </div>
 
       {view === "performance" && (
-        <PlayerProfitChart playerProfitHistory={playerProfitHistory} embedded />
+        <PlayerProfitChart
+          playerProfitHistory={playerProfitHistory}
+          embedded
+          externalFilterMode={perfFilterMode}
+          externalSearchQuery={perfSearchQuery}
+        />
       )}
       {view === "skill_map" && (
         <SkillMapChart data={skillFiltered} />
