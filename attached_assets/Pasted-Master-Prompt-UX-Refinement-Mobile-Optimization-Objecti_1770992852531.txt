@@ -1,0 +1,49 @@
+Master Prompt: UX Refinement & Mobile Optimization
+
+Objective: Refine the 'League Analytics' dashboard for better mobile usability, correct data sorting, and fix layout bugs.
+
+1. Fix: "Skill Map" (Scatter Plot) Usability
+
+Mobile Interaction: Currently, it is difficult to tap specific dots on mobile.
+
+Implementation: Enable a Crosshair Cursor and a "Shared Tooltip" behavior similar to the Line Chart. If strict "swiping" isn't possible on a Scatter plot, significantly increase the hit radius of the dots (e.g., invisible stroke width) or use a CustomTooltip that snaps to the nearest data point to make selection easier.
+
+Data Sorting (X-Axis):
+
+Current State: Sorted by Player ID/Time (First recorded).
+
+Fix: Sort the data array by Games Played (Ascending) before passing it to the chart. This ensures the dots progress naturally from left (Newbies) to right (Veterans).
+
+2. Fix: "Volatility Index" Data Clutter
+
+Filter Logic: The chart is currently too crowded.
+
+Fix: Apply a default filter to the data: gamesPlayed >= 3. Only show players with at least 3 sessions to ensure the "Volatility" metric is statistically relevant and the chart is readable.
+
+3. Fix: Dropdown Layout & Hierarchy
+
+Location: The secondary filter dropdown (e.g., "Top 10 Winners", "Heroes & Villains") is currently misplaced on the left.
+
+Fix: Move it to the Top Right, directly underneath or next to the main "Visualization Mode" dropdown. Visually group these two controls so the user understands they are related.
+
+4. Fix: Dynamic Help Tooltip (The Question Mark)
+
+Current Bug: Hovering over the ? icon does nothing or shows static text.
+
+Fix:
+
+Make the Tooltip content Dynamic based on the currently selected viewMode.
+
+If 'Skill Map': "X-Axis: Experience. Y-Axis: ROI. Top Right = Sharks."
+
+If 'Volatility': "Green = Biggest Win. Red = Biggest Loss. Shows play style variance."
+
+If 'Performance': "Cumulative profit over time."
+
+5. Fix: Toast Notification (Bottom Right Popup)
+
+Current Bug: The confirmation popup (e.g., after deleting a session) is cut off at the bottom of the screen.
+
+Fix: Locate the Toaster or ToastViewport component (likely in App.tsx or a layout file).
+
+Add margin/padding to the bottom: change bottom-0 to bottom-4 or add mb-4 / p-4 to lift it away from the screen edge. Ensure z-index is high enough to sit above the footer.
