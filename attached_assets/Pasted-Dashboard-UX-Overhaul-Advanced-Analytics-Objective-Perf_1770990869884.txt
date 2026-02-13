@@ -1,0 +1,91 @@
+Dashboard UX Overhaul & Advanced Analytics
+
+Objective: Perform a major upgrade to the Dashboard UI, implementing a scrollable history, a new financial metric, and a multi-view "League Analytics" engine.
+
+1. Feature: Scrollable 'Recent Games' List
+
+Location: The "Recent Games" list component.
+
+UI Update:
+
+Remove Limit: Currently, the list slices the data to the last 10 items. Remove this limit.
+
+Scroll Implementation: Set a fixed height (e.g., h-[400px]) for the container and enable vertical scrolling (overflow-y-auto). The visual size of the widget on the page must remain the same, but the user can now scroll down to the very first session.
+
+Label Update: Rename the column/label "Cash" to "Cash Game".
+
+Interaction:
+
+Make every row clickable.
+
+Action: On click, navigate to the Session Details view (/sessions/:id).
+
+Requirement: Ensure this works for Imported PDF Sessions as well (as long as they have a database ID).
+
+2. Feature: New Stat Card - "Average Buy-in"
+
+Location: The Stats Grid (Header).
+
+Slot: Place this in the 3rd slot (next to Games Played and Total Wagered).
+
+Logic: Average Buy-in = Total Money Wagered / Total Player Entries.
+
+Note: "Total Player Entries" is the count of distinct player-session records (or sum(gamesPlayed) across all players).
+
+Tooltip: Add a small info icon/tooltip: "Defines the weight class of the game. (Total Wagered / Entries)."
+
+3. Feature: The "League Analytics" Engine (The Big Graph)
+
+Architecture: Convert the main graph container into a dynamic view with a Main Dropdown to select the visualization type.
+
+Universal UI: Every view must have a Help Bubble (Tooltip) in the corner explaining what the current graph shows.
+
+View A: "Skill Map" (Scatter Plot)
+
+Library: Recharts (ScatterChart).
+
+Axes:
+
+X-Axis: "Experience" (Games Played).
+
+Y-Axis: "Efficiency" (ROI %).
+
+Data Points: Each dot represents a player.
+
+Filters: Add a secondary dropdown for "Min Games":
+
+Options: "All Players", "Min 5 Games", "Min 10 Games".
+
+Help Text: "Segments players by skill. Top Right = Sharks (High Vol, High Win). Bottom Right = Donators (High Vol, Loss)."
+
+View B: "Volatility Index" (Bar Chart)
+
+Library: Recharts (BarChart).
+
+Visuals: For each player, show two bars side-by-side:
+
+Green Bar: Their Single Biggest Win.
+
+Red Bar: Their Single Biggest Loss (as a negative value).
+
+Filters: Sort By: "Biggest Win", "Biggest Loss", "Most Stable" (Smallest difference between bars).
+
+Help Text: "Reveals play style. Large bars = High Variance/Maniac. Small bars = Low Variance/The Rock."
+
+View C: "League Pulse" (Area/Bar Chart)
+
+Library: Recharts (AreaChart).
+
+Axes:
+
+X-Axis: Date (Session Date).
+
+Y-Axis: Total Money Wagered (Pot Size).
+
+Filters: Timeframe: "Last 10 Sessions", "Last Year", "All Time".
+
+Help Text: "Tracks the health of the league and pot sizes over time."
+
+4. Implementation Note:
+
+Ensure all new calculations (Avg Buy-in, Biggest Win/Loss) are handled efficiently. If necessary, update the useStats hook to derive these numbers from the raw transaction history.

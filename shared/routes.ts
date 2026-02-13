@@ -191,6 +191,7 @@ export const api = {
           totalGames: z.number(),
           totalMoneyWagered: z.number(),
           totalPot: z.number(),
+          totalPlayerEntries: z.number(),
           playerProfitHistory: z.array(z.object({
             playerName: z.string(),
             totalProfit: z.number(),
@@ -199,6 +200,19 @@ export const api = {
               cumulative: z.number(),
               profit: z.number(),
             })),
+          })),
+          playerAnalytics: z.array(z.object({
+            playerName: z.string(),
+            gamesPlayed: z.number(),
+            totalBuyIn: z.number(),
+            totalProfit: z.number(),
+            roi: z.number(),
+            biggestWin: z.number(),
+            biggestLoss: z.number(),
+          })),
+          sessionHistory: z.array(z.object({
+            date: z.string(),
+            totalWagered: z.number(),
           })),
         }),
         401: errorSchemas.unauthorized,

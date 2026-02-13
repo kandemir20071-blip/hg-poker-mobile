@@ -9,11 +9,12 @@ import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Coins, Trophy, TrendingUp, History, Play, Loader2, ArrowRight, Upload, Pencil, Trash2, AlertTriangle, Users, Plus, LogIn, User, Shield, Copy, Check, ArrowDownLeft, ArrowUpRight } from "lucide-react";
+import { Coins, Trophy, TrendingUp, History, Play, Loader2, ArrowRight, Upload, Pencil, Trash2, AlertTriangle, Users, Plus, LogIn, User, Shield, Copy, Check, ArrowDownLeft, ArrowUpRight, DollarSign, Info } from "lucide-react";
+import { Tooltip as UITooltip, TooltipContent as UITooltipContent, TooltipTrigger as UITooltipTrigger } from "@/components/ui/tooltip";
 import { SuitAccent, SuitsLoader, SuitsRow } from "@/components/ui/Suits";
 import { Link, useLocation } from "wouter";
 import { format } from "date-fns";
-import { PlayerProfitChart } from "@/components/PlayerProfitChart";
+import { LeagueAnalytics } from "@/components/LeagueAnalytics";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 
 type Tab = "profile" | "leagues";
@@ -207,7 +208,7 @@ function LeaguesTab({
   const isCreator = currentLeague?.creatorId === user?.id;
 
   const activeSessions = (leagueSessions || []).filter((s: any) => s.status === 'active');
-  const recentSessions = (leagueSessions || []).filter((s: any) => s.status === 'completed').slice(0, 10);
+  const recentSessions = (leagueSessions || []).filter((s: any) => s.status === 'completed');
 
   const hasUnmigratedData = (legacyStats?.totalGames ?? 0) > 0 && selectedLeagueId;
 
@@ -357,12 +358,42 @@ function LeaguesTab({
             />
           );
         })()}
-        <div className="rounded-xl border border-dashed border-white/[0.06] opacity-30" />
+        {(() => {
+          const entries = leagueStats?.totalPlayerEntries || 0;
+          const wagered = leagueStats?.totalMoneyWagered || 0;
+          const avgBuyIn = entries > 0 ? Math.round(wagered / entries) : 0;
+          return (
+            <StatCard
+              title="Avg Buy-in"
+              value={`$${avgBuyIn}`}
+              icon={DollarSign}
+              subtitle={
+                <span className="flex items-center gap-1 flex-wrap">
+                  <span>{entries} total entries</span>
+                  <UITooltip>
+                    <UITooltipTrigger asChild>
+                      <button className="text-muted-foreground" data-testid="button-avg-buyin-info">
+                        <Info className="h-3 w-3" />
+                      </button>
+                    </UITooltipTrigger>
+                    <UITooltipContent side="top" className="max-w-[220px] text-xs leading-relaxed">
+                      Defines the weight class of your league. Higher averages mean bigger stakes and swings.
+                    </UITooltipContent>
+                  </UITooltip>
+                </span>
+              }
+            />
+          );
+        })()}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
-          <PlayerProfitChart playerProfitHistory={playerProfitHistory} />
+          <LeagueAnalytics
+            playerProfitHistory={playerProfitHistory}
+            playerAnalytics={leagueStats?.playerAnalytics || []}
+            sessionHistory={leagueStats?.sessionHistory || []}
+          />
         </div>
 
         <div className="space-y-6">
@@ -400,17 +431,15 @@ function LeaguesTab({
                 </Link>
               )}
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 h-[400px] overflow-y-auto pr-1">
               {recentSessions.length > 0 ? recentSessions.map((session: any) => (
-                <div key={session.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-white/[0.04] transition-colors group" data-testid={`card-recent-${session.id}`}>
-                  <Link href={`/session/${session.id}`} className="flex-1 cursor-pointer">
-                    <div>
-                      <div className="font-medium text-white capitalize">{session.type}</div>
-                      <div className="text-xs text-muted-foreground">{format(new Date(session.startTime), 'MMM d, yyyy')}</div>
-                    </div>
-                  </Link>
+                <div key={session.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-white/[0.04] transition-colors group cursor-pointer" data-testid={`card-recent-${session.id}`} onClick={() => setLocation(`/session/${session.id}`)}>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-white capitalize">{session.type === 'cash' ? 'Cash Game' : session.type}</div>
+                    <div className="text-xs text-muted-foreground">{format(new Date(session.startTime), 'MMM d, yyyy')}</div>
+                  </div>
                   {session.hostId === user?.id && (
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1 shrink-0">
                       <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); setLocation(`/session/${session.id}?admin=true`); }} data-testid={`button-edit-session-${session.id}`}>
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>

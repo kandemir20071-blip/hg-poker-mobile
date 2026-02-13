@@ -53,8 +53,10 @@ function getColor(index: number) {
 
 export function PlayerProfitChart({
   playerProfitHistory,
+  embedded = false,
 }: {
   playerProfitHistory: PlayerSeries[];
+  embedded?: boolean;
 }) {
   const [filterMode, setFilterMode] = useState<FilterMode>("top10");
   const [searchQuery, setSearchQuery] = useState("");
@@ -164,10 +166,12 @@ export function PlayerProfitChart({
 
   if (!playerProfitHistory || playerProfitHistory.length === 0) {
     return (
-      <div className="glass-card rounded-xl p-6" data-testid="chart-bankroll">
-        <h3 className="font-bold text-base mb-6 flex items-center gap-2 text-white">
-          <TrendingUp className="h-5 w-5 text-primary" /> Player Performance
-        </h3>
+      <div className={embedded ? "" : "glass-card rounded-xl p-6"} data-testid="chart-bankroll">
+        {!embedded && (
+          <h3 className="font-bold text-base mb-6 flex items-center gap-2 text-white">
+            <TrendingUp className="h-5 w-5 text-primary" /> Player Performance
+          </h3>
+        )}
         <div className="h-[300px] flex flex-col items-center justify-center text-muted-foreground border border-dashed border-white/10 rounded-lg gap-3">
           <p>No stats recorded yet</p>
           <Link href="/import">
@@ -185,11 +189,13 @@ export function PlayerProfitChart({
   }
 
   return (
-    <div className="glass-card rounded-xl p-6" data-testid="chart-bankroll">
+    <div className={embedded ? "" : "glass-card rounded-xl p-6"} data-testid="chart-bankroll">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
-        <h3 className="font-bold text-base flex items-center gap-2 text-white">
-          <TrendingUp className="h-5 w-5 text-primary" /> Player Performance
-        </h3>
+        {!embedded && (
+          <h3 className="font-bold text-base flex items-center gap-2 text-white">
+            <TrendingUp className="h-5 w-5 text-primary" /> Player Performance
+          </h3>
+        )}
         <div className="flex items-center gap-2">
           <Select
             value={filterMode}

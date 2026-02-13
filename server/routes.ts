@@ -479,16 +479,24 @@ export async function registerRoutes(
 
     const totalMoneyWagered = importedResults.reduce((sum, r) => sum + r.buyIn, 0);
     const totalPot = importedResults.reduce((sum, r) => sum + r.cashOut, 0);
+    const totalPlayerEntries = importedResults.length;
     const leagueSessionsList = await storage.getLeagueSessions(leagueId);
     const totalGames = leagueSessionsList.filter(s => s.status === 'completed').length;
 
     const playerMap = new Map<string, Map<string, number>>();
+    const playerBuyInMap = new Map<string, number>();
+    const playerSessionProfits = new Map<string, number[]>();
+
     for (const r of sortedResults) {
       const name = r.playerName;
       const dateStr = new Date(r.date).toISOString().split('T')[0];
       if (!playerMap.has(name)) playerMap.set(name, new Map());
       const dateMap = playerMap.get(name)!;
       dateMap.set(dateStr, (dateMap.get(dateStr) || 0) + r.netProfit);
+
+      playerBuyInMap.set(name, (playerBuyInMap.get(name) || 0) + r.buyIn);
+      if (!playerSessionProfits.has(name)) playerSessionProfits.set(name, []);
+      playerSessionProfits.get(name)!.push(r.netProfit);
     }
 
     const playerProfitHistory = Array.from(playerMap.entries()).map(([playerName, dateMap]) => {
@@ -501,7 +509,27 @@ export async function registerRoutes(
       return { playerName, totalProfit: cum, points };
     });
 
-    res.json({ totalGames, totalMoneyWagered, totalPot, playerProfitHistory });
+    const playerAnalytics = Array.from(playerMap.entries()).map(([playerName, dateMap]) => {
+      const gamesPlayed = dateMap.size;
+      const totalBuyIn = playerBuyInMap.get(playerName) || 0;
+      const profits = playerSessionProfits.get(playerName) || [];
+      const totalProfit = profits.reduce((s, p) => s + p, 0);
+      const roi = totalBuyIn > 0 ? Math.round((totalProfit / totalBuyIn) * 100) : 0;
+      const biggestWin = profits.length > 0 ? Math.max(...profits, 0) : 0;
+      const biggestLoss = profits.length > 0 ? Math.min(...profits, 0) : 0;
+      return { playerName, gamesPlayed, totalBuyIn, totalProfit, roi, biggestWin, biggestLoss };
+    });
+
+    const sessionDateMap = new Map<string, number>();
+    for (const r of sortedResults) {
+      const dateStr = new Date(r.date).toISOString().split('T')[0];
+      sessionDateMap.set(dateStr, (sessionDateMap.get(dateStr) || 0) + r.buyIn);
+    }
+    const sessionHistory = Array.from(sessionDateMap.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([date, totalWagered]) => ({ date, totalWagered }));
+
+    res.json({ totalGames, totalMoneyWagered, totalPot, totalPlayerEntries, playerProfitHistory, playerAnalytics, sessionHistory });
   });
 
   // Keep old stats endpoint for backward compat (redirects to league-based)
