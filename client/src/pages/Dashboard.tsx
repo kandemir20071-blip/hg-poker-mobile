@@ -349,9 +349,9 @@ function LeaguesTab({
               icon={Coins}
               subtitle={
                 <span className="flex items-center gap-1 flex-wrap">
-                  <span>Cash-out: ${cashOut}</span>
+                  <span>Pot: ${cashOut}</span>
                   <span className="text-white/20">|</span>
-                  <span>Diff: <span className={diff === 0 ? "text-muted-foreground" : diff > 0 ? "text-amber-400" : "text-red-400"}>{diff >= 0 ? "+" : ""}${diff}</span></span>
+                  <span>Diff: <span className={Math.abs(diff) < 0.01 ? "text-muted-foreground" : diff > 0 ? "text-amber-400" : "text-red-400"}>{diff >= 0 ? "+" : ""}${diff}</span></span>
                 </span>
               }
             />
