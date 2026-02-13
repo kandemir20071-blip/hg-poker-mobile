@@ -29,6 +29,15 @@ The app supports two input modes: **Host Mode** (host enters all data manually) 
 - **API Endpoints:** `POST /api/sessions/:id/players` (add player), `POST /api/sessions/:id/players/:playerId/cashout` (cash out & leave), `PATCH /api/transactions/:id` (edit), `DELETE /api/transactions/:id` (delete) — all host-only
 - **Components:** `AddPlayerDialog`, `ManagePlayerDialog`, `CashOutDialog` (inline in PlayerList) in `client/src/components/game/`
 
+### League Admin Dashboard
+- **Location:** "Manage Players" button in League Info card (visible only to league creator)
+- **Component:** `LeagueAdminDialog` in `client/src/components/LeagueAdminDialog.tsx`
+- **Unclaim:** Admin can revert a claimed player name back to guest status (sets `claimedByUserId` to NULL)
+- **Merge Players:** Combines two player names — reassigns all `game_results.playerName` and `session_players.name` from source to target, transfers claim if source is claimed and target is not, deletes source player record. Requires typing "MERGE" to confirm.
+- **Edge Cases:** Rejects merge if both players are claimed by different users (must unclaim one first); claim transfer preserves user identity continuity
+- **API Endpoints:** `POST /api/leagues/:id/unclaim` (unclaim player), `POST /api/leagues/:id/merge-players` (merge source into target) — creator-only
+- **Hooks:** `useUnclaimPlayer`, `useMergePlayers` in `client/src/hooks/use-leagues.ts`
+
 ### Cash Game Engine
 - **Liquidity Metrics:** Session header shows "Wagered" (sum of all buy-ins) and "In Play" (wagered minus cash-outs) as separate stats
 - **Optimistic Updates:** Buy-in/cash-out transactions appear instantly in the UI via React Query cache injection, with automatic rollback on server error

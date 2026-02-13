@@ -154,6 +154,58 @@ export async function registerRoutes(
     }
   });
 
+  app.post(api.leagues.unclaimPlayer.path, requireAuth, async (req, res) => {
+    try {
+      const leagueId = Number(req.params.id);
+      const { playerId } = api.leagues.unclaimPlayer.input.parse(req.body);
+      const userId = (req.user as any).claims.sub;
+
+      const league = await storage.getLeague(leagueId);
+      if (!league) return res.status(404).json({ message: "League not found" });
+      if (league.creatorId !== userId) return res.status(401).json({ message: "Only the league creator can manage players" });
+
+      const player = await storage.getLeaguePlayer(playerId);
+      if (!player || player.leagueId !== leagueId) return res.status(404).json({ message: "Player not found in this league" });
+      if (!player.claimedByUserId) return res.status(400).json({ message: "Player is not claimed" });
+
+      const updated = await storage.unclaimLeaguePlayer(playerId);
+      res.json(updated);
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
+      res.status(500).json({ message: "Internal Server Error" });
+    }
+  });
+
+  app.post(api.leagues.mergePlayers.path, requireAuth, async (req, res) => {
+    try {
+      const leagueId = Number(req.params.id);
+      const { sourcePlayerId, targetPlayerId } = api.leagues.mergePlayers.input.parse(req.body);
+      const userId = (req.user as any).claims.sub;
+
+      const league = await storage.getLeague(leagueId);
+      if (!league) return res.status(404).json({ message: "League not found" });
+      if (league.creatorId !== userId) return res.status(401).json({ message: "Only the league creator can merge players" });
+
+      if (sourcePlayerId === targetPlayerId) return res.status(400).json({ message: "Cannot merge a player into themselves" });
+
+      const source = await storage.getLeaguePlayer(sourcePlayerId);
+      const target = await storage.getLeaguePlayer(targetPlayerId);
+      if (!source || source.leagueId !== leagueId) return res.status(404).json({ message: "Source player not found in this league" });
+      if (!target || target.leagueId !== leagueId) return res.status(404).json({ message: "Target player not found in this league" });
+
+      if (source.claimedByUserId && target.claimedByUserId && source.claimedByUserId !== target.claimedByUserId) {
+        return res.status(400).json({ message: "Both players are claimed by different users. Unclaim one first before merging." });
+      }
+
+      await storage.mergeLeaguePlayers(sourcePlayerId, targetPlayerId, leagueId);
+      res.json({ success: true });
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
+      console.error("Merge players error:", err);
+      res.status(500).json({ message: "Internal Server Error" });
+    }
+  });
+
   // League sessions endpoint
   app.get('/api/leagues/:id/sessions', requireAuth, async (req, res) => {
     const leagueId = Number(req.params.id);

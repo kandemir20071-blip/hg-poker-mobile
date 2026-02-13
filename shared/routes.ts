@@ -302,6 +302,31 @@ export const api = {
         400: errorSchemas.validation,
       },
     },
+    unclaimPlayer: {
+      method: 'POST' as const,
+      path: '/api/leagues/:id/unclaim' as const,
+      input: z.object({
+        playerId: z.number(),
+      }),
+      responses: {
+        200: z.any(),
+        400: errorSchemas.validation,
+        401: errorSchemas.unauthorized,
+      },
+    },
+    mergePlayers: {
+      method: 'POST' as const,
+      path: '/api/leagues/:id/merge-players' as const,
+      input: z.object({
+        sourcePlayerId: z.number(),
+        targetPlayerId: z.number(),
+      }),
+      responses: {
+        200: z.object({ success: z.boolean() }),
+        400: errorSchemas.validation,
+        401: errorSchemas.unauthorized,
+      },
+    },
   },
   import: {
     upload: {

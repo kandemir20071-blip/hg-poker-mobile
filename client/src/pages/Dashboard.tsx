@@ -15,6 +15,7 @@ import { SuitAccent, SuitsLoader, SuitsRow } from "@/components/ui/Suits";
 import { Link, useLocation } from "wouter";
 import { format } from "date-fns";
 import { LeagueAnalytics } from "@/components/LeagueAnalytics";
+import { LeagueAdminDialog } from "@/components/LeagueAdminDialog";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 
 type Tab = "profile" | "leagues";
@@ -190,6 +191,7 @@ function LeaguesTab({
   const [joinCode, setJoinCode] = useState("");
   const [copiedCode, setCopiedCode] = useState(false);
   const [showClaimDialog, setShowClaimDialog] = useState(false);
+  const [showAdminDialog, setShowAdminDialog] = useState(false);
 
   const { mutate: createLeague, isPending: isCreating } = useCreateLeague();
   const { mutate: joinLeague, isPending: isJoining } = useJoinLeague();
@@ -492,6 +494,11 @@ function LeaguesTab({
                     <User className="mr-2 h-3.5 w-3.5" /> Claim Your Name
                   </Button>
                 )}
+                {isCreator && (
+                  <Button variant="outline" size="sm" className="w-full mt-2" onClick={() => setShowAdminDialog(true)} data-testid="button-admin-tools">
+                    <Shield className="mr-2 h-3.5 w-3.5" /> Manage Players
+                  </Button>
+                )}
               </div>
             );
           })()}
@@ -501,6 +508,15 @@ function LeaguesTab({
       <CreateLeagueDialog open={showCreateDialog} onOpenChange={setShowCreateDialog} name={newLeagueName} onNameChange={setNewLeagueName} onCreate={() => { createLeague({ name: newLeagueName }, { onSuccess: () => { setShowCreateDialog(false); setNewLeagueName(""); } }); }} isCreating={isCreating} />
       <JoinLeagueDialog open={showJoinDialog} onOpenChange={setShowJoinDialog} code={joinCode} onCodeChange={setJoinCode} onJoin={() => { joinLeague({ inviteCode: joinCode }, { onSuccess: () => { setShowJoinDialog(false); setJoinCode(""); } }); }} isJoining={isJoining} />
       <ClaimNameDialog open={showClaimDialog} onOpenChange={setShowClaimDialog} league={leagueWithPlayers} onClaim={(playerId: number) => { if (selectedLeagueId) claimPlayer({ leagueId: selectedLeagueId, playerId }, { onSuccess: () => setShowClaimDialog(false) }); }} />
+
+      {selectedLeagueId && leagueWithPlayers?.players && (
+        <LeagueAdminDialog
+          open={showAdminDialog}
+          onOpenChange={setShowAdminDialog}
+          leagueId={selectedLeagueId}
+          players={leagueWithPlayers.players}
+        />
+      )}
 
       <Dialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) { setDeleteTarget(null); setDeleteConfirmText(""); } }}>
         <DialogContent className="glass-card sm:max-w-md">

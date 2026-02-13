@@ -55,6 +55,9 @@ export interface IStorage {
   getLeaguePlayerByUserId(leagueId: number, userId: string): Promise<LeaguePlayer | undefined>;
   claimLeaguePlayer(playerId: number, userId: string): Promise<LeaguePlayer>;
   getLeaguePlayerByName(leagueId: number, name: string): Promise<LeaguePlayer | undefined>;
+  unclaimLeaguePlayer(playerId: number): Promise<LeaguePlayer>;
+  mergeLeaguePlayers(sourcePlayerId: number, targetPlayerId: number, leagueId: number): Promise<void>;
+  deleteLeaguePlayer(playerId: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -281,6 +284,52 @@ export class DatabaseStorage implements IStorage {
   async getLeaguePlayerByName(leagueId: number, name: string): Promise<LeaguePlayer | undefined> {
     const allPlayers = await db.select().from(leaguePlayers).where(eq(leaguePlayers.leagueId, leagueId));
     return allPlayers.find(p => p.name.toLowerCase().trim() === name.toLowerCase().trim());
+  }
+
+  async unclaimLeaguePlayer(playerId: number): Promise<LeaguePlayer> {
+    const [updated] = await db.update(leaguePlayers)
+      .set({ claimedByUserId: null })
+      .where(eq(leaguePlayers.id, playerId))
+      .returning();
+    if (!updated) throw new Error("Player not found");
+    return updated;
+  }
+
+  async mergeLeaguePlayers(sourcePlayerId: number, targetPlayerId: number, leagueId: number): Promise<void> {
+    await db.transaction(async (tx) => {
+      const [source] = await tx.select().from(leaguePlayers).where(eq(leaguePlayers.id, sourcePlayerId));
+      const [target] = await tx.select().from(leaguePlayers).where(eq(leaguePlayers.id, targetPlayerId));
+      if (!source || !target) throw new Error("Source or target player not found");
+      if (source.leagueId !== leagueId || target.leagueId !== leagueId) throw new Error("Players must be in the same league");
+
+      if (source.claimedByUserId && !target.claimedByUserId) {
+        await tx.update(leaguePlayers)
+          .set({ claimedByUserId: source.claimedByUserId })
+          .where(eq(leaguePlayers.id, targetPlayerId));
+      }
+
+      await tx.update(gameResults)
+        .set({ playerName: target.name })
+        .where(and(eq(gameResults.playerName, source.name), eq(gameResults.leagueId, leagueId)));
+
+      await tx.update(sessionPlayers)
+        .set({ name: target.name })
+        .where(
+          and(
+            eq(sessionPlayers.name, source.name),
+            inArray(
+              sessionPlayers.sessionId,
+              tx.select({ id: pokerSessions.id }).from(pokerSessions).where(eq(pokerSessions.leagueId, leagueId))
+            )
+          )
+        );
+
+      await tx.delete(leaguePlayers).where(eq(leaguePlayers.id, sourcePlayerId));
+    });
+  }
+
+  async deleteLeaguePlayer(playerId: number): Promise<void> {
+    await db.delete(leaguePlayers).where(eq(leaguePlayers.id, playerId));
   }
 }
 

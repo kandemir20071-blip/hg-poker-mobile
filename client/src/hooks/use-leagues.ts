@@ -166,6 +166,73 @@ export function usePersonalStats() {
   });
 }
 
+export function useUnclaimPlayer() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ leagueId, playerId }: { leagueId: number; playerId: number }) => {
+      const url = buildUrl(api.leagues.unclaimPlayer.path, { id: leagueId });
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ playerId }),
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        throw new Error(err?.message || "Failed to unclaim player");
+      }
+      return res.json();
+    },
+    onSuccess: (_, { leagueId }) => {
+      queryClient.invalidateQueries({ queryKey: [api.leagues.get.path, leagueId], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: [api.leagues.list.path], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: [api.stats.personal.path], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: [api.stats.league.path], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: [api.stats.get.path], refetchType: 'all' });
+      toast({ title: "Name Unclaimed", description: "The player name has been reverted to guest status." });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    },
+  });
+}
+
+export function useMergePlayers() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ leagueId, sourcePlayerId, targetPlayerId }: { leagueId: number; sourcePlayerId: number; targetPlayerId: number }) => {
+      const url = buildUrl(api.leagues.mergePlayers.path, { id: leagueId });
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sourcePlayerId, targetPlayerId }),
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        throw new Error(err?.message || "Failed to merge players");
+      }
+      return res.json();
+    },
+    onSuccess: (_, { leagueId }) => {
+      queryClient.invalidateQueries({ queryKey: [api.leagues.get.path, leagueId], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: [api.leagues.list.path], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: [api.stats.personal.path], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: [api.stats.league.path], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: [api.stats.get.path], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ['/api/leagues/sessions', leagueId], refetchType: 'all' });
+      toast({ title: "Players Merged", description: "All history has been combined under the target name." });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    },
+  });
+}
+
 export function useMigrateToLeague() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
