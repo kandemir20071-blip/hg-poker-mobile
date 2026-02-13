@@ -336,10 +336,28 @@ function LeaguesTab({
         </Card>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-3 gap-4">
         <StatCard title="Games Played" value={leagueStats?.totalGames || 0} icon={History} />
-        <StatCard title="Total Money Wagered" value={`$${leagueStats?.totalMoneyWagered || 0}`} icon={Coins} />
-        <StatCard title="Total Pot" value={`$${leagueStats?.totalPot || 0}`} icon={Trophy} />
+        {(() => {
+          const wagered = leagueStats?.totalMoneyWagered || 0;
+          const cashOut = leagueStats?.totalPot || 0;
+          const diff = cashOut - wagered;
+          return (
+            <StatCard
+              title="Total Money Wagered"
+              value={`$${wagered}`}
+              icon={Coins}
+              subtitle={
+                <span className="flex items-center gap-1 flex-wrap">
+                  <span>Cash-out: ${cashOut}</span>
+                  <span className="text-white/20">|</span>
+                  <span>Diff: <span className={diff === 0 ? "text-muted-foreground" : diff > 0 ? "text-amber-400" : "text-red-400"}>{diff >= 0 ? "+" : ""}${diff}</span></span>
+                </span>
+              }
+            />
+          );
+        })()}
+        <div className="rounded-xl border border-dashed border-white/[0.06] opacity-30" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

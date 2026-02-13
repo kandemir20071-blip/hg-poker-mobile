@@ -7,7 +7,7 @@ interface StatCardProps {
   icon: LucideIcon;
   trend?: string;
   trendUp?: boolean;
-  subtitle?: string;
+  subtitle?: React.ReactNode;
   prominent?: boolean;
   valueColor?: string;
   className?: string;
