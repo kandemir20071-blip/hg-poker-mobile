@@ -115,7 +115,7 @@ export const api = {
       input: z.object({
         playerId: z.number(),
         type: z.enum(['buy_in', 'cash_out']),
-        amount: z.number(),
+        amount: z.number().gt(0, 'Amount must be greater than 0').lt(100000, 'Amount must be less than $100,000'),
         paymentMethod: z.enum(['cash', 'digital']),
       }),
       responses: {
@@ -127,7 +127,7 @@ export const api = {
       method: 'PATCH' as const,
       path: '/api/transactions/:id' as const,
       input: z.object({
-        amount: z.number().optional(),
+        amount: z.number().gt(0, 'Amount must be greater than 0').lt(100000, 'Amount must be less than $100,000').optional(),
         type: z.enum(['buy_in', 'cash_out']).optional(),
         paymentMethod: z.enum(['cash', 'digital']).optional(),
       }),

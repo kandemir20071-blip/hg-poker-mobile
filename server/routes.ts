@@ -318,6 +318,33 @@ export async function registerRoutes(
     }
   });
 
+  app.post('/api/sessions/:id/players/:playerId/cashout', requireAuth, async (req, res) => {
+    try {
+      const sessionId = Number(req.params.id);
+      const playerId = Number(req.params.playerId);
+      const { amount } = z.object({ amount: z.number().gt(0).lt(100000) }).parse(req.body);
+
+      const session = await storage.getSession(sessionId);
+      if (!session) return res.status(404).json({ message: "Session not found" });
+      if (session.hostId !== (req.user as any).claims.sub) return res.status(401).json({ message: "Only the host can cash out players" });
+
+      const player = await storage.getPlayer(playerId);
+      if (!player || player.sessionId !== sessionId) return res.status(404).json({ message: "Player not found in this session" });
+
+      const transaction = await storage.addTransaction({
+        sessionId, playerId, type: 'cash_out',
+        amount, paymentMethod: 'cash', status: 'approved',
+      });
+
+      const updatedPlayer = await storage.updatePlayerStatus(playerId, 'cashed_out');
+
+      res.json({ transaction, player: updatedPlayer });
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
+      res.status(500).json({ message: "Internal Server Error" });
+    }
+  });
+
   // ==================== TRANSACTIONS ====================
 
   app.post(api.transactions.create.path, async (req, res) => {

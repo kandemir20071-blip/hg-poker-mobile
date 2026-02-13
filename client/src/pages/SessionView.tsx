@@ -44,8 +44,9 @@ export default function SessionView() {
   const isHost = session.hostId === user?.id;
   const isActive = session.status === 'active';
   
-  const totalInPlay = players.reduce((sum, p) => sum + p.totalBuyIn, 0);
-  const totalCashOut = players.reduce((sum, p) => sum + p.totalCashOut, 0);
+  const totalWagered = players.reduce((sum, p) => sum + p.totalBuyIn, 0);
+  const totalCashedOut = players.reduce((sum, p) => sum + p.totalCashOut, 0);
+  const chipsInPlay = totalWagered - totalCashedOut;
   const pendingTransactions = transactions.filter(t => t.status === 'pending');
 
   const handleCopyCode = () => {
@@ -153,9 +154,10 @@ export default function SessionView() {
                     <AlertTriangle className="h-6 w-6 shrink-0" />
                     <p className="text-sm">This will calculate final stats and lock the session. Ensure all cash-outs are recorded!</p>
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    Total Chips in Play: <span className="text-white font-mono font-bold">${totalInPlay}</span>
-                  </p>
+                  <div className="text-sm text-muted-foreground space-y-1">
+                    <p>Total Wagered: <span className="text-white font-mono font-bold">${totalWagered}</span></p>
+                    <p>Chips in Play: <span className="text-primary font-mono font-bold">${chipsInPlay}</span></p>
+                  </div>
                 </div>
                 <DialogFooter>
                   <Button variant="ghost" onClick={() => setEndDialogOpen(false)}>Cancel</Button>
@@ -177,9 +179,15 @@ export default function SessionView() {
               {adminMode && (
                 <AddPlayerDialog sessionId={sessionId} />
               )}
-              <div className="glass-card px-4 py-2 rounded-lg">
-                <span className="text-xs text-muted-foreground uppercase tracking-wider mr-2">Total Pot</span>
-                <span className="text-xl font-mono font-bold text-primary" data-testid="text-total-pot">${totalInPlay}</span>
+              <div className="flex items-center gap-3 flex-wrap">
+                <div className="glass-card px-4 py-2 rounded-lg">
+                  <span className="text-xs text-muted-foreground uppercase tracking-wider mr-2">Wagered</span>
+                  <span className="text-xl font-mono font-bold text-muted-foreground" data-testid="text-total-wagered">${totalWagered}</span>
+                </div>
+                <div className="glass-card px-4 py-2 rounded-lg">
+                  <span className="text-xs text-muted-foreground uppercase tracking-wider mr-2">In Play</span>
+                  <span className="text-xl font-mono font-bold text-primary" data-testid="text-chips-in-play">${chipsInPlay}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -191,6 +199,7 @@ export default function SessionView() {
             currentUserId={user?.id}
             adminMode={adminMode}
             transactions={transactions}
+            isActive={isActive}
           />
         </div>
 

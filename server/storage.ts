@@ -24,6 +24,7 @@ export interface IStorage {
   getSessionPlayers(sessionId: number): Promise<SessionPlayer[]>;
   getPlayer(id: number): Promise<SessionPlayer | undefined>;
   getPlayerBySessionAndUser(sessionId: number, userId: string): Promise<SessionPlayer | undefined>;
+  updatePlayerStatus(id: number, status: 'active' | 'busted' | 'cashed_out' | 'left'): Promise<SessionPlayer>;
 
   addTransaction(transaction: InsertTransaction): Promise<Transaction>;
   getSessionTransactions(sessionId: number): Promise<Transaction[]>;
@@ -113,6 +114,14 @@ export class DatabaseStorage implements IStorage {
       .from(sessionPlayers)
       .where(and(eq(sessionPlayers.sessionId, sessionId), eq(sessionPlayers.userId, userId)));
     return player;
+  }
+
+  async updatePlayerStatus(id: number, status: 'active' | 'busted' | 'cashed_out' | 'left'): Promise<SessionPlayer> {
+    const [updated] = await db.update(sessionPlayers)
+      .set({ status })
+      .where(eq(sessionPlayers.id, id))
+      .returning();
+    return updated;
   }
 
   async addTransaction(transaction: InsertTransaction): Promise<Transaction> {

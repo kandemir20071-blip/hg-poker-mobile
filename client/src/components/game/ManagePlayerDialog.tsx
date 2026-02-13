@@ -99,8 +99,8 @@ export function ManagePlayerDialog({ sessionId, playerId, playerName, transactio
               <TrendingDown className="w-3 h-3 text-emerald-400" /> Out: <span className="text-white font-mono">${totalCashOut}</span>
             </span>
           </div>
-          <span className={`font-mono font-bold text-sm ${net > 0 ? 'text-green-500' : net < 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
-            {net > 0 ? '+' : ''}{net}
+          <span className={`font-mono font-bold text-sm ${net > 0 ? 'text-emerald-500' : net < 0 ? 'text-red-500' : 'text-muted-foreground'}`}>
+            {net > 0 ? '+' : ''}${net}
           </span>
         </div>
 
