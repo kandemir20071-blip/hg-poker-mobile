@@ -114,16 +114,27 @@ export default function SessionView() {
           <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
             <span className="flex items-center gap-1.5" data-testid="text-session-date">
               <Calendar className="w-3.5 h-3.5" />
-              {format(new Date(session.startTime), 'MMM d, yyyy')}
+              {format(new Date(session.startTime), 'dd.MM.yyyy')}
             </span>
-            <span className="flex items-center gap-1.5" data-testid="text-start-time">
+            <span className="flex items-center gap-1.5" data-testid="text-session-time-range">
               <Clock className="w-3.5 h-3.5" />
-              Started: {format(new Date(session.startTime), 'HH:mm')}
+              {format(new Date(session.startTime), 'HH:mm')}
+              {session.endTime && ` - ${format(new Date(session.endTime), 'HH:mm')}`}
             </span>
-            {session.endTime && (
-              <span className="flex items-center gap-1.5" data-testid="text-end-time">
+            {isCompleted && (
+              <span className="flex items-center gap-1.5" data-testid="text-time-played">
                 <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
-                Completed: {format(new Date(session.endTime), 'HH:mm')}
+                {(() => {
+                  if (!session.endTime) return 'Duration Unknown';
+                  const ms = new Date(session.endTime).getTime() - new Date(session.startTime).getTime();
+                  if (ms <= 0) return 'Duration Unknown';
+                  const totalMinutes = Math.round(ms / 60000);
+                  const hours = Math.floor(totalMinutes / 60);
+                  const minutes = totalMinutes % 60;
+                  if (hours > 0 && minutes > 0) return `${hours}h ${minutes}m`;
+                  if (hours > 0) return `${hours}h`;
+                  return `${minutes}m`;
+                })()}
               </span>
             )}
             <span className="flex items-center gap-1.5">
