@@ -1,0 +1,51 @@
+Integrate Subtle Background Illustration
+
+Objective: Update the Landing Page to use the newly generated line-art illustration (image_33.png) as a subtle, atmospheric background texture.
+
+1. Asset Setup:
+
+Ensure image_33.png is saved in the project's assets folder (e.g., client/src/assets/hero-bg.png).
+
+2. Implementation Strategy (Landing Page Component):
+
+Context: Do not apply this to the global body tag in CSS, as adjusting opacity there affects the whole site. We will use a layered approach within the landing page's main React component.
+
+Step A: Create Background Layer:
+
+Inside the main wrapper of the landing page, create a new div that sits before the main content (headers, login forms, etc.).
+
+Position this div absolutely to cover the entire screen and sit behind everything else.
+
+Apply the image as a background, and use Tailwind utilities to make it very subtle (low opacity and slight blur).
+
+Step B: Ensure Content Layer Stack:
+
+Ensure the existing main content container ( holding the "HOME GAME POKER TRACKER" text and buttons) is set to relative positioning with a higher z-index so it sits sharply on top of the background.
+
+3. Exact Tailwind Implementation Guide:
+
+Your component structure should look roughly like this. Please apply these classes:
+
+JavaScript
+// The Main Landing Page Container wrapper
+<div className="relative min-h-screen w-full overflow-hidden bg-slate-950"> >
+  {/* --- THE NEW BACKGROUND LAYER --- */}
+  <div
+    className="absolute inset-0 z-0" // absolute position, sits in back
+    style={{
+      backgroundImage: `url(/assets/hero-bg.png)`, // Reference the uploaded image
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+    }}
+  >
+    {/* THE CRITICAL SUBTLETY OVERLAY */}
+    {/* This inner div applies the dimming and blurring effects */}
+    <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-[2px]"></div>
+  </div>
+{/* --- EXISTING MAIN CONTENT --- */}
+
+Key Tuning Parameters:
+
+Use bg-slate-950/80 (80% opacity dark overlay) or opacity-20 on the image div itself to ensure it is very dim.
+
+Use a very light blur, like backdrop-blur-[2px] or blur-sm, so the lines are discernible as texture but not distracting sharp shapes.

@@ -4,6 +4,7 @@ import { useLocation } from "wouter";
 import { useEffect } from "react";
 import { ArrowRight, Layers } from "lucide-react";
 import { Heart, Spade, Club, Diamond, SuitsRow } from "@/components/ui/Suits";
+import heroBg from "@assets/unnamed-2_1771086435607.jpg";
 
 export default function Landing() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -18,22 +19,16 @@ export default function Landing() {
   if (isLoading) return null;
 
   return (
-    <div className="min-h-screen bg-background relative overflow-hidden flex flex-col items-center justify-center p-6">
-      <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/8 via-background to-background pointer-events-none" />
-      <div className="absolute -top-40 -right-40 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[120px]" />
-      <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-blue-500/5 rounded-full blur-[100px]" />
-
-      <div className="absolute top-8 left-8 text-primary opacity-[0.06] pointer-events-none" data-testid="watermark-heart">
-        <Heart size={140} />
-      </div>
-      <div className="absolute top-8 right-8 text-primary opacity-[0.06] pointer-events-none" data-testid="watermark-spade">
-        <Spade size={140} />
-      </div>
-      <div className="absolute bottom-16 left-8 text-primary opacity-[0.06] pointer-events-none" data-testid="watermark-club">
-        <Club size={140} />
-      </div>
-      <div className="absolute bottom-16 right-8 text-primary opacity-[0.06] pointer-events-none" data-testid="watermark-diamond">
-        <Diamond size={140} />
+    <div className="relative min-h-screen w-full overflow-hidden bg-slate-950 flex flex-col items-center justify-center p-6">
+      <div
+        className="absolute inset-0 z-0 pointer-events-none"
+        style={{
+          backgroundImage: `url(${heroBg})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}
+      >
+        <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-[2px]" />
       </div>
 
       <div className="relative z-10 max-w-2xl w-full text-center space-y-8">
