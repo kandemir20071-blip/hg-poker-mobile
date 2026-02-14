@@ -26,6 +26,7 @@ export const api = {
         type: z.enum(['cash', 'tournament']),
         leagueId: z.number().optional(),
         config: z.any().optional(),
+        defaultBuyIn: z.number().gt(0).optional(),
       }),
       responses: {
         201: z.custom<typeof pokerSessions.$inferSelect>(),

@@ -44,6 +44,7 @@ export const pokerSessions = pgTable("poker_sessions", {
   endTime: timestamp("end_time"),
   code: text("code").unique().notNull(),
   config: jsonb("config"),
+  defaultBuyIn: integer("default_buy_in"),
 });
 
 export const sessionPlayers = pgTable("session_players", {
@@ -128,6 +129,7 @@ export type CreateSessionRequest = {
   type: 'cash' | 'tournament';
   leagueId?: number;
   config?: any;
+  defaultBuyIn?: number;
 };
 
 export type JoinSessionRequest = {
