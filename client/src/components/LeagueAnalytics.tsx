@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import {
   ScatterChart,
   Scatter,
@@ -22,11 +22,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
 import { HelpCircle, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -62,30 +57,44 @@ interface LeagueAnalyticsProps {
 }
 
 function HelpBubble({ text }: { text: string }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [open]);
+
   return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <button className="text-muted-foreground relative z-10" data-testid="button-help-bubble">
-          <HelpCircle className="h-4 w-4" />
-        </button>
-      </PopoverTrigger>
-      <PopoverContent
-        side="bottom"
-        align="start"
-        sideOffset={8}
-        collisionPadding={16}
-        className="w-64 p-3 z-50"
+    <div className="relative inline-block" ref={ref}>
+      <button
+        className="text-muted-foreground"
+        onClick={() => setOpen(!open)}
+        data-testid="button-help-bubble"
       >
-        <div className="flex items-start gap-2">
-          <p className="text-xs leading-relaxed text-muted-foreground flex-1">{text}</p>
-          <PopoverTrigger asChild>
-            <button className="text-muted-foreground shrink-0 mt-0.5" data-testid="button-help-close">
+        <HelpCircle className="h-4 w-4" />
+      </button>
+      {open && (
+        <div className="absolute top-full left-0 mt-2 w-64 p-3 bg-card border border-border rounded-md shadow-lg z-50">
+          <div className="flex items-start gap-2">
+            <p className="text-xs leading-relaxed text-muted-foreground flex-1">{text}</p>
+            <button
+              className="text-muted-foreground shrink-0 mt-0.5"
+              onClick={() => setOpen(false)}
+              data-testid="button-help-close"
+            >
               <X className="h-3.5 w-3.5" />
             </button>
-          </PopoverTrigger>
+          </div>
         </div>
-      </PopoverContent>
-    </Popover>
+      )}
+    </div>
   );
 }
 
