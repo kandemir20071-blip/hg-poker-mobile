@@ -23,10 +23,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Tooltip as UITooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
 import { HelpCircle, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -63,16 +63,23 @@ interface LeagueAnalyticsProps {
 
 function HelpBubble({ text }: { text: string }) {
   return (
-    <UITooltip>
-      <TooltipTrigger asChild>
+    <Popover>
+      <PopoverTrigger asChild>
         <button className="text-muted-foreground" data-testid="button-help-bubble">
           <HelpCircle className="h-4 w-4" />
         </button>
-      </TooltipTrigger>
-      <TooltipContent side="top" className="max-w-[280px] text-xs leading-relaxed">
-        {text}
-      </TooltipContent>
-    </UITooltip>
+      </PopoverTrigger>
+      <PopoverContent side="bottom" align="start" sideOffset={6} className="max-w-xs p-3">
+        <div className="flex items-start gap-2">
+          <p className="text-xs leading-relaxed text-muted-foreground flex-1">{text}</p>
+          <PopoverTrigger asChild>
+            <button className="text-muted-foreground shrink-0 mt-0.5" data-testid="button-help-close">
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </PopoverTrigger>
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
 
