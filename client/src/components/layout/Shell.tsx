@@ -18,7 +18,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
       <div className="md:hidden flex items-center justify-between p-4 border-b border-white/[0.06] bg-card/60 backdrop-blur-xl sticky top-0 z-50">
         <Link href="/">
           <span className="font-bold text-lg text-white cursor-pointer flex items-center gap-2">
-            <Logo size="sm" />
+            <Logo className="w-8 h-8" />
             HG Poker
             <SuitAccent suit="spade" size={10} className="text-primary opacity-20" />
           </span>
@@ -33,7 +33,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
 
       <aside className="hidden md:flex flex-col w-64 border-r border-white/[0.06] bg-card/30 p-6 fixed h-full z-40">
         <div className="mb-10 flex items-center gap-3">
-          <Logo size="md" />
+          <Logo className="w-12 h-12" />
           <div>
             <h1 className="text-lg font-bold text-white leading-none flex items-center gap-1.5">HG Poker <SuitAccent suit="spade" size={10} className="text-primary opacity-20" /></h1>
             <p className="text-[11px] text-muted-foreground mt-0.5">Tracker</p>
