@@ -77,10 +77,10 @@ function HelpBubble({ text }: { text: string }) {
 }
 
 const VIEW_HELP: Record<AnalyticsView, string> = {
-  performance: "Tracks cumulative profit/loss over time. Visualize winning streaks vs. downswings.",
-  skill_map: "Scatter plot of Experience (X) vs. Efficiency (Y). Top-Right = Sharks (High Vol/Win). Bottom-Right = Donators.",
-  volatility: "Analyzes play style variance. Green Bar = Biggest Win. Red Bar = Biggest Loss. Large bars = High Volatility.",
-  pulse: "Health monitor. Shows Total Money Wagered per session to track league growth.",
+  performance: "Tracks the cumulative profit/loss for players over time. Shows who is consistently winning vs. losing.",
+  skill_map: "Scatter plot comparing Games Played (Experience) vs. ROI % (Efficiency). Top-Right = Sharks; Bottom-Right = Donators.",
+  volatility: "Analyzes play style. Shows a player's single biggest win (Green) vs. single biggest loss (Red). Larger bars = higher variance.",
+  pulse: "The health monitor of your league. Shows the Total Money Wagered per session over time.",
 };
 
 export function LeagueAnalytics({ playerProfitHistory, playerAnalytics, sessionHistory }: LeagueAnalyticsProps) {
