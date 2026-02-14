@@ -8,34 +8,34 @@
   --font-body: 'Inter', system-ui, -apple-system, sans-serif;
 
   --background: 240 20% 4%;
-  --foreground: 0 0% 98%;
+  --foreground: 0 0% 100%;
 
-  --card: 240 15% 12%;
-  --card-foreground: 0 0% 98%;
+  --card: 250 20% 24%;
+  --card-foreground: 0 0% 100%;
 
-  --popover: 240 15% 12%;
-  --popover-foreground: 0 0% 98%;
+  --popover: 250 20% 24%;
+  --popover-foreground: 0 0% 100%;
 
   --primary: 160 84% 39%;
-  --primary-foreground: 0 0% 98%;
+  --primary-foreground: 0 0% 100%;
 
-  --secondary: 240 12% 16%;
-  --secondary-foreground: 0 0% 85%;
+  --secondary: 250 15% 22%;
+  --secondary-foreground: 215 20% 85%;
 
-  --muted: 240 12% 16%;
-  --muted-foreground: 220 10% 60%;
+  --muted: 250 15% 22%;
+  --muted-foreground: 215 15% 65%;
 
   --accent: 160 84% 39%;
-  --accent-foreground: 0 0% 98%;
+  --accent-foreground: 0 0% 100%;
 
   --destructive: 0 84% 60%;
-  --destructive-foreground: 0 0% 98%;
+  --destructive-foreground: 0 0% 100%;
 
   --success: 160 84% 39%;
-  --success-foreground: 0 0% 98%;
+  --success-foreground: 0 0% 100%;
 
-  --border: 240 10% 20%;
-  --input: 240 10% 18%;
+  --border: 250 15% 30%;
+  --input: 250 15% 25%;
   --ring: 160 84% 39%;
 
   --radius: 0.75rem;
@@ -46,14 +46,14 @@
   --chart-4: 43 96% 58%;
   --chart-5: 27 96% 61%;
 
-  --sidebar: 240 18% 8%;
-  --sidebar-foreground: 0 0% 98%;
-  --sidebar-border: 240 10% 18%;
+  --sidebar: 250 22% 10%;
+  --sidebar-foreground: 0 0% 100%;
+  --sidebar-border: 250 15% 24%;
   --sidebar-ring: 160 84% 39%;
   --sidebar-primary: 160 84% 39%;
-  --sidebar-primary-foreground: 0 0% 98%;
-  --sidebar-accent: 240 12% 18%;
-  --sidebar-accent-foreground: 0 0% 98%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 250 15% 22%;
+  --sidebar-accent-foreground: 0 0% 100%;
 }
 
 @layer base {
@@ -63,11 +63,7 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     min-height: 100vh;
-    background: #030509;
-    background-image:
-      radial-gradient(ellipse 80% 60% at 10% 0%, hsla(255, 50%, 18%, 0.7) 0%, transparent 60%),
-      radial-gradient(ellipse 60% 50% at 90% 100%, hsla(160, 60%, 10%, 0.5) 0%, transparent 60%),
-      radial-gradient(ellipse 50% 40% at 50% 50%, hsla(220, 40%, 8%, 0.4) 0%, transparent 70%);
+    background: radial-gradient(circle at top left, #8b5cf6, #1e1b4b, #10b981);
     background-attachment: fixed;
   }
 
@@ -79,26 +75,26 @@
   [class*="bg-card"],
   [class*="bg-popover"],
   .bg-background {
-    backdrop-filter: blur(20px) saturate(1.4);
-    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    backdrop-filter: blur(24px) saturate(1.5);
+    -webkit-backdrop-filter: blur(24px) saturate(1.5);
   }
 }
 
 @layer components {
   .glass-panel {
-    background: hsla(240, 15%, 12%, 0.45);
+    background: rgba(255, 255, 255, 0.08);
     backdrop-filter: blur(24px) saturate(1.5);
     -webkit-backdrop-filter: blur(24px) saturate(1.5);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.08);
   }
 
   .glass-card {
-    background: hsla(240, 15%, 12%, 0.4);
+    background: rgba(255, 255, 255, 0.07);
     backdrop-filter: blur(24px) saturate(1.5);
     -webkit-backdrop-filter: blur(24px) saturate(1.5);
-    border: 1px solid rgba(255, 255, 255, 0.07);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.06);
   }
 }
 
@@ -119,9 +115,9 @@
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.12);
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.25);
 }
