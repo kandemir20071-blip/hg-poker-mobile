@@ -270,8 +270,23 @@ export async function registerRoutes(
 
       const userId = req.isAuthenticated() ? (req.user as any).claims.sub : undefined;
       let player;
+      let isNewPlayer = false;
       if (userId) player = await storage.getPlayerBySessionAndUser(session.id, userId);
-      if (!player) player = await storage.addPlayer({ sessionId: session.id, name, userId });
+      if (!player) {
+        player = await storage.addPlayer({ sessionId: session.id, name, userId });
+        isNewPlayer = true;
+      }
+
+      if (isNewPlayer && session.defaultBuyIn && session.defaultBuyIn > 0) {
+        await storage.addTransaction({
+          sessionId: session.id,
+          playerId: player.id,
+          type: 'buy_in',
+          amount: session.defaultBuyIn,
+          paymentMethod: 'cash',
+          status: 'approved',
+        });
+      }
 
       res.json({ session, player });
     } catch (err) {
@@ -363,6 +378,18 @@ export async function registerRoutes(
       if (session.hostId !== (req.user as any).claims.sub) return res.status(401).json({ message: "Only the host can add players manually" });
 
       const player = await storage.addPlayer({ sessionId, name: input.name, userId: null });
+
+      if (session.defaultBuyIn && session.defaultBuyIn > 0) {
+        await storage.addTransaction({
+          sessionId,
+          playerId: player.id,
+          type: 'buy_in',
+          amount: session.defaultBuyIn,
+          paymentMethod: 'cash',
+          status: 'approved',
+        });
+      }
+
       res.status(201).json(player);
     } catch (err) {
       if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });

@@ -1,34 +1,92 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAddPlayerManually } from "@/hooks/use-sessions";
-import { UserPlus, Loader2 } from "lucide-react";
+import { useLeaguePlayers } from "@/hooks/use-leagues";
+import { UserPlus, Loader2, Plus, AlertCircle } from "lucide-react";
 
 interface AddPlayerDialogProps {
   sessionId: number;
+  leagueId?: number | null;
+  existingPlayerNames?: string[];
   trigger?: React.ReactNode;
 }
 
-export function AddPlayerDialog({ sessionId, trigger }: AddPlayerDialogProps) {
+export function AddPlayerDialog({ sessionId, leagueId, existingPlayerNames = [], trigger }: AddPlayerDialogProps) {
   const [open, setOpen] = useState(false);
-  const [name, setName] = useState("");
+  const [selectedPlayer, setSelectedPlayer] = useState("");
+  const [showCreateNew, setShowCreateNew] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [nameError, setNameError] = useState("");
   const { mutate, isPending } = useAddPlayerManually();
+  const { data: leaguePlayersRaw, isLoading: isLoadingRoster } = useLeaguePlayers(leagueId ?? null);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim()) return;
-    mutate({ sessionId, name: name.trim() }, {
+  const existingNamesLower = useMemo(
+    () => existingPlayerNames.map(n => n.toLowerCase().trim()),
+    [existingPlayerNames]
+  );
+
+  const availablePlayers = useMemo(() => {
+    if (!leaguePlayersRaw) return [];
+    return (leaguePlayersRaw as { id: number; name: string }[])
+      .filter(p => !existingNamesLower.includes(p.name.toLowerCase().trim()))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [leaguePlayersRaw, existingNamesLower]);
+
+  const allLeagueNames = useMemo(() => {
+    if (!leaguePlayersRaw) return [];
+    return (leaguePlayersRaw as { id: number; name: string }[]).map(p => p.name.toLowerCase().trim());
+  }, [leaguePlayersRaw]);
+
+  const resetState = () => {
+    setSelectedPlayer("");
+    setShowCreateNew(false);
+    setNewName("");
+    setNameError("");
+  };
+
+  const handleAddFromRoster = () => {
+    if (!selectedPlayer) return;
+    mutate({ sessionId, name: selectedPlayer }, {
       onSuccess: () => {
         setOpen(false);
-        setName("");
+        resetState();
       }
     });
   };
 
+  const handleCreateNew = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = newName.trim();
+    if (!trimmed) return;
+
+    if (existingNamesLower.includes(trimmed.toLowerCase())) {
+      setNameError("This player is already in the session.");
+      return;
+    }
+
+    if (allLeagueNames.includes(trimmed.toLowerCase())) {
+      setNameError("Player already exists in this league. Please select them from the dropdown.");
+      return;
+    }
+
+    setNameError("");
+    mutate({ sessionId, name: trimmed }, {
+      onSuccess: () => {
+        setOpen(false);
+        resetState();
+      }
+    });
+  };
+
+  const rosterLoaded = leagueId && !isLoadingRoster;
+  const hasRoster = rosterLoaded && availablePlayers.length > 0;
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetState(); }}>
       <DialogTrigger asChild>
         {trigger || (
           <Button variant="outline" size="sm" className="gap-2" data-testid="button-add-player">
@@ -38,33 +96,105 @@ export function AddPlayerDialog({ sessionId, trigger }: AddPlayerDialogProps) {
       </DialogTrigger>
       <DialogContent className="glass-card sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-xl">Add Player Manually</DialogTitle>
+          <DialogTitle className="text-xl">Add Player</DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 mt-2">
-          <div className="grid gap-2">
-            <Label htmlFor="player-name" className="text-muted-foreground">Player Name</Label>
-            <Input
-              id="player-name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="bg-background/50 border-white/[0.08]"
-              placeholder="Enter player name..."
-              required
-              autoFocus
-              data-testid="input-player-name"
-            />
-          </div>
+        <div className="space-y-4 mt-2">
+          {leagueId && isLoadingRoster && (
+            <div className="flex items-center justify-center py-6 text-muted-foreground gap-2">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span className="text-sm">Loading roster...</span>
+            </div>
+          )}
 
-          <Button
-            type="submit"
-            className="w-full rounded-full font-semibold"
-            disabled={isPending || !name.trim()}
-            data-testid="button-confirm-add-player"
-          >
-            {isPending ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "Add to Session"}
-          </Button>
-        </form>
+          {hasRoster && !showCreateNew && (
+            <>
+              <div className="grid gap-2">
+                <Label className="text-muted-foreground">Select from Roster</Label>
+                <Select value={selectedPlayer} onValueChange={setSelectedPlayer}>
+                  <SelectTrigger className="bg-background/50 border-white/[0.08]" data-testid="select-roster-player">
+                    <SelectValue placeholder="Choose a player..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availablePlayers.map(p => (
+                      <SelectItem key={p.id} value={p.name} data-testid={`option-player-${p.id}`}>
+                        {p.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <Button
+                className="w-full rounded-full font-semibold"
+                disabled={isPending || !selectedPlayer}
+                onClick={handleAddFromRoster}
+                data-testid="button-confirm-add-player"
+              >
+                {isPending ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "Add to Session"}
+              </Button>
+
+              <div className="relative flex items-center">
+                <div className="flex-grow border-t border-white/[0.06]" />
+                <span className="px-3 text-xs text-muted-foreground">or</span>
+                <div className="flex-grow border-t border-white/[0.06]" />
+              </div>
+
+              <Button
+                variant="outline"
+                className="w-full gap-2"
+                onClick={() => setShowCreateNew(true)}
+                data-testid="button-create-new-player"
+              >
+                <Plus className="w-4 h-4" /> Create New Player
+              </Button>
+            </>
+          )}
+
+          {(showCreateNew || (rosterLoaded && !hasRoster) || (!leagueId)) && (
+            <form onSubmit={handleCreateNew} className="space-y-4">
+              {showCreateNew && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => { setShowCreateNew(false); setNewName(""); setNameError(""); }}
+                  data-testid="button-back-to-roster"
+                >
+                  Back to Roster
+                </Button>
+              )}
+              <div className="grid gap-2">
+                <Label htmlFor="new-player-name" className="text-muted-foreground">Player Name</Label>
+                <Input
+                  id="new-player-name"
+                  value={newName}
+                  onChange={(e) => { setNewName(e.target.value); setNameError(""); }}
+                  className="bg-background/50 border-white/[0.08]"
+                  placeholder="Enter player name..."
+                  required
+                  autoFocus
+                  data-testid="input-player-name"
+                />
+                {nameError && (
+                  <p className="text-sm text-red-400 flex items-center gap-1.5" data-testid="text-name-error">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                    {nameError}
+                  </p>
+                )}
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full rounded-full font-semibold"
+                disabled={isPending || !newName.trim()}
+                data-testid="button-confirm-create-player"
+              >
+                {isPending ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "Create & Add to Session"}
+              </Button>
+            </form>
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   );

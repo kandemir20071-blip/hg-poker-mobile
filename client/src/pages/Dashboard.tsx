@@ -216,12 +216,42 @@ function LeaguesTab({
 
   const [deleteTarget, setDeleteTarget] = useState<{ id: number; type: string; date: string } | null>(null);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [newSessionOpen, setNewSessionOpen] = useState(false);
+  const [newSessionType, setNewSessionType] = useState<"cash" | "tournament" | null>(null);
+  const [defaultBuyIn, setDefaultBuyIn] = useState<number | null>(null);
+  const [customBuyIn, setCustomBuyIn] = useState("");
 
-  const handleCreateSession = (type: "cash" | "tournament") => {
-    if (!selectedLeagueId) return;
-    createSession({ type, leagueId: selectedLeagueId }, {
-      onSuccess: (session: any) => setLocation(`/session/${session.id}`),
-    });
+  const buyInPresets = [5, 10, 20, 30, 50, 100];
+
+  const handleSelectBuyIn = (amount: number) => {
+    setDefaultBuyIn(amount);
+    setCustomBuyIn("");
+  };
+
+  const handleCustomBuyIn = (val: string) => {
+    setCustomBuyIn(val);
+    const num = Number(val);
+    setDefaultBuyIn(num > 0 ? num : null);
+  };
+
+  const resetNewSession = () => {
+    setNewSessionType(null);
+    setDefaultBuyIn(null);
+    setCustomBuyIn("");
+  };
+
+  const handleStartSession = () => {
+    if (!selectedLeagueId || !newSessionType) return;
+    createSession(
+      { type: newSessionType, leagueId: selectedLeagueId, defaultBuyIn: defaultBuyIn || undefined },
+      {
+        onSuccess: (session: any) => {
+          setNewSessionOpen(false);
+          resetNewSession();
+          setLocation(`/session/${session.id}`);
+        },
+      }
+    );
   };
 
   const copyInviteCode = () => {
@@ -291,30 +321,93 @@ function LeaguesTab({
             </Button>
           )}
 
-          <Dialog>
+          <Dialog open={newSessionOpen} onOpenChange={(v) => { setNewSessionOpen(v); if (!v) resetNewSession(); }}>
             <DialogTrigger asChild>
               <Button size="default" className="rounded-full font-semibold glow-emerald" data-testid="button-new-session">
                 <Play className="mr-2 h-4 w-4" /> New Session
               </Button>
             </DialogTrigger>
             <DialogContent className="glass-card sm:max-w-lg">
-              <DialogHeader>
-                <DialogTitle className="text-2xl text-center">Select Game Type</DialogTitle>
-              </DialogHeader>
-              <div className="grid grid-cols-2 gap-4 mt-4">
-                <button onClick={() => handleCreateSession('cash')} disabled={isCreatingSession} className="flex flex-col items-center justify-center p-8 rounded-xl bg-background/50 border border-white/[0.08] hover:border-primary/40 hover:bg-primary/5 transition-all group disabled:opacity-50 relative overflow-hidden" data-testid="button-cash-game">
-                  <div className="absolute top-2 right-2"><SuitAccent suit="diamond" size={16} /></div>
-                  <Coins className="w-12 h-12 text-primary mb-4 group-hover:scale-105 transition-transform" />
-                  <h3 className="font-bold text-lg text-white">Cash Game</h3>
-                  <p className="text-xs text-muted-foreground text-center mt-2">Flexible buy-ins, cash out anytime.</p>
-                </button>
-                <button onClick={() => handleCreateSession('tournament')} disabled={isCreatingSession} className="flex flex-col items-center justify-center p-8 rounded-xl bg-background/50 border border-white/[0.08] hover:border-primary/40 hover:bg-primary/5 transition-all group disabled:opacity-50 relative overflow-hidden" data-testid="button-tournament">
-                  <div className="absolute top-2 right-2"><SuitAccent suit="spade" size={16} /></div>
-                  <Trophy className="w-12 h-12 text-primary mb-4 group-hover:scale-105 transition-transform" />
-                  <h3 className="font-bold text-lg text-white">Tournament</h3>
-                  <p className="text-xs text-muted-foreground text-center mt-2">Fixed buy-in, blinds increase, last one standing.</p>
-                </button>
-              </div>
+              {!newSessionType ? (
+                <>
+                  <DialogHeader>
+                    <DialogTitle className="text-2xl text-center">Select Game Type</DialogTitle>
+                  </DialogHeader>
+                  <div className="grid grid-cols-2 gap-4 mt-4">
+                    <button onClick={() => setNewSessionType('cash')} className="flex flex-col items-center justify-center p-8 rounded-xl bg-background/50 border border-white/[0.08] hover:border-primary/40 hover:bg-primary/5 transition-all group relative overflow-hidden" data-testid="button-cash-game">
+                      <div className="absolute top-2 right-2"><SuitAccent suit="diamond" size={16} /></div>
+                      <Coins className="w-12 h-12 text-primary mb-4 group-hover:scale-105 transition-transform" />
+                      <h3 className="font-bold text-lg text-white">Cash Game</h3>
+                      <p className="text-xs text-muted-foreground text-center mt-2">Flexible buy-ins, cash out anytime.</p>
+                    </button>
+                    <button onClick={() => setNewSessionType('tournament')} className="flex flex-col items-center justify-center p-8 rounded-xl bg-background/50 border border-white/[0.08] hover:border-primary/40 hover:bg-primary/5 transition-all group relative overflow-hidden" data-testid="button-tournament">
+                      <div className="absolute top-2 right-2"><SuitAccent suit="spade" size={16} /></div>
+                      <Trophy className="w-12 h-12 text-primary mb-4 group-hover:scale-105 transition-transform" />
+                      <h3 className="font-bold text-lg text-white">Tournament</h3>
+                      <p className="text-xs text-muted-foreground text-center mt-2">Fixed buy-in, blinds increase, last one standing.</p>
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <DialogHeader>
+                    <DialogTitle className="text-2xl text-center">Set Default Buy-in</DialogTitle>
+                    <DialogDescription className="text-center text-muted-foreground">
+                      Every player added will automatically get this buy-in. You can skip this step.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 mt-2">
+                    <div className="grid grid-cols-3 gap-2">
+                      {buyInPresets.map((amount) => (
+                        <Button
+                          key={amount}
+                          variant={defaultBuyIn === amount && !customBuyIn ? "default" : "outline"}
+                          className="font-mono text-base"
+                          onClick={() => handleSelectBuyIn(amount)}
+                          data-testid={`button-buyin-${amount}`}
+                        >
+                          €{amount}
+                        </Button>
+                      ))}
+                    </div>
+                    <div className="relative">
+                      <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        type="number"
+                        placeholder="Custom amount..."
+                        value={customBuyIn}
+                        onChange={(e) => handleCustomBuyIn(e.target.value)}
+                        className="pl-9 bg-background/50 border-white/[0.08]"
+                        min="1"
+                        data-testid="input-custom-buyin"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2 pt-2">
+                      <Button variant="ghost" className="flex-1" onClick={() => setNewSessionType(null)} data-testid="button-back-type">
+                        Back
+                      </Button>
+                      <Button variant="outline" className="flex-1" onClick={() => {
+                        if (!selectedLeagueId || !newSessionType) return;
+                        createSession(
+                          { type: newSessionType, leagueId: selectedLeagueId },
+                          {
+                            onSuccess: (session: any) => {
+                              setNewSessionOpen(false);
+                              resetNewSession();
+                              setLocation(`/session/${session.id}`);
+                            },
+                          }
+                        );
+                      }} disabled={isCreatingSession} data-testid="button-skip-buyin">
+                        Skip
+                      </Button>
+                      <Button className="flex-1 font-semibold glow-emerald" onClick={handleStartSession} disabled={isCreatingSession || !defaultBuyIn} data-testid="button-start-session">
+                        {isCreatingSession ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Start</>}
+                      </Button>
+                    </div>
+                  </div>
+                </>
+              )}
               {isCreatingSession && <div className="flex justify-center mt-4"><SuitsLoader /></div>}
             </DialogContent>
           </Dialog>
