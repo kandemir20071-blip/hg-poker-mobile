@@ -2,8 +2,9 @@ import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
-import { ArrowRight, Layers } from "lucide-react";
-import { Heart, Spade, Club, Diamond, SuitsRow } from "@/components/ui/Suits";
+import { ArrowRight } from "lucide-react";
+import { SuitsRow } from "@/components/ui/Suits";
+import { Logo } from "@/components/ui/Logo";
 import heroBg from "@assets/unnamed-2_1771086435607.jpg";
 
 export default function Landing() {
@@ -33,9 +34,7 @@ export default function Landing() {
 
       <div className="relative z-10 max-w-2xl w-full text-center space-y-8">
         <div className="flex justify-center mb-6">
-          <div className="w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center" data-testid="logo-icon">
-            <Layers className="w-7 h-7 text-primary" />
-          </div>
+          <Logo size="xl" />
         </div>
 
         <h1 className="text-5xl md:text-7xl font-extrabold text-white tracking-tight leading-[1.1]">
