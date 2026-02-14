@@ -108,6 +108,7 @@ function PlayerCard({ player, isHost, isCurrentUser, adminMode, sessionId, trans
   const isWinning = profit > 0;
   const isEven = profit === 0;
   const isCashedOut = player.status === 'cashed_out';
+  const hasBuyIn = transactions.some(t => t.playerId === player.id && t.type === 'buy_in' && t.status === 'approved');
 
   return (
     <div
@@ -171,9 +172,10 @@ function PlayerCard({ player, isHost, isCurrentUser, adminMode, sessionId, trans
             <BuyInDialog
               sessionId={sessionId}
               playerId={player.id}
+              isReBuy={hasBuyIn}
               trigger={
-                <Button size="sm" variant="outline" className="text-xs border-primary/30 text-primary">
-                  Add Chips
+                <Button size="sm" variant="outline" className="text-xs border-primary/30 text-primary" data-testid={`button-rebuy-${player.id}`}>
+                  {hasBuyIn ? 'Re-Buy' : 'Add Chips'}
                 </Button>
               }
             />

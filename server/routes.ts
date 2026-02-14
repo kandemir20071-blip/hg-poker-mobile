@@ -437,7 +437,7 @@ export async function registerRoutes(
       const isHost = userId && userId === session.hostId;
       const status = isHost ? 'approved' : 'pending';
 
-      const transaction = await storage.addTransaction({ sessionId, ...input, status });
+      const transaction = await storage.addTransaction({ sessionId, ...input, paymentMethod: 'cash', status });
       res.status(201).json(transaction);
     } catch (err) {
       if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });

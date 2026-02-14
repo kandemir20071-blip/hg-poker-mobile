@@ -356,6 +356,15 @@ export default function SessionView() {
                     const isBuyIn = tx.type === 'buy_in';
                     const isEditingThis = editingLedgerId === tx.id;
 
+                    let actionLabel = 'cashed out';
+                    if (isBuyIn) {
+                      const playerBuyIns = transactions
+                        .filter(t => t.playerId === tx.playerId && t.type === 'buy_in' && t.status !== 'pending')
+                        .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+                      const buyInIndex = playerBuyIns.findIndex(t => t.id === tx.id);
+                      actionLabel = buyInIndex > 0 ? 're-bought' : 'bought in';
+                    }
+
                     return (
                       <div key={tx.id} className="flex items-center justify-between gap-2 text-sm py-1" data-testid={`ledger-entry-${tx.id}`}>
                         <div className="flex items-center gap-2 min-w-0">
@@ -363,7 +372,7 @@ export default function SessionView() {
                             {format(new Date(tx.timestamp), 'HH:mm')}
                           </span>
                           <span className="font-medium text-white truncate">{player?.name}</span>
-                          <span className="text-muted-foreground text-xs shrink-0">{isBuyIn ? 'bought in' : 'cashed out'}</span>
+                          <span className="text-muted-foreground text-xs shrink-0">{actionLabel}</span>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
                           {isEditingThis ? (

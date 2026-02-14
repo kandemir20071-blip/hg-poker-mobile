@@ -117,7 +117,6 @@ export const api = {
         playerId: z.number(),
         type: z.enum(['buy_in', 'cash_out']),
         amount: z.number().min(0, 'Amount cannot be negative').lt(100000, 'Amount must be less than $100,000'),
-        paymentMethod: z.enum(['cash', 'digital']),
       }).refine(
         (data) => data.type === 'cash_out' || data.amount > 0,
         { message: 'Buy-in amount must be greater than 0', path: ['amount'] }
@@ -133,7 +132,6 @@ export const api = {
       input: z.object({
         amount: z.number().min(0, 'Amount cannot be negative').lt(100000, 'Amount must be less than $100,000').optional(),
         type: z.enum(['buy_in', 'cash_out']).optional(),
-        paymentMethod: z.enum(['cash', 'digital']).optional(),
       }),
       responses: {
         200: z.custom<typeof transactions.$inferSelect>(),

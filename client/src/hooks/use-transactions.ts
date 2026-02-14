@@ -32,7 +32,7 @@ export function useAddTransaction() {
           playerId: data.playerId,
           type: data.type,
           amount: data.amount,
-          paymentMethod: data.paymentMethod,
+          paymentMethod: 'cash',
           status: 'approved',
           timestamp: new Date().toISOString(),
         };
@@ -95,7 +95,7 @@ export function useUpdateTransaction() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ id, sessionId, data }: { id: number; sessionId: number; data: { amount?: number; type?: 'buy_in' | 'cash_out'; paymentMethod?: 'cash' | 'digital' } }) => {
+    mutationFn: async ({ id, sessionId, data }: { id: number; sessionId: number; data: { amount?: number; type?: 'buy_in' | 'cash_out' } }) => {
       const url = buildUrl(api.transactions.update.path, { id });
       const res = await fetch(url, {
         method: api.transactions.update.method,

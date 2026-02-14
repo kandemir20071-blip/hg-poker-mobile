@@ -142,7 +142,6 @@ export type AddTransactionRequest = {
   playerId: number;
   type: 'buy_in' | 'cash_out';
   amount: number;
-  paymentMethod: 'cash' | 'digital';
 };
 
 export type UpdateTransactionStatusRequest = {
@@ -152,7 +151,6 @@ export type UpdateTransactionStatusRequest = {
 export type UpdateTransactionRequest = {
   amount?: number;
   type?: 'buy_in' | 'cash_out';
-  paymentMethod?: 'cash' | 'digital';
 };
 
 export type AddManualPlayerRequest = {

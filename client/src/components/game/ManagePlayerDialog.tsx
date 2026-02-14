@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,13 +17,21 @@ interface ManagePlayerDialogProps {
   trigger?: React.ReactNode;
 }
 
+function getBuyInLabel(tx: Transaction, allPlayerTxs: Transaction[]): string {
+  if (tx.type !== 'buy_in') return 'Cash-out';
+  const buyIns = allPlayerTxs
+    .filter(t => t.type === 'buy_in')
+    .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+  const index = buyIns.findIndex(t => t.id === tx.id);
+  return index > 0 ? 'Re-Buy' : 'Buy-in';
+}
+
 export function ManagePlayerDialog({ sessionId, playerId, playerName, transactions, trigger }: ManagePlayerDialogProps) {
   const [open, setOpen] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [amount, setAmount] = useState("");
   const [type, setType] = useState<"buy_in" | "cash_out">("buy_in");
-  const [method, setMethod] = useState<"cash" | "digital">("cash");
 
   const { mutate: addTx, isPending: isAdding } = useAddTransaction();
   const { mutate: updateTx, isPending: isUpdating } = useUpdateTransaction();
@@ -37,17 +45,20 @@ export function ManagePlayerDialog({ sessionId, playerId, playerName, transactio
   const totalCashOut = playerTxs.filter(t => t.type === 'cash_out' && t.status === 'approved').reduce((s, t) => s + t.amount, 0);
   const net = totalCashOut - totalBuyIn;
 
+  const hasPriorBuyIn = useMemo(() => {
+    return playerTxs.some(t => t.type === 'buy_in' && t.status === 'approved');
+  }, [playerTxs]);
+
   const resetForm = () => {
     setAmount("");
     setType("buy_in");
-    setMethod("cash");
     setShowAddForm(false);
     setEditingId(null);
   };
 
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
-    addTx({ sessionId, data: { playerId, amount: Number(amount), type, paymentMethod: method } }, {
+    addTx({ sessionId, data: { playerId, amount: Number(amount), type } }, {
       onSuccess: resetForm
     });
   };
@@ -56,14 +67,13 @@ export function ManagePlayerDialog({ sessionId, playerId, playerName, transactio
     setEditingId(tx.id);
     setAmount(tx.amount.toString());
     setType(tx.type as "buy_in" | "cash_out");
-    setMethod(tx.paymentMethod as "cash" | "digital");
     setShowAddForm(false);
   };
 
   const handleUpdate = (e: React.FormEvent) => {
     e.preventDefault();
     if (editingId === null) return;
-    updateTx({ id: editingId, sessionId, data: { amount: Number(amount), type, paymentMethod: method } }, {
+    updateTx({ id: editingId, sessionId, data: { amount: Number(amount), type } }, {
       onSuccess: resetForm
     });
   };
@@ -111,6 +121,7 @@ export function ManagePlayerDialog({ sessionId, playerId, playerName, transactio
           {playerTxs.map(tx => {
             const isBuyIn = tx.type === 'buy_in';
             const isEditing = editingId === tx.id;
+            const displayLabel = getBuyInLabel(tx, playerTxs);
 
             if (isEditing) {
               return (
@@ -161,9 +172,9 @@ export function ManagePlayerDialog({ sessionId, playerId, playerName, transactio
                     {isBuyIn ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-white">{isBuyIn ? 'Buy-in' : 'Cash-out'}</p>
+                    <p className="text-sm font-medium text-white">{displayLabel}</p>
                     <p className="text-xs text-muted-foreground">
-                      {format(new Date(tx.timestamp), 'h:mm a')} · {tx.paymentMethod} · {tx.status}
+                      {format(new Date(tx.timestamp), 'h:mm a')} · {tx.status}
                     </p>
                   </div>
                 </div>
@@ -224,23 +235,11 @@ export function ManagePlayerDialog({ sessionId, playerId, playerName, transactio
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="buy_in">Buy-in</SelectItem>
+                    <SelectItem value="buy_in">{hasPriorBuyIn ? 'Re-Buy' : 'Buy-in'}</SelectItem>
                     <SelectItem value="cash_out">Cash-out</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-            <div className="grid gap-1">
-              <Label className="text-xs text-muted-foreground">Payment Method</Label>
-              <Select value={method} onValueChange={(v: "cash" | "digital") => setMethod(v)}>
-                <SelectTrigger className="bg-background/50 border-white/[0.08]" data-testid="select-new-tx-method">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="cash">Cash</SelectItem>
-                  <SelectItem value="digital">Digital</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
             <div className="flex items-center gap-2 justify-end">
               <Button type="button" variant="ghost" size="sm" onClick={resetForm} data-testid="button-cancel-new-tx">Cancel</Button>
