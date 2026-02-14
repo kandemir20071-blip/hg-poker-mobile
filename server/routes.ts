@@ -251,6 +251,34 @@ export async function registerRoutes(
     const players = await storage.getSessionPlayers(sessionId);
     const txns = await storage.getSessionTransactions(sessionId);
 
+    const isImported = session.config && (session.config as any).source === 'import';
+
+    if (isImported && players.length === 0 && session.leagueId) {
+      const sessionDate = new Date(session.startTime).toISOString().split('T')[0];
+      const allResults = await storage.getLeagueGameResults(session.leagueId);
+      const sessionResults = allResults.filter(r => {
+        const resultDate = new Date(r.date).toISOString().split('T')[0];
+        return resultDate === sessionDate;
+      });
+
+      const importedPlayers = sessionResults.map((r, idx) => ({
+        id: -(idx + 1),
+        sessionId,
+        userId: r.userId,
+        name: r.playerName,
+        joinedAt: r.date,
+        leftAt: null,
+        status: 'cashed_out' as const,
+        tournamentPlace: null,
+        currentStack: 0,
+        totalBuyIn: r.buyIn,
+        totalCashOut: r.cashOut,
+        netProfit: r.netProfit,
+      }));
+
+      return res.json({ session, players: importedPlayers, transactions: [] });
+    }
+
     const playersWithStats = players.map(p => {
       const playerTransactions = txns.filter(t => t.playerId === p.id && t.status === 'approved');
       const totalBuyIn = playerTransactions.filter(t => t.type === 'buy_in').reduce((sum, t) => sum + t.amount, 0);

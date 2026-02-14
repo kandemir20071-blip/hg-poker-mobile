@@ -57,6 +57,7 @@ export default function SessionView() {
   const isHost = session.hostId === user?.id;
   const isActive = session.status === 'active';
   const isCompleted = session.status === 'completed';
+  const isImported = !!(session.config && (session.config as Record<string, unknown>).source === 'import');
   const showSummary = isCompleted && !adminMode;
   
   const totalWagered = players.reduce((sum, p) => sum + p.totalBuyIn, 0);
@@ -105,7 +106,12 @@ export default function SessionView() {
             <span className={`px-2 py-0.5 rounded-full text-xs font-bold uppercase ${isActive ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`} data-testid="badge-session-status">
               {session.status}
             </span>
-            {adminMode && (
+            {isImported && (
+              <span className="px-2 py-0.5 rounded-full text-xs font-bold uppercase bg-blue-500/20 text-blue-400" data-testid="badge-imported">
+                Imported
+              </span>
+            )}
+            {adminMode && !isImported && (
               <span className="px-2 py-0.5 rounded-full text-xs font-bold uppercase bg-amber-500/20 text-amber-400" data-testid="badge-admin-mode">
                 Admin Mode
               </span>
@@ -145,7 +151,7 @@ export default function SessionView() {
         </div>
 
         <div className="flex items-center gap-3 flex-wrap">
-          {isHost && (
+          {isHost && !isImported && (
             <Button
               variant={adminMode ? "default" : "outline"}
               size="sm"
