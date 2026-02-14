@@ -7,26 +7,26 @@
 :root {
   --font-body: 'Inter', system-ui, -apple-system, sans-serif;
 
-  --background: 222 47% 11%;
-  --foreground: 210 40% 98%;
+  --background: 240 20% 4%;
+  --foreground: 0 0% 98%;
 
-  --card: 222 47% 14%;
-  --card-foreground: 210 40% 98%;
+  --card: 240 15% 12%;
+  --card-foreground: 0 0% 98%;
 
-  --popover: 222 47% 14%;
-  --popover-foreground: 210 40% 98%;
+  --popover: 240 15% 12%;
+  --popover-foreground: 0 0% 98%;
 
   --primary: 160 84% 39%;
-  --primary-foreground: 210 40% 98%;
+  --primary-foreground: 0 0% 98%;
 
-  --secondary: 217 33% 17%;
-  --secondary-foreground: 210 40% 90%;
+  --secondary: 240 12% 16%;
+  --secondary-foreground: 0 0% 85%;
 
-  --muted: 217 33% 17%;
-  --muted-foreground: 215 20% 55%;
+  --muted: 240 12% 16%;
+  --muted-foreground: 220 10% 60%;
 
   --accent: 160 84% 39%;
-  --accent-foreground: 210 40% 98%;
+  --accent-foreground: 0 0% 98%;
 
   --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 98%;
@@ -34,8 +34,8 @@
   --success: 160 84% 39%;
   --success-foreground: 0 0% 98%;
 
-  --border: 217 33% 20%;
-  --input: 217 33% 20%;
+  --border: 240 10% 20%;
+  --input: 240 10% 18%;
   --ring: 160 84% 39%;
 
   --radius: 0.75rem;
@@ -46,40 +46,63 @@
   --chart-4: 43 96% 58%;
   --chart-5: 27 96% 61%;
 
-  --sidebar: 222 47% 12%;
-  --sidebar-foreground: 210 40% 98%;
-  --sidebar-border: 217 33% 18%;
+  --sidebar: 240 18% 8%;
+  --sidebar-foreground: 0 0% 98%;
+  --sidebar-border: 240 10% 18%;
   --sidebar-ring: 160 84% 39%;
   --sidebar-primary: 160 84% 39%;
-  --sidebar-primary-foreground: 210 40% 98%;
-  --sidebar-accent: 217 33% 20%;
-  --sidebar-accent-foreground: 210 40% 98%;
+  --sidebar-primary-foreground: 0 0% 98%;
+  --sidebar-accent: 240 12% 18%;
+  --sidebar-accent-foreground: 0 0% 98%;
 }
 
 @layer base {
   body {
-    @apply bg-background text-foreground antialiased;
     font-family: var(--font-body);
+    color: hsl(var(--foreground));
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    min-height: 100vh;
+    background: #030509;
+    background-image:
+      radial-gradient(ellipse 80% 60% at 10% 0%, hsla(255, 50%, 18%, 0.7) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 50% at 90% 100%, hsla(160, 60%, 10%, 0.5) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 40% at 50% 50%, hsla(220, 40%, 8%, 0.4) 0%, transparent 70%);
+    background-attachment: fixed;
   }
 
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-body);
     @apply font-bold tracking-tight text-white;
   }
+
+  [class*="bg-card"],
+  [class*="bg-popover"],
+  .bg-background {
+    backdrop-filter: blur(20px) saturate(1.4);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  }
 }
 
-@layer utilities {
+@layer components {
   .glass-panel {
-    @apply bg-card/60 backdrop-blur-xl border border-white/[0.08] shadow-xl;
+    background: hsla(240, 15%, 12%, 0.45);
+    backdrop-filter: blur(24px) saturate(1.5);
+    -webkit-backdrop-filter: blur(24px) saturate(1.5);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05);
   }
 
   .glass-card {
-    background: hsla(222, 47%, 14%, 0.6);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: hsla(240, 15%, 12%, 0.4);
+    backdrop-filter: blur(24px) saturate(1.5);
+    -webkit-backdrop-filter: blur(24px) saturate(1.5);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.04);
   }
+}
 
+@layer utilities {
   .text-shadow {
     text-shadow: 0 2px 4px rgba(0,0,0,0.5);
   }
@@ -93,11 +116,12 @@
   width: 6px;
 }
 ::-webkit-scrollbar-track {
-  @apply bg-transparent;
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  @apply bg-white/10 rounded-full;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-white/20;
+  background: rgba(255, 255, 255, 0.2);
 }
