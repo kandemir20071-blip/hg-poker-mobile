@@ -36,7 +36,7 @@ function CashOutDialog({ sessionId, player }: { sessionId: number; player: Exten
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const val = Number(amount);
-    if (val <= 0 || val >= 100000) return;
+    if (val < 0 || val >= 100000) return;
     cashOut({ sessionId, playerId: player.id, amount: val }, {
       onSuccess: () => setOpen(false),
     });
@@ -59,6 +59,14 @@ function CashOutDialog({ sessionId, player }: { sessionId: number; player: Exten
           </div>
           <div className="grid gap-2">
             <Label className="text-muted-foreground">Final Amount</Label>
+            <div className="flex gap-2 flex-wrap">
+              <Button type="button" variant="outline" size="sm" onClick={() => setAmount("0")} className={amount === "0" ? "border-primary text-primary" : ""} data-testid={`button-busto-${player.id}`}>
+                Busto ($0)
+              </Button>
+              <Button type="button" variant="outline" size="sm" onClick={() => setAmount(player.totalBuyIn.toString())} className={amount === player.totalBuyIn.toString() ? "border-primary text-primary" : ""} data-testid={`button-even-${player.id}`}>
+                Even (${player.totalBuyIn})
+              </Button>
+            </div>
             <div className="relative">
               <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-primary" />
               <Input
@@ -67,7 +75,7 @@ function CashOutDialog({ sessionId, player }: { sessionId: number; player: Exten
                 onChange={(e) => setAmount(e.target.value)}
                 className="pl-10 text-xl font-mono bg-background/50 border-white/[0.08] h-14"
                 required
-                min="1"
+                min="0"
                 max="99999"
                 autoFocus
                 data-testid={`input-cashout-amount-${player.id}`}
@@ -130,7 +138,7 @@ function PlayerCard({ player, isHost, isCurrentUser, adminMode, sessionId, trans
               <span className="flex items-center gap-1">
                 <TrendingUp className="h-3 w-3 text-primary" /> Buy-in: ${player.totalBuyIn}
               </span>
-              {player.totalCashOut > 0 && (
+              {(player.totalCashOut > 0 || isCashedOut) && (
                 <span className="flex items-center gap-1">
                   <DollarSign className="h-3 w-3 text-emerald-500" /> Cash-out: ${player.totalCashOut}
                 </span>

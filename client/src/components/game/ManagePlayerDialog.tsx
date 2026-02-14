@@ -126,7 +126,7 @@ export function ManagePlayerDialog({ sessionId, playerId, playerName, transactio
                           onChange={(e) => setAmount(e.target.value)}
                           className="pl-8 bg-background/50 border-white/[0.08]"
                           required
-                          min="1"
+                          min="0"
                           data-testid={`input-edit-amount-${tx.id}`}
                         />
                       </div>
@@ -211,7 +211,7 @@ export function ManagePlayerDialog({ sessionId, playerId, playerName, transactio
                     onChange={(e) => setAmount(e.target.value)}
                     className="pl-8 bg-background/50 border-white/[0.08]"
                     required
-                    min="1"
+                    min="0"
                     autoFocus
                     data-testid="input-new-tx-amount"
                   />

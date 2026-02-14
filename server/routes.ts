@@ -401,7 +401,7 @@ export async function registerRoutes(
     try {
       const sessionId = Number(req.params.id);
       const playerId = Number(req.params.playerId);
-      const { amount } = z.object({ amount: z.number().gt(0).lt(100000) }).parse(req.body);
+      const { amount } = z.object({ amount: z.number().min(0).lt(100000) }).parse(req.body);
 
       const session = await storage.getSession(sessionId);
       if (!session) return res.status(404).json({ message: "Session not found" });

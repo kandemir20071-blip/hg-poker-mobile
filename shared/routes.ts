@@ -116,9 +116,12 @@ export const api = {
       input: z.object({
         playerId: z.number(),
         type: z.enum(['buy_in', 'cash_out']),
-        amount: z.number().gt(0, 'Amount must be greater than 0').lt(100000, 'Amount must be less than $100,000'),
+        amount: z.number().min(0, 'Amount cannot be negative').lt(100000, 'Amount must be less than $100,000'),
         paymentMethod: z.enum(['cash', 'digital']),
-      }),
+      }).refine(
+        (data) => data.type === 'cash_out' || data.amount > 0,
+        { message: 'Buy-in amount must be greater than 0', path: ['amount'] }
+      ),
       responses: {
         201: z.custom<typeof transactions.$inferSelect>(),
         400: errorSchemas.validation,
@@ -128,7 +131,7 @@ export const api = {
       method: 'PATCH' as const,
       path: '/api/transactions/:id' as const,
       input: z.object({
-        amount: z.number().gt(0, 'Amount must be greater than 0').lt(100000, 'Amount must be less than $100,000').optional(),
+        amount: z.number().min(0, 'Amount cannot be negative').lt(100000, 'Amount must be less than $100,000').optional(),
         type: z.enum(['buy_in', 'cash_out']).optional(),
         paymentMethod: z.enum(['cash', 'digital']).optional(),
       }),
