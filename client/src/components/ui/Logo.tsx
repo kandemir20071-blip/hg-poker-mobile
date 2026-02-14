@@ -1,4 +1,4 @@
-import logoSrc from "@assets/image_1771096663950.png";
+import logoSrc from "@assets/image_1771097397897.png";
 
 interface LogoProps {
   className?: string;
@@ -6,10 +6,10 @@ interface LogoProps {
 }
 
 const sizeMap = {
-  sm: "w-8 h-8",
-  md: "w-10 h-10",
-  lg: "w-20 h-20",
-  xl: "w-24 h-24",
+  sm: "w-10 h-10",
+  md: "w-12 h-12",
+  lg: "w-24 h-24",
+  xl: "w-36 h-36",
 };
 
 export function Logo({ className = "", size = "md" }: LogoProps) {
