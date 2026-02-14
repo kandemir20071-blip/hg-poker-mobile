@@ -33,7 +33,7 @@ export default function Landing() {
       </div>
 
       <div className="relative z-10 max-w-2xl w-full text-center space-y-8">
-        <div className="flex justify-center mb-6">
+        <div className="flex justify-center mb-2">
           <Logo className="w-56 h-56 drop-shadow-[0_0_4px_rgba(74,222,128,0.3)]" />
         </div>
 
