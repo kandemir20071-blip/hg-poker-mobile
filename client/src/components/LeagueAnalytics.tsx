@@ -65,11 +65,17 @@ function HelpBubble({ text }: { text: string }) {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <button className="text-muted-foreground" data-testid="button-help-bubble">
+        <button className="text-muted-foreground relative z-10" data-testid="button-help-bubble">
           <HelpCircle className="h-4 w-4" />
         </button>
       </PopoverTrigger>
-      <PopoverContent side="bottom" align="start" sideOffset={8} avoidCollisions={false} className="w-72 p-3">
+      <PopoverContent
+        side="bottom"
+        align="start"
+        sideOffset={8}
+        collisionPadding={16}
+        className="w-64 p-3 z-50"
+      >
         <div className="flex items-start gap-2">
           <p className="text-xs leading-relaxed text-muted-foreground flex-1">{text}</p>
           <PopoverTrigger asChild>
