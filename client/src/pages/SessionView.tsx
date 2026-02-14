@@ -7,10 +7,10 @@ import { AddPlayerDialog } from "@/components/game/AddPlayerDialog";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { QRCodeSVG } from "qrcode.react";
-import { Loader2, Share2, Copy, AlertTriangle, CheckCircle, XCircle, LogOut, Shield, Pencil, Trash2 } from "lucide-react";
+import { Loader2, Share2, Copy, AlertTriangle, CheckCircle, XCircle, LogOut, Shield, Pencil, Trash2, Trophy, Calendar, Clock } from "lucide-react";
 import { SuitsLoader, SuitAccent } from "@/components/ui/Suits";
 import { format } from "date-fns";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function SessionView() {
@@ -19,6 +19,9 @@ export default function SessionView() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const forceAdmin = urlParams.get('admin') === 'true';
   
   const { data, isLoading } = useSession(sessionId);
   const { mutate: endSession, isPending: isEnding } = useEndSession();
@@ -27,9 +30,19 @@ export default function SessionView() {
   const { mutate: deleteTx } = useDeleteTransaction();
 
   const [endDialogOpen, setEndDialogOpen] = useState(false);
-  const [adminMode, setAdminMode] = useState(false);
+  const [adminMode, setAdminMode] = useState(forceAdmin);
   const [editingLedgerId, setEditingLedgerId] = useState<number | null>(null);
   const [editLedgerAmount, setEditLedgerAmount] = useState("");
+
+  const players = data?.players ?? [];
+  const rankedPlayers = useMemo(() => {
+    return [...players]
+      .map(p => ({
+        ...p,
+        netProfit: p.totalCashOut - p.totalBuyIn,
+      }))
+      .sort((a, b) => b.netProfit - a.netProfit);
+  }, [players]);
 
   if (isLoading || !data) {
     return (
@@ -40,9 +53,11 @@ export default function SessionView() {
     );
   }
 
-  const { session, players, transactions } = data;
+  const { session, transactions } = data;
   const isHost = session.hostId === user?.id;
   const isActive = session.status === 'active';
+  const isCompleted = session.status === 'completed';
+  const showSummary = isCompleted && !adminMode;
   
   const totalWagered = players.reduce((sum, p) => sum + p.totalBuyIn, 0);
   const totalCashedOut = players.reduce((sum, p) => sum + p.totalCashOut, 0);
@@ -96,11 +111,26 @@ export default function SessionView() {
               </span>
             )}
           </div>
-          <p className="text-sm text-muted-foreground flex items-center gap-2 flex-wrap">
-            Started {format(new Date(session.startTime), 'h:mm a')} 
-            <span className="font-mono text-primary font-bold">{session.code}</span>
-            <button onClick={handleCopyCode} className="hover:text-white" data-testid="button-copy-code"><Copy className="w-3 h-3" /></button>
-          </p>
+          <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
+            <span className="flex items-center gap-1.5" data-testid="text-session-date">
+              <Calendar className="w-3.5 h-3.5" />
+              {format(new Date(session.startTime), 'MMM d, yyyy')}
+            </span>
+            <span className="flex items-center gap-1.5" data-testid="text-start-time">
+              <Clock className="w-3.5 h-3.5" />
+              Started: {format(new Date(session.startTime), 'HH:mm')}
+            </span>
+            {session.endTime && (
+              <span className="flex items-center gap-1.5" data-testid="text-end-time">
+                <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
+                Completed: {format(new Date(session.endTime), 'HH:mm')}
+              </span>
+            )}
+            <span className="flex items-center gap-1.5">
+              <span className="font-mono text-primary font-bold">{session.code}</span>
+              <button onClick={handleCopyCode} className="hover:text-white" data-testid="button-copy-code"><Copy className="w-3 h-3" /></button>
+            </span>
+          </div>
         </div>
 
         <div className="flex items-center gap-3 flex-wrap">
@@ -116,27 +146,29 @@ export default function SessionView() {
             </Button>
           )}
 
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-2" data-testid="button-share">
-                <Share2 className="w-4 h-4" /> Share
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="glass-card text-center">
-              <DialogHeader>
-                <DialogTitle>Join Code</DialogTitle>
-              </DialogHeader>
-              <div className="flex flex-col items-center gap-6 py-4">
-                <div className="bg-white p-4 rounded-xl">
-                  <QRCodeSVG value={session.code} size={180} />
+          {!showSummary && (
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2" data-testid="button-share">
+                  <Share2 className="w-4 h-4" /> Share
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="glass-card text-center">
+                <DialogHeader>
+                  <DialogTitle>Join Code</DialogTitle>
+                </DialogHeader>
+                <div className="flex flex-col items-center gap-6 py-4">
+                  <div className="bg-white p-4 rounded-xl">
+                    <QRCodeSVG value={session.code} size={180} />
+                  </div>
+                  <div className="text-center space-y-2">
+                    <p className="text-muted-foreground text-sm">Scan or enter code to join</p>
+                    <div className="text-4xl font-mono font-bold text-primary tracking-widest" data-testid="text-session-code">{session.code}</div>
+                  </div>
                 </div>
-                <div className="text-center space-y-2">
-                  <p className="text-muted-foreground text-sm">Scan or enter code to join</p>
-                  <div className="text-4xl font-mono font-bold text-primary tracking-widest" data-testid="text-session-code">{session.code}</div>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
+              </DialogContent>
+            </Dialog>
+          )}
 
           {isHost && isActive && (
             <Dialog open={endDialogOpen} onOpenChange={setEndDialogOpen}>
@@ -171,160 +203,223 @@ export default function SessionView() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
-          <div className="flex items-center justify-between gap-4 flex-wrap">
-            <h2 className="text-xl font-bold text-white">Players</h2>
-            <div className="flex items-center gap-3 flex-wrap">
-              {adminMode && (
-                <AddPlayerDialog sessionId={sessionId} />
-              )}
-              <div className="flex items-center gap-3 flex-wrap">
-                <div className="glass-card px-4 py-2 rounded-lg">
-                  <span className="text-xs text-muted-foreground uppercase tracking-wider mr-2">Wagered</span>
-                  <span className="text-xl font-mono font-bold text-muted-foreground" data-testid="text-total-wagered">${totalWagered}</span>
-                </div>
-                <div className="glass-card px-4 py-2 rounded-lg">
-                  <span className="text-xs text-muted-foreground uppercase tracking-wider mr-2">In Play</span>
-                  <span className="text-xl font-mono font-bold text-primary" data-testid="text-chips-in-play">${chipsInPlay}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <PlayerList 
-            players={players} 
-            hostId={session.hostId} 
-            sessionId={sessionId} 
-            currentUserId={user?.id}
-            adminMode={adminMode}
-            transactions={transactions}
-            isActive={isActive}
-          />
-        </div>
-
+      {showSummary ? (
         <div className="space-y-6">
-          {isHost && pendingTransactions.length > 0 && (
-            <div className="glass-card rounded-xl overflow-hidden border-primary/20">
-              <div className="bg-primary/10 p-4 border-b border-primary/20 flex items-center gap-2">
-                <AlertTriangle className="w-5 h-5 text-primary animate-pulse" />
-                <h3 className="font-bold text-primary">Approvals Needed</h3>
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <h2 className="text-xl font-bold text-white flex items-center gap-2">
+              <Trophy className="w-5 h-5 text-primary" /> Post-Game Summary
+            </h2>
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="glass-card px-4 py-2 rounded-lg">
+                <span className="text-xs text-muted-foreground uppercase tracking-wider mr-2">Total Wagered</span>
+                <span className="text-xl font-mono font-bold text-muted-foreground" data-testid="text-summary-wagered">${totalWagered}</span>
               </div>
-              <div className="divide-y divide-white/[0.06]">
-                {pendingTransactions.map(tx => {
-                  const player = players.find(p => p.id === tx.playerId);
-                  return (
-                    <div key={tx.id} className="p-4 flex flex-col gap-3">
-                      <div className="flex justify-between items-start gap-2">
-                        <div>
-                          <p className="font-bold text-white">{player?.name}</p>
-                          <p className="text-xs text-muted-foreground capitalize">{tx.type.replace('_', ' ')}</p>
-                        </div>
-                        <div className="text-xl font-mono font-bold text-white">${tx.amount}</div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <Button 
-                          size="sm" 
-                          variant="ghost" 
-                          className="text-destructive"
-                          onClick={() => updateTx({ id: tx.id, sessionId, data: { status: 'rejected' } })}
-                          data-testid={`button-reject-${tx.id}`}
-                        >
-                          <XCircle className="w-4 h-4 mr-1" /> Reject
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          onClick={() => updateTx({ id: tx.id, sessionId, data: { status: 'approved' } })}
-                          data-testid={`button-approve-${tx.id}`}
-                        >
-                          <CheckCircle className="w-4 h-4 mr-1" /> Approve
-                        </Button>
-                      </div>
-                    </div>
-                  );
-                })}
+              <div className="glass-card px-4 py-2 rounded-lg">
+                <span className="text-xs text-muted-foreground uppercase tracking-wider mr-2">Players</span>
+                <span className="text-xl font-mono font-bold text-muted-foreground" data-testid="text-summary-players">{players.length}</span>
               </div>
             </div>
-          )}
+          </div>
 
-          <div className="glass-card rounded-xl p-4">
-            <h3 className="font-bold text-base mb-4 text-white">Ledger</h3>
-            <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
-              {transactions
-                .filter(t => t.status !== 'pending')
-                .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-                .map(tx => {
-                  const player = players.find(p => p.id === tx.playerId);
-                  const isBuyIn = tx.type === 'buy_in';
-                  const isEditingThis = editingLedgerId === tx.id;
-
-                  return (
-                    <div key={tx.id} className="flex items-center justify-between gap-2 text-sm py-1" data-testid={`ledger-entry-${tx.id}`}>
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-muted-foreground text-xs font-mono shrink-0">
-                          {format(new Date(tx.timestamp), 'HH:mm')}
-                        </span>
-                        <span className="font-medium text-white truncate">{player?.name}</span>
-                        <span className="text-muted-foreground text-xs shrink-0">{isBuyIn ? 'bought in' : 'cashed out'}</span>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        {isEditingThis ? (
-                          <div className="flex items-center gap-1">
-                            <input
-                              type="number"
-                              value={editLedgerAmount}
-                              onChange={(e) => setEditLedgerAmount(e.target.value)}
-                              className="w-20 bg-background/50 border border-white/[0.08] rounded px-2 py-0.5 text-xs font-mono text-white"
-                              autoFocus
-                              data-testid={`input-ledger-edit-${tx.id}`}
-                            />
-                            <Button size="icon" variant="ghost" onClick={() => handleLedgerEdit(tx.id)} data-testid={`button-ledger-save-${tx.id}`}>
-                              <CheckCircle className="w-3 h-3 text-primary" />
-                            </Button>
-                            <Button size="icon" variant="ghost" onClick={() => { setEditingLedgerId(null); setEditLedgerAmount(""); }} data-testid={`button-ledger-cancel-${tx.id}`}>
-                              <XCircle className="w-3 h-3" />
-                            </Button>
-                          </div>
+          <div className="glass-card rounded-xl overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full" data-testid="table-post-game-summary">
+                <thead>
+                  <tr className="border-b border-white/[0.06]">
+                    <th className="text-left text-xs text-muted-foreground uppercase tracking-wider px-4 py-3 w-12">#</th>
+                    <th className="text-left text-xs text-muted-foreground uppercase tracking-wider px-4 py-3">Player</th>
+                    <th className="text-right text-xs text-muted-foreground uppercase tracking-wider px-4 py-3">Buy-In</th>
+                    <th className="text-right text-xs text-muted-foreground uppercase tracking-wider px-4 py-3">Cash-Out</th>
+                    <th className="text-right text-xs text-muted-foreground uppercase tracking-wider px-4 py-3">Net Profit</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/[0.04]">
+                  {rankedPlayers.map((player, index) => (
+                    <tr key={player.id} className="hover-elevate" data-testid={`row-summary-player-${player.id}`}>
+                      <td className="px-4 py-3 text-sm font-mono text-muted-foreground" data-testid={`text-rank-${player.id}`}>
+                        {index === 0 && rankedPlayers.length > 1 ? (
+                          <Trophy className="w-4 h-4 text-amber-400 inline" />
                         ) : (
-                          <>
-                            <span className={`font-mono font-bold ${isBuyIn ? 'text-destructive' : 'text-emerald-400'}`}>
-                              {isBuyIn ? '-' : '+'}${tx.amount}
-                            </span>
-                            {adminMode && (
-                              <div className="flex items-center gap-0.5">
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  className="opacity-50"
-                                  onClick={() => { setEditingLedgerId(tx.id); setEditLedgerAmount(tx.amount.toString()); }}
-                                  data-testid={`button-ledger-edit-${tx.id}`}
-                                >
-                                  <Pencil className="w-3 h-3" />
-                                </Button>
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  className="opacity-50 text-destructive"
-                                  onClick={() => handleLedgerDelete(tx.id)}
-                                  data-testid={`button-ledger-delete-${tx.id}`}
-                                >
-                                  <Trash2 className="w-3 h-3" />
-                                </Button>
-                              </div>
-                            )}
-                          </>
+                          index + 1
                         )}
-                      </div>
-                    </div>
-                  );
-                })}
-              {transactions.length === 0 && (
-                <p className="text-xs text-muted-foreground text-center py-4">No transactions yet.</p>
-              )}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="font-medium text-white" data-testid={`text-player-name-${player.id}`}>{player.name}</span>
+                      </td>
+                      <td className="px-4 py-3 text-right font-mono text-sm text-muted-foreground" data-testid={`text-buyin-${player.id}`}>
+                        ${player.totalBuyIn}
+                      </td>
+                      <td className="px-4 py-3 text-right font-mono text-sm text-muted-foreground" data-testid={`text-cashout-${player.id}`}>
+                        ${player.totalCashOut}
+                      </td>
+                      <td className="px-4 py-3 text-right font-mono text-sm font-bold" data-testid={`text-profit-${player.id}`}>
+                        <span className={player.netProfit > 0 ? 'text-emerald-500' : player.netProfit < 0 ? 'text-red-500' : 'text-muted-foreground'}>
+                          {player.netProfit > 0 ? '+' : ''}{player.netProfit === 0 ? '' : ''}${player.netProfit}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
-      </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-6">
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              <h2 className="text-xl font-bold text-white">Players</h2>
+              <div className="flex items-center gap-3 flex-wrap">
+                {adminMode && (
+                  <AddPlayerDialog sessionId={sessionId} />
+                )}
+                <div className="flex items-center gap-3 flex-wrap">
+                  <div className="glass-card px-4 py-2 rounded-lg">
+                    <span className="text-xs text-muted-foreground uppercase tracking-wider mr-2">Wagered</span>
+                    <span className="text-xl font-mono font-bold text-muted-foreground" data-testid="text-total-wagered">${totalWagered}</span>
+                  </div>
+                  <div className="glass-card px-4 py-2 rounded-lg">
+                    <span className="text-xs text-muted-foreground uppercase tracking-wider mr-2">In Play</span>
+                    <span className="text-xl font-mono font-bold text-primary" data-testid="text-chips-in-play">${chipsInPlay}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <PlayerList 
+              players={players} 
+              hostId={session.hostId} 
+              sessionId={sessionId} 
+              currentUserId={user?.id}
+              adminMode={adminMode}
+              transactions={transactions}
+              isActive={isActive}
+            />
+          </div>
+
+          <div className="space-y-6">
+            {isHost && pendingTransactions.length > 0 && (
+              <div className="glass-card rounded-xl overflow-hidden border-primary/20">
+                <div className="bg-primary/10 p-4 border-b border-primary/20 flex items-center gap-2">
+                  <AlertTriangle className="w-5 h-5 text-primary animate-pulse" />
+                  <h3 className="font-bold text-primary">Approvals Needed</h3>
+                </div>
+                <div className="divide-y divide-white/[0.06]">
+                  {pendingTransactions.map(tx => {
+                    const player = players.find(p => p.id === tx.playerId);
+                    return (
+                      <div key={tx.id} className="p-4 flex flex-col gap-3">
+                        <div className="flex justify-between items-start gap-2">
+                          <div>
+                            <p className="font-bold text-white">{player?.name}</p>
+                            <p className="text-xs text-muted-foreground capitalize">{tx.type.replace('_', ' ')}</p>
+                          </div>
+                          <div className="text-xl font-mono font-bold text-white">${tx.amount}</div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            className="text-destructive"
+                            onClick={() => updateTx({ id: tx.id, sessionId, data: { status: 'rejected' } })}
+                            data-testid={`button-reject-${tx.id}`}
+                          >
+                            <XCircle className="w-4 h-4 mr-1" /> Reject
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            onClick={() => updateTx({ id: tx.id, sessionId, data: { status: 'approved' } })}
+                            data-testid={`button-approve-${tx.id}`}
+                          >
+                            <CheckCircle className="w-4 h-4 mr-1" /> Approve
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            <div className="glass-card rounded-xl p-4">
+              <h3 className="font-bold text-base mb-4 text-white">Ledger</h3>
+              <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
+                {transactions
+                  .filter(t => t.status !== 'pending')
+                  .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+                  .map(tx => {
+                    const player = players.find(p => p.id === tx.playerId);
+                    const isBuyIn = tx.type === 'buy_in';
+                    const isEditingThis = editingLedgerId === tx.id;
+
+                    return (
+                      <div key={tx.id} className="flex items-center justify-between gap-2 text-sm py-1" data-testid={`ledger-entry-${tx.id}`}>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="text-muted-foreground text-xs font-mono shrink-0">
+                            {format(new Date(tx.timestamp), 'HH:mm')}
+                          </span>
+                          <span className="font-medium text-white truncate">{player?.name}</span>
+                          <span className="text-muted-foreground text-xs shrink-0">{isBuyIn ? 'bought in' : 'cashed out'}</span>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          {isEditingThis ? (
+                            <div className="flex items-center gap-1">
+                              <input
+                                type="number"
+                                value={editLedgerAmount}
+                                onChange={(e) => setEditLedgerAmount(e.target.value)}
+                                className="w-20 bg-background/50 border border-white/[0.08] rounded px-2 py-0.5 text-xs font-mono text-white"
+                                autoFocus
+                                data-testid={`input-ledger-edit-${tx.id}`}
+                              />
+                              <Button size="icon" variant="ghost" onClick={() => handleLedgerEdit(tx.id)} data-testid={`button-ledger-save-${tx.id}`}>
+                                <CheckCircle className="w-3 h-3 text-primary" />
+                              </Button>
+                              <Button size="icon" variant="ghost" onClick={() => { setEditingLedgerId(null); setEditLedgerAmount(""); }} data-testid={`button-ledger-cancel-${tx.id}`}>
+                                <XCircle className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <>
+                              <span className={`font-mono font-bold ${isBuyIn ? 'text-destructive' : 'text-emerald-400'}`}>
+                                {isBuyIn ? '-' : '+'}${tx.amount}
+                              </span>
+                              {adminMode && (
+                                <div className="flex items-center gap-0.5">
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="opacity-50"
+                                    onClick={() => { setEditingLedgerId(tx.id); setEditLedgerAmount(tx.amount.toString()); }}
+                                    data-testid={`button-ledger-edit-${tx.id}`}
+                                  >
+                                    <Pencil className="w-3 h-3" />
+                                  </Button>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="opacity-50 text-destructive"
+                                    onClick={() => handleLedgerDelete(tx.id)}
+                                    data-testid={`button-ledger-delete-${tx.id}`}
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </Button>
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                {transactions.length === 0 && (
+                  <p className="text-xs text-muted-foreground text-center py-4">No transactions yet.</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
