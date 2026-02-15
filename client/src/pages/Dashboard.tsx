@@ -13,6 +13,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Coins, Trophy, TrendingUp, History, Play, Loader2, ArrowRight, Upload, Pencil, Trash2, AlertTriangle, Users, Plus, LogIn, User, Shield, Copy, Check, ArrowDownLeft, ArrowUpRight, DollarSign, Info, Clock, Percent, X, ChevronRight } from "lucide-react";
 import frogClockSrc from "@assets/image-removebg-preview-2_1771174670390.png";
+import frogBankerSrc from "@assets/image-removebg-preview-3_1771176202817.png";
 import { Tooltip as UITooltip, TooltipContent as UITooltipContent, TooltipTrigger as UITooltipTrigger } from "@/components/ui/tooltip";
 import { SuitAccent, SuitsLoader, SuitsRow } from "@/components/ui/Suits";
 import { Link, useLocation } from "wouter";
@@ -121,7 +122,7 @@ function ProfileTab() {
           trendUp={(stats?.roi || 0) > 0}
           className="col-span-2 md:col-span-1"
         />
-        <StatCard title="Money Wagered" value={`$${personalStats?.totalBuyIn || 0}`} icon={ArrowUpRight} />
+        <StatCard title="Money Wagered" value={`$${personalStats?.totalBuyIn || 0}`} icon={ArrowUpRight} customIconSrc={frogBankerSrc} />
         <StatCard title="Total Cash Out" value={`$${personalStats?.totalCashOut || 0}`} icon={ArrowDownLeft} />
         <StatCard title="Games Played" value={stats?.totalGames || 0} icon={History} customIconSrc={frogClockSrc} />
       </div>
@@ -683,6 +684,7 @@ function LeaguesTab({
               title="Total Money Wagered"
               value={`$${wagered}`}
               icon={Coins}
+              customIconSrc={frogBankerSrc}
               subtitle={
                 <span className="flex items-center gap-1 flex-wrap">
                   <span>Pot: ${cashOut}</span>
