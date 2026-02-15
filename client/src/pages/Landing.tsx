@@ -32,17 +32,16 @@ export default function Landing() {
         <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-[2px]" />
       </div>
 
-      <div className="relative z-10 max-w-2xl w-full text-center space-y-8">
-        <div className="flex justify-center mb-2">
-          <Logo className="w-56 h-56 drop-shadow-[0_0_4px_rgba(74,222,128,0.3)]" />
+      <div className="relative z-10 max-w-2xl w-full text-center">
+        <div className="flex flex-col items-center gap-0">
+          <Logo className="w-56 h-56 drop-shadow-[0_0_4px_rgba(74,222,128,0.3)] mb-0" />
+          <h1 className="-mt-6 text-5xl md:text-7xl font-extrabold text-white tracking-tight leading-none">
+            HOME GAME<br/>
+            <span className="text-primary">POKER TRACKER</span>
+          </h1>
         </div>
 
-        <h1 className="text-5xl md:text-7xl font-extrabold text-white tracking-tight leading-[1.1]">
-          HOME GAME<br/>
-          <span className="text-primary">POKER TRACKER</span>
-        </h1>
-
-        <p className="text-lg md:text-xl text-muted-foreground max-w-xl mx-auto leading-relaxed">
+        <p className="mt-6 text-lg md:text-xl text-muted-foreground max-w-xl mx-auto leading-relaxed">
           Track buy-ins, manage cash-outs, monitor your bankroll, and climb the leaderboard.
         </p>
 
