@@ -3,45 +3,24 @@ import { Button } from "@/components/ui/button";
 import { Play, Pause, SkipForward, Volume2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-const BLIND_LEVELS = [
-  [1, 2],
-  [2, 4],
-  [3, 6],
-  [4, 8],
-  [5, 10],
-  [10, 20],
-  [15, 30],
-  [20, 40],
-  [25, 50],
-  [30, 60],
-  [40, 80],
-  [50, 100],
-  [75, 150],
-  [100, 200],
-  [150, 300],
-  [200, 400],
-  [300, 600],
-  [400, 800],
-  [500, 1000],
-  [750, 1500],
-  [1000, 2000],
+const BLIND_MULTIPLIERS = [
+  1, 1.5, 2, 3, 4, 5, 6, 8, 10, 12, 15, 20, 25, 30, 40, 50, 60, 80, 100,
 ];
 
+function formatCurrency(amount: number): string {
+  if (amount >= 1 && amount === Math.floor(amount)) {
+    return `$${amount}`;
+  }
+  return `$${amount.toFixed(2)}`;
+}
+
 function getBlindsForLevel(level: number, startingBB: number): [number, number] {
-  let startIdx = 0;
-  for (let i = BLIND_LEVELS.length - 1; i >= 0; i--) {
-    if (BLIND_LEVELS[i][1] <= startingBB) {
-      startIdx = i;
-      break;
-    }
-  }
-  const idx = startIdx + level;
-  if (idx < BLIND_LEVELS.length) {
-    return BLIND_LEVELS[idx] as [number, number];
-  }
-  const lastLevel = BLIND_LEVELS[BLIND_LEVELS.length - 1];
-  const multiplier = Math.pow(2, idx - BLIND_LEVELS.length + 1);
-  return [lastLevel[0] * multiplier, lastLevel[1] * multiplier];
+  const multiplier = level < BLIND_MULTIPLIERS.length
+    ? BLIND_MULTIPLIERS[level]
+    : BLIND_MULTIPLIERS[BLIND_MULTIPLIERS.length - 1] * Math.pow(2, level - BLIND_MULTIPLIERS.length + 1);
+  const bb = startingBB * multiplier;
+  const sb = bb / 2;
+  return [sb, bb];
 }
 
 interface BlindClockProps {
@@ -55,7 +34,17 @@ export function BlindClock({ levelDurationMinutes, startingBigBlind }: BlindCloc
   const [secondsRemaining, setSecondsRemaining] = useState(levelDurationMinutes * 60);
   const [isRunning, setIsRunning] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const hasAlerted = useRef(false);
+  const audioContextRef = useRef<AudioContext | null>(null);
+
+  const getAudioContext = useCallback(() => {
+    if (!audioContextRef.current) {
+      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+    }
+    if (audioContextRef.current.state === 'suspended') {
+      audioContextRef.current.resume();
+    }
+    return audioContextRef.current;
+  }, []);
 
   const currentBlinds = getBlindsForLevel(currentLevel, startingBigBlind);
   const nextBlinds = getBlindsForLevel(currentLevel + 1, startingBigBlind);
@@ -65,17 +54,46 @@ export function BlindClock({ levelDurationMinutes, startingBigBlind }: BlindCloc
   const totalSeconds = levelDurationMinutes * 60;
   const progress = totalSeconds > 0 ? ((totalSeconds - secondsRemaining) / totalSeconds) * 100 : 0;
 
+  const playBeep = useCallback(() => {
+    try {
+      const ctx = getAudioContext();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.value = 880;
+      osc.type = "sine";
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.5);
+      setTimeout(() => {
+        const osc2 = ctx.createOscillator();
+        const gain2 = ctx.createGain();
+        osc2.connect(gain2);
+        gain2.connect(ctx.destination);
+        osc2.frequency.value = 1100;
+        osc2.type = "sine";
+        gain2.gain.setValueAtTime(0.3, ctx.currentTime);
+        gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+        osc2.start(ctx.currentTime);
+        osc2.stop(ctx.currentTime + 0.6);
+      }, 300);
+    } catch {
+    }
+  }, []);
+
   const advanceLevel = useCallback(() => {
     const newLevel = currentLevel + 1;
     const newBlinds = getBlindsForLevel(newLevel, startingBigBlind);
     setCurrentLevel(newLevel);
     setSecondsRemaining(levelDurationMinutes * 60);
-    hasAlerted.current = false;
+    playBeep();
     toast({
       title: "Blinds Increased!",
-      description: `Blinds are now ${newBlinds[0]}/${newBlinds[1]}`,
+      description: `Blinds are now ${formatCurrency(newBlinds[0])} / ${formatCurrency(newBlinds[1])}`,
     });
-  }, [currentLevel, levelDurationMinutes, startingBigBlind, toast]);
+  }, [currentLevel, levelDurationMinutes, startingBigBlind, toast, playBeep]);
 
   useEffect(() => {
     if (isRunning) {
@@ -97,12 +115,6 @@ export function BlindClock({ levelDurationMinutes, startingBigBlind }: BlindCloc
     };
   }, [isRunning, advanceLevel, levelDurationMinutes]);
 
-  useEffect(() => {
-    if (secondsRemaining <= 10 && secondsRemaining > 0 && !hasAlerted.current) {
-      hasAlerted.current = true;
-    }
-  }, [secondsRemaining]);
-
   const handleNextLevel = () => {
     advanceLevel();
   };
@@ -122,7 +134,7 @@ export function BlindClock({ levelDurationMinutes, startingBigBlind }: BlindCloc
           <Button
             size="icon"
             variant={isRunning ? "default" : "outline"}
-            onClick={() => setIsRunning(!isRunning)}
+            onClick={() => { getAudioContext(); setIsRunning(!isRunning); }}
             data-testid="button-blind-play-pause"
           >
             {isRunning ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
@@ -156,14 +168,14 @@ export function BlindClock({ levelDurationMinutes, startingBigBlind }: BlindCloc
         <div className="text-center flex-1">
           <p className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">Current Blinds</p>
           <p className="text-2xl font-mono font-bold text-primary" data-testid="text-current-blinds">
-            {currentBlinds[0]}/{currentBlinds[1]}
+            {formatCurrency(currentBlinds[0])} / {formatCurrency(currentBlinds[1])}
           </p>
         </div>
         <div className="w-px h-10 bg-white/[0.08]" />
         <div className="text-center flex-1">
           <p className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">Next Blinds</p>
           <p className="text-2xl font-mono font-bold text-muted-foreground" data-testid="text-next-blinds">
-            {nextBlinds[0]}/{nextBlinds[1]}
+            {formatCurrency(nextBlinds[0])} / {formatCurrency(nextBlinds[1])}
           </p>
         </div>
       </div>

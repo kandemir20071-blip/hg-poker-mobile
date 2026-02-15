@@ -229,7 +229,8 @@ function LeaguesTab({
   const [customPercentages, setCustomPercentages] = useState<string[]>(["100"]);
   const [enableBlindTimer, setEnableBlindTimer] = useState(false);
   const [blindLevelDuration, setBlindLevelDuration] = useState("15");
-  const [startingBigBlind, setStartingBigBlind] = useState("");
+  const [blindPercentage, setBlindPercentage] = useState<"1" | "2" | "5" | "custom">("2");
+  const [customBlindAmount, setCustomBlindAmount] = useState("");
 
   const buyInPresets = [5, 10, 20, 30, 50, 100];
 
@@ -255,7 +256,8 @@ function LeaguesTab({
     setCustomPercentages(["100"]);
     setEnableBlindTimer(false);
     setBlindLevelDuration("15");
-    setStartingBigBlind("");
+    setBlindPercentage("2");
+    setCustomBlindAmount("");
   };
 
   const getPayoutPercentages = () => {
@@ -282,7 +284,9 @@ function LeaguesTab({
         blindTimer: {
           enabled: true,
           levelDurationMinutes: Number(blindLevelDuration) || 15,
-          startingBigBlind: Number(startingBigBlind) || Math.round((defaultBuyIn || 20) * 0.1),
+          startingBigBlind: blindPercentage === 'custom'
+            ? (Number(customBlindAmount) || (defaultBuyIn || 20) * 0.02)
+            : (defaultBuyIn || 20) * (Number(blindPercentage) / 100),
         }
       } : {}),
     } : undefined;
@@ -487,12 +491,7 @@ function LeaguesTab({
                           <Label className="text-sm font-medium text-white">Enable Blind Timer</Label>
                           <p className="text-xs text-muted-foreground mt-0.5">Countdown clock with increasing blinds</p>
                         </div>
-                        <Switch checked={enableBlindTimer} onCheckedChange={(checked) => {
-                          setEnableBlindTimer(checked);
-                          if (checked && !startingBigBlind) {
-                            setStartingBigBlind(String(Math.round((defaultBuyIn || 20) * 0.1) || 2));
-                          }
-                        }} data-testid="switch-blind-timer" />
+                        <Switch checked={enableBlindTimer} onCheckedChange={setEnableBlindTimer} data-testid="switch-blind-timer" />
                       </div>
                       {enableBlindTimer && (
                         <div className="space-y-3">
@@ -513,19 +512,44 @@ function LeaguesTab({
                           </div>
                           <div>
                             <Label className="text-xs text-muted-foreground mb-1 block">Starting Big Blind</Label>
-                            <div className="relative">
-                              <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                              <Input
-                                type="number"
-                                value={startingBigBlind}
-                                onChange={(e) => setStartingBigBlind(e.target.value)}
-                                className="pl-9 bg-background/50 border-white/[0.08] min-h-[44px] text-base"
-                                min="1"
-                                placeholder={String(Math.round((defaultBuyIn || 20) * 0.1) || 2)}
-                                data-testid="input-starting-big-blind"
-                              />
-                              <p className="text-xs text-muted-foreground mt-1">Default: 10% of buy-in ({Math.round((defaultBuyIn || 20) * 0.1) || 2})</p>
-                            </div>
+                            <Select value={blindPercentage} onValueChange={(v) => setBlindPercentage(v as any)} data-testid="select-blind-percentage">
+                              <SelectTrigger className="bg-background/50 border-white/[0.08] min-h-[44px] text-base" data-testid="select-blind-percentage-trigger">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="1" data-testid="select-blind-1pct">1% of buy-in (${((defaultBuyIn || 20) * 0.01).toFixed(2)})</SelectItem>
+                                <SelectItem value="2" data-testid="select-blind-2pct">2% of buy-in (${((defaultBuyIn || 20) * 0.02).toFixed(2)})</SelectItem>
+                                <SelectItem value="5" data-testid="select-blind-5pct">5% of buy-in (${((defaultBuyIn || 20) * 0.05).toFixed(2)})</SelectItem>
+                                <SelectItem value="custom" data-testid="select-blind-custom">Custom amount</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            {blindPercentage !== 'custom' ? (
+                              <p className="text-xs text-muted-foreground mt-1">
+                                SB: ${((defaultBuyIn || 20) * (Number(blindPercentage) / 100) / 2).toFixed(2)} / BB: ${((defaultBuyIn || 20) * (Number(blindPercentage) / 100)).toFixed(2)}
+                              </p>
+                            ) : (
+                              <div className="mt-2">
+                                <Label className="text-xs text-muted-foreground mb-1 block">Custom Big Blind Amount ($)</Label>
+                                <div className="relative">
+                                  <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                  <Input
+                                    type="number"
+                                    step="0.01"
+                                    value={customBlindAmount}
+                                    onChange={(e) => setCustomBlindAmount(e.target.value)}
+                                    className="pl-9 bg-background/50 border-white/[0.08] min-h-[44px] text-base"
+                                    min="0.01"
+                                    placeholder="0.40"
+                                    data-testid="input-custom-blind-amount"
+                                  />
+                                </div>
+                                {Number(customBlindAmount) > 0 && (
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    SB: ${(Number(customBlindAmount) / 2).toFixed(2)} / BB: ${Number(customBlindAmount).toFixed(2)}
+                                  </p>
+                                )}
+                              </div>
+                            )}
                           </div>
                         </div>
                       )}

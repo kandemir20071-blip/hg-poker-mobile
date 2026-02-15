@@ -1,0 +1,33 @@
+Tournament Blinds, Audio & Manual Finish
+
+Objective: Refine the Tournament Blind Timer system. Update the starting blind calculations to use 1%, 2%, 5%, or Custom percentages of the buy-in, format blinds as real money, add an audio alert for timer expiration, and implement a manual "Finish Game" button.
+
+Step 1: Pre-Tournament Setup (Blind Percentages)
+
+Update the "Starting Big Blind" configuration in the Tournament setup.
+
+Instead of a flat 10%, provide a select dropdown with the options: 1%, 2%, 5%, and Custom.
+
+Automatically calculate the Big Blind based on the Buy-In (e.g., if Buy-In is €20 and 2% is selected, Big Blind is €0.40). The Small Blind should automatically be half of the Big Blind (e.g., €0.20).
+
+If Custom is selected, reveal an input field for the host to manually type the real-money Big Blind amount.
+
+Step 2: Mid-Game Dashboard (Real-Money Blinds & Audio)
+
+Real-Money Display: Update the active Blind Clock UI. It MUST display the blinds formatted as real currency, not raw integers or fractions.
+
+Example: Instead of "1/2", display "€0.20 / €0.40" (using the app's standard currency formatting).
+
+Ensure the "Next Level" preview also displays in real currency.
+
+Audio Alert: Implement an HTML5 Audio trigger when the countdown timer hits 00:00.
+
+Use a standard browser beep or a clean notification chime (e.g., new Audio('/beep.mp3').play()). Note: Ensure this handles browser autoplay policies gracefully (it should work since the host has already interacted with the page to start the timer).
+
+Step 3: Manual "Finish Game" Override
+
+While the auto-finish (1 player remaining) logic is great, we MUST have a manual escape hatch.
+
+Add a prominent "Finish Game" or "End Tournament" button on the active tournament dashboard (perhaps near the top right or next to the Prize Pool).
+
+Clicking this button should immediately trigger the exact same End-Game / Payout Settlement screen (with the "Chop" override) as the auto-finish logic, allowing the host to distribute the prize pool early if the remaining players agree to end the game.

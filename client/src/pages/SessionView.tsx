@@ -491,6 +491,17 @@ export default function SessionView() {
                   <span data-testid="text-players-remaining">{tournamentActivePlayers.length} remaining</span>
                   {tournamentConfig?.allowRebuys && <span data-testid="text-rebuys-enabled">Re-buys enabled</span>}
                 </div>
+                {isHost && isActive && (
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="mt-4 gap-2 min-h-[44px]"
+                    onClick={() => setEndDialogOpen(true)}
+                    data-testid="button-finish-tournament"
+                  >
+                    <Trophy className="w-4 h-4" /> Finish Game
+                  </Button>
+                )}
               </div>
 
               {tournamentConfig?.blindTimer?.enabled && (
