@@ -155,7 +155,7 @@ export default function SessionView() {
             <Button
               variant={adminMode ? "default" : "outline"}
               size="sm"
-              className="gap-2"
+              className="gap-2 min-h-[44px]"
               onClick={() => setAdminMode(!adminMode)}
               data-testid="button-toggle-admin"
             >
@@ -166,11 +166,11 @@ export default function SessionView() {
           {!showSummary && (
             <Dialog>
               <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-2" data-testid="button-share">
+                <Button variant="outline" size="sm" className="gap-2 min-h-[44px]" data-testid="button-share">
                   <Share2 className="w-4 h-4" /> Share
                 </Button>
               </DialogTrigger>
-              <DialogContent className="glass-card text-center">
+              <DialogContent className="glass-card text-center max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Join Code</DialogTitle>
                 </DialogHeader>
@@ -190,11 +190,11 @@ export default function SessionView() {
           {isHost && isActive && (
             <Dialog open={endDialogOpen} onOpenChange={setEndDialogOpen}>
               <DialogTrigger asChild>
-                <Button variant="destructive" size="sm" className="gap-2" data-testid="button-end-session">
+                <Button variant="destructive" size="sm" className="gap-2 min-h-[44px]" data-testid="button-end-session">
                   <LogOut className="w-4 h-4" /> End Session
                 </Button>
               </DialogTrigger>
-              <DialogContent className="glass-card">
+              <DialogContent className="glass-card max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>End Session?</DialogTitle>
                 </DialogHeader>
@@ -209,8 +209,8 @@ export default function SessionView() {
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button variant="ghost" onClick={() => setEndDialogOpen(false)}>Cancel</Button>
-                  <Button variant="destructive" onClick={handleEndSession} disabled={isEnding}>
+                  <Button variant="ghost" className="min-h-[44px]" onClick={() => setEndDialogOpen(false)}>Cancel</Button>
+                  <Button variant="destructive" className="min-h-[44px]" onClick={handleEndSession} disabled={isEnding}>
                     {isEnding ? <Loader2 className="animate-spin mr-2" /> : "Confirm End"}
                   </Button>
                 </DialogFooter>
@@ -240,7 +240,7 @@ export default function SessionView() {
 
           <div className="glass-card rounded-xl overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full" data-testid="table-post-game-summary">
+              <table className="w-full whitespace-nowrap" data-testid="table-post-game-summary">
                 <thead>
                   <tr className="border-b border-white/[0.06]">
                     <th className="text-left text-xs text-muted-foreground uppercase tracking-wider px-4 py-3 w-12">#</th>
@@ -341,7 +341,7 @@ export default function SessionView() {
                           <Button 
                             size="sm" 
                             variant="ghost" 
-                            className="text-destructive"
+                            className="text-destructive min-h-[44px]"
                             onClick={() => updateTx({ id: tx.id, sessionId, data: { status: 'rejected' } })}
                             data-testid={`button-reject-${tx.id}`}
                           >
@@ -349,6 +349,7 @@ export default function SessionView() {
                           </Button>
                           <Button 
                             size="sm" 
+                            className="min-h-[44px]"
                             onClick={() => updateTx({ id: tx.id, sessionId, data: { status: 'approved' } })}
                             data-testid={`button-approve-${tx.id}`}
                           >

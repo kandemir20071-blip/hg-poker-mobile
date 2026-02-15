@@ -95,7 +95,7 @@ export function ManagePlayerDialog({ sessionId, playerId, playerName, transactio
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="glass-card sm:max-w-lg max-h-[85vh] flex flex-col">
+      <DialogContent className="glass-card sm:max-w-lg max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="text-xl">Manage {playerName}</DialogTitle>
         </DialogHeader>
@@ -135,7 +135,7 @@ export function ManagePlayerDialog({ sessionId, playerId, playerName, transactio
                           type="number"
                           value={amount}
                           onChange={(e) => setAmount(e.target.value)}
-                          className="pl-8 bg-background/50 border-white/[0.08]"
+                          className="pl-8 bg-background/50 border-white/[0.08] min-h-[44px] text-base"
                           required
                           min="0"
                           data-testid={`input-edit-amount-${tx.id}`}
@@ -145,7 +145,7 @@ export function ManagePlayerDialog({ sessionId, playerId, playerName, transactio
                     <div className="grid gap-1">
                       <Label className="text-xs text-muted-foreground">Type</Label>
                       <Select value={type} onValueChange={(v: "buy_in" | "cash_out") => setType(v)}>
-                        <SelectTrigger className="bg-background/50 border-white/[0.08]" data-testid={`select-edit-type-${tx.id}`}>
+                        <SelectTrigger className="bg-background/50 border-white/[0.08] min-h-[44px]" data-testid={`select-edit-type-${tx.id}`}>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -220,7 +220,7 @@ export function ManagePlayerDialog({ sessionId, playerId, playerName, transactio
                     type="number"
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
-                    className="pl-8 bg-background/50 border-white/[0.08]"
+                    className="pl-8 bg-background/50 border-white/[0.08] min-h-[44px] text-base"
                     required
                     min="0"
                     autoFocus
@@ -231,7 +231,7 @@ export function ManagePlayerDialog({ sessionId, playerId, playerName, transactio
               <div className="grid gap-1">
                 <Label className="text-xs text-muted-foreground">Type</Label>
                 <Select value={type} onValueChange={(v: "buy_in" | "cash_out") => setType(v)}>
-                  <SelectTrigger className="bg-background/50 border-white/[0.08]" data-testid="select-new-tx-type">
+                  <SelectTrigger className="bg-background/50 border-white/[0.08] min-h-[44px]" data-testid="select-new-tx-type">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -253,7 +253,7 @@ export function ManagePlayerDialog({ sessionId, playerId, playerName, transactio
             <Button
               variant="outline"
               size="sm"
-              className="w-full gap-2"
+              className="w-full gap-2 min-h-[44px]"
               onClick={() => { resetForm(); setShowAddForm(true); }}
               data-testid="button-add-transaction"
             >

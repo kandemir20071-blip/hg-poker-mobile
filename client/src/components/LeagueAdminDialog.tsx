@@ -74,7 +74,7 @@ export function LeagueAdminDialog({ open, onOpenChange, leagueId, players }: Lea
     const targetPlayer = players.find(p => p.id === Number(mergeTarget));
     return (
       <Dialog open={open} onOpenChange={(v) => { if (!v) { setMergeSource(null); setMergeTarget(""); setMergeConfirmText(""); } onOpenChange(v); }}>
-        <DialogContent className="glass-card sm:max-w-lg">
+        <DialogContent className="glass-card sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <GitMerge className="h-5 w-5 text-amber-400" /> Merge Player
@@ -122,7 +122,7 @@ export function LeagueAdminDialog({ open, onOpenChange, leagueId, players }: Lea
                     value={mergeConfirmText}
                     onChange={(e) => setMergeConfirmText(e.target.value)}
                     placeholder="Type MERGE"
-                    className="bg-background/50 border-white/[0.08]"
+                    className="bg-background/50 border-white/[0.08] min-h-[44px] text-base"
                     data-testid="input-merge-confirm"
                   />
                 </div>
@@ -151,7 +151,7 @@ export function LeagueAdminDialog({ open, onOpenChange, leagueId, players }: Lea
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="glass-card sm:max-w-lg max-h-[80vh] flex flex-col">
+      <DialogContent className="glass-card sm:max-w-lg max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Manage Players</DialogTitle>
           <DialogDescription className="text-muted-foreground">
@@ -165,7 +165,7 @@ export function LeagueAdminDialog({ open, onOpenChange, leagueId, players }: Lea
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search players..."
-            className="pl-9 bg-background/50 border-white/[0.08]"
+            className="pl-9 bg-background/50 border-white/[0.08] min-h-[44px] text-base"
             data-testid="input-search-players"
           />
         </div>

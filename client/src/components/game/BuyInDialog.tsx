@@ -41,7 +41,7 @@ export function BuyInDialog({ sessionId, playerId, trigger, defaultAmount = 100,
       <DialogTrigger asChild>
         {trigger || <Button className="w-full font-semibold" data-testid="button-buy-in">{label}</Button>}
       </DialogTrigger>
-      <DialogContent className="glass-card sm:max-w-md">
+      <DialogContent className="glass-card sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl text-center">{isReBuy ? "Re-Buy" : "Add Chips"}</DialogTitle>
         </DialogHeader>
@@ -70,7 +70,7 @@ export function BuyInDialog({ sessionId, playerId, trigger, defaultAmount = 100,
 
           <Button
             type="submit"
-            className="w-full rounded-full font-semibold"
+            className="w-full rounded-full font-semibold min-h-[44px]"
             disabled={isPending}
             data-testid="button-confirm-buy-in"
           >

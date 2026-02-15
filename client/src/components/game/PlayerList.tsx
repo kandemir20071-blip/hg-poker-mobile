@@ -45,11 +45,11 @@ function CashOutDialog({ sessionId, player }: { sessionId: number; player: Exten
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-1 text-xs border-amber-500/30 text-amber-400" data-testid={`button-cashout-player-${player.id}`}>
+        <Button variant="outline" size="sm" className="gap-1 text-xs border-amber-500/30 text-amber-400 min-h-[44px]" data-testid={`button-cashout-player-${player.id}`}>
           <LogOut className="w-3 h-3" /> Cash Out
         </Button>
       </DialogTrigger>
-      <DialogContent className="glass-card sm:max-w-sm">
+      <DialogContent className="glass-card sm:max-w-sm max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Cash Out {player.name}</DialogTitle>
         </DialogHeader>
@@ -60,10 +60,10 @@ function CashOutDialog({ sessionId, player }: { sessionId: number; player: Exten
           <div className="grid gap-2">
             <Label className="text-muted-foreground">Final Amount</Label>
             <div className="flex gap-2 flex-wrap">
-              <Button type="button" variant="outline" size="sm" onClick={() => setAmount("0")} className={amount === "0" ? "border-primary text-primary" : ""} data-testid={`button-busto-${player.id}`}>
+              <Button type="button" variant="outline" size="sm" onClick={() => setAmount("0")} className={`min-h-[44px] ${amount === "0" ? "border-primary text-primary" : ""}`} data-testid={`button-busto-${player.id}`}>
                 Busto ($0)
               </Button>
-              <Button type="button" variant="outline" size="sm" onClick={() => setAmount(player.totalBuyIn.toString())} className={amount === player.totalBuyIn.toString() ? "border-primary text-primary" : ""} data-testid={`button-even-${player.id}`}>
+              <Button type="button" variant="outline" size="sm" onClick={() => setAmount(player.totalBuyIn.toString())} className={`min-h-[44px] ${amount === player.totalBuyIn.toString() ? "border-primary text-primary" : ""}`} data-testid={`button-even-${player.id}`}>
                 Even (${player.totalBuyIn})
               </Button>
             </div>
@@ -83,8 +83,8 @@ function CashOutDialog({ sessionId, player }: { sessionId: number; player: Exten
             </div>
           </div>
           <DialogFooter>
-            <Button type="button" variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button type="submit" disabled={isPending} data-testid={`button-confirm-cashout-${player.id}`}>
+            <Button type="button" variant="ghost" className="min-h-[44px]" onClick={() => setOpen(false)}>Cancel</Button>
+            <Button type="submit" className="min-h-[44px]" disabled={isPending} data-testid={`button-confirm-cashout-${player.id}`}>
               {isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
               Confirm Cash Out
             </Button>
@@ -174,7 +174,7 @@ function PlayerCard({ player, isHost, isCurrentUser, adminMode, sessionId, trans
               playerId={player.id}
               isReBuy={hasBuyIn}
               trigger={
-                <Button size="sm" variant="outline" className="text-xs border-primary/30 text-primary" data-testid={`button-rebuy-${player.id}`}>
+                <Button size="sm" variant="outline" className="text-xs border-primary/30 text-primary min-h-[44px]" data-testid={`button-rebuy-${player.id}`}>
                   {hasBuyIn ? 'Re-Buy' : 'Add Chips'}
                 </Button>
               }

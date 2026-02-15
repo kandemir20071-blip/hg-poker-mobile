@@ -327,7 +327,7 @@ function LeaguesTab({
                 <Play className="mr-2 h-4 w-4" /> New Session
               </Button>
             </DialogTrigger>
-            <DialogContent className="glass-card sm:max-w-lg">
+            <DialogContent className="glass-card sm:max-w-lg max-h-[90vh] overflow-y-auto">
               {!newSessionType ? (
                 <>
                   <DialogHeader>
@@ -362,7 +362,7 @@ function LeaguesTab({
                         <Button
                           key={amount}
                           variant={defaultBuyIn === amount && !customBuyIn ? "default" : "outline"}
-                          className="font-mono text-base"
+                          className="font-mono text-base min-h-[44px]"
                           onClick={() => handleSelectBuyIn(amount)}
                           data-testid={`button-buyin-${amount}`}
                         >
@@ -377,16 +377,16 @@ function LeaguesTab({
                         placeholder="Custom amount..."
                         value={customBuyIn}
                         onChange={(e) => handleCustomBuyIn(e.target.value)}
-                        className="pl-9 bg-background/50 border-white/[0.08]"
+                        className="pl-9 bg-background/50 border-white/[0.08] min-h-[44px] text-base"
                         min="1"
                         data-testid="input-custom-buyin"
                       />
                     </div>
                     <div className="flex items-center gap-2 pt-2">
-                      <Button variant="ghost" className="flex-1" onClick={() => setNewSessionType(null)} data-testid="button-back-type">
+                      <Button variant="ghost" className="flex-1 min-h-[44px]" onClick={() => setNewSessionType(null)} data-testid="button-back-type">
                         Back
                       </Button>
-                      <Button variant="outline" className="flex-1" onClick={() => {
+                      <Button variant="outline" className="flex-1 min-h-[44px]" onClick={() => {
                         if (!selectedLeagueId || !newSessionType) return;
                         createSession(
                           { type: newSessionType, leagueId: selectedLeagueId },
@@ -401,7 +401,7 @@ function LeaguesTab({
                       }} disabled={isCreatingSession} data-testid="button-skip-buyin">
                         Skip
                       </Button>
-                      <Button className="flex-1 font-semibold glow-emerald" onClick={handleStartSession} disabled={isCreatingSession || !defaultBuyIn} data-testid="button-start-session">
+                      <Button className="flex-1 font-semibold glow-emerald min-h-[44px]" onClick={handleStartSession} disabled={isCreatingSession || !defaultBuyIn} data-testid="button-start-session">
                         {isCreatingSession ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Start</>}
                       </Button>
                     </div>
@@ -612,7 +612,7 @@ function LeaguesTab({
       )}
 
       <Dialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) { setDeleteTarget(null); setDeleteConfirmText(""); } }}>
-        <DialogContent className="glass-card sm:max-w-md">
+        <DialogContent className="glass-card sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-red-400">
               <AlertTriangle className="h-5 w-5" /> Delete Session
@@ -624,7 +624,7 @@ function LeaguesTab({
           <div className="space-y-4 mt-2">
             <div>
               <p className="text-sm text-muted-foreground mb-2">Type <span className="text-white font-bold">DELETE</span> to confirm:</p>
-              <Input value={deleteConfirmText} onChange={(e) => setDeleteConfirmText(e.target.value)} placeholder="Type DELETE" className="bg-background/50 border-white/[0.08]" data-testid="input-delete-confirm" />
+              <Input value={deleteConfirmText} onChange={(e) => setDeleteConfirmText(e.target.value)} placeholder="Type DELETE" className="bg-background/50 border-white/[0.08] min-h-[44px] text-base" data-testid="input-delete-confirm" />
             </div>
             <div className="flex justify-end gap-2">
               <Button variant="ghost" onClick={() => { setDeleteTarget(null); setDeleteConfirmText(""); }} data-testid="button-cancel-delete">Cancel</Button>
@@ -643,14 +643,14 @@ function LeaguesTab({
 function CreateLeagueDialog({ open, onOpenChange, name, onNameChange, onCreate, isCreating }: any) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="glass-card sm:max-w-md">
+      <DialogContent className="glass-card sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create a League</DialogTitle>
           <DialogDescription>Give your poker group a name. You'll get an invite code to share.</DialogDescription>
         </DialogHeader>
         <div className="space-y-4 mt-2">
-          <Input value={name} onChange={(e: any) => onNameChange(e.target.value)} placeholder="League name (e.g. Friday Night Poker)" className="bg-background/50 border-white/[0.08]" data-testid="input-league-name" />
-          <Button className="w-full" disabled={!name.trim() || isCreating} onClick={onCreate} data-testid="button-confirm-create-league">
+          <Input value={name} onChange={(e: any) => onNameChange(e.target.value)} placeholder="League name (e.g. Friday Night Poker)" className="bg-background/50 border-white/[0.08] min-h-[44px] text-base" data-testid="input-league-name" />
+          <Button className="w-full min-h-[44px]" disabled={!name.trim() || isCreating} onClick={onCreate} data-testid="button-confirm-create-league">
             {isCreating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
             Create League
           </Button>
@@ -663,14 +663,14 @@ function CreateLeagueDialog({ open, onOpenChange, name, onNameChange, onCreate, 
 function JoinLeagueDialog({ open, onOpenChange, code, onCodeChange, onJoin, isJoining }: any) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="glass-card sm:max-w-md">
+      <DialogContent className="glass-card sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Join a League</DialogTitle>
           <DialogDescription>Enter the invite code shared by the league creator.</DialogDescription>
         </DialogHeader>
         <div className="space-y-4 mt-2">
-          <Input value={code} onChange={(e: any) => onCodeChange(e.target.value.toUpperCase())} placeholder="Enter 6-character code" maxLength={6} className="bg-background/50 border-white/[0.08] text-center font-mono text-lg tracking-widest" data-testid="input-join-code" />
-          <Button className="w-full" disabled={code.length < 6 || isJoining} onClick={onJoin} data-testid="button-confirm-join-league">
+          <Input value={code} onChange={(e: any) => onCodeChange(e.target.value.toUpperCase())} placeholder="Enter 6-character code" maxLength={6} className="bg-background/50 border-white/[0.08] text-center font-mono text-lg tracking-widest min-h-[44px]" data-testid="input-join-code" />
+          <Button className="w-full min-h-[44px]" disabled={code.length < 6 || isJoining} onClick={onJoin} data-testid="button-confirm-join-league">
             {isJoining ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <LogIn className="h-4 w-4 mr-2" />}
             Join League
           </Button>
@@ -685,7 +685,7 @@ function ClaimNameDialog({ open, onOpenChange, league, onClaim }: any) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="glass-card sm:max-w-md">
+      <DialogContent className="glass-card sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Claim Your Name</DialogTitle>
           <DialogDescription>Select your player name to link it to your account. This lets the app track your personal stats.</DialogDescription>

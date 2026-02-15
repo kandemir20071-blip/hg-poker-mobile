@@ -94,7 +94,7 @@ export function AddPlayerDialog({ sessionId, leagueId, existingPlayerNames = [],
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="glass-card sm:max-w-md">
+      <DialogContent className="glass-card sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl">Add Player</DialogTitle>
         </DialogHeader>
@@ -112,7 +112,7 @@ export function AddPlayerDialog({ sessionId, leagueId, existingPlayerNames = [],
               <div className="grid gap-2">
                 <Label className="text-muted-foreground">Select from Roster</Label>
                 <Select value={selectedPlayer} onValueChange={setSelectedPlayer}>
-                  <SelectTrigger className="bg-background/50 border-white/[0.08]" data-testid="select-roster-player">
+                  <SelectTrigger className="bg-background/50 border-white/[0.08] min-h-[44px] text-base" data-testid="select-roster-player">
                     <SelectValue placeholder="Choose a player..." />
                   </SelectTrigger>
                   <SelectContent>
@@ -126,7 +126,7 @@ export function AddPlayerDialog({ sessionId, leagueId, existingPlayerNames = [],
               </div>
 
               <Button
-                className="w-full rounded-full font-semibold"
+                className="w-full rounded-full font-semibold min-h-[44px]"
                 disabled={isPending || !selectedPlayer}
                 onClick={handleAddFromRoster}
                 data-testid="button-confirm-add-player"
@@ -142,7 +142,7 @@ export function AddPlayerDialog({ sessionId, leagueId, existingPlayerNames = [],
 
               <Button
                 variant="outline"
-                className="w-full gap-2"
+                className="w-full gap-2 min-h-[44px]"
                 onClick={() => setShowCreateNew(true)}
                 data-testid="button-create-new-player"
               >
@@ -170,7 +170,7 @@ export function AddPlayerDialog({ sessionId, leagueId, existingPlayerNames = [],
                   id="new-player-name"
                   value={newName}
                   onChange={(e) => { setNewName(e.target.value); setNameError(""); }}
-                  className="bg-background/50 border-white/[0.08]"
+                  className="bg-background/50 border-white/[0.08] min-h-[44px] text-base"
                   placeholder="Enter player name..."
                   required
                   autoFocus
@@ -186,7 +186,7 @@ export function AddPlayerDialog({ sessionId, leagueId, existingPlayerNames = [],
 
               <Button
                 type="submit"
-                className="w-full rounded-full font-semibold"
+                className="w-full rounded-full font-semibold min-h-[44px]"
                 disabled={isPending || !newName.trim()}
                 data-testid="button-confirm-create-player"
               >
