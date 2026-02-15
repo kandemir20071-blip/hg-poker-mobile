@@ -1,17 +1,19 @@
 import { useParams, useLocation } from "wouter";
-import { useSession, useEndSession } from "@/hooks/use-sessions";
+import { useSession, useEndSession, useBustPlayer, useCustomChop } from "@/hooks/use-sessions";
 import { useAuth } from "@/hooks/use-auth";
-import { useUpdateTransactionStatus, useUpdateTransaction, useDeleteTransaction } from "@/hooks/use-transactions";
+import { useUpdateTransactionStatus, useUpdateTransaction, useDeleteTransaction, useAddTransaction } from "@/hooks/use-transactions";
 import { PlayerList } from "@/components/game/PlayerList";
 import { AddPlayerDialog } from "@/components/game/AddPlayerDialog";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { QRCodeSVG } from "qrcode.react";
-import { Loader2, Share2, Copy, AlertTriangle, CheckCircle, XCircle, LogOut, Shield, Pencil, Trash2, Trophy, Calendar, Clock } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Loader2, Share2, Copy, AlertTriangle, CheckCircle, XCircle, LogOut, Shield, Pencil, Trash2, Trophy, Calendar, Clock, Skull, RefreshCw, DollarSign } from "lucide-react";
 import { SuitsLoader, SuitAccent } from "@/components/ui/Suits";
 import { format } from "date-fns";
 import { useState, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
+import type { TournamentConfig } from "@shared/schema";
 
 export default function SessionView() {
   const { id } = useParams<{ id: string }>();
@@ -28,11 +30,16 @@ export default function SessionView() {
   const { mutate: updateTx } = useUpdateTransactionStatus();
   const { mutate: editTx } = useUpdateTransaction();
   const { mutate: deleteTx } = useDeleteTransaction();
+  const { mutate: bustPlayer, isPending: isBusting } = useBustPlayer();
+  const { mutate: addTransaction, isPending: isAddingTx } = useAddTransaction();
+  const { mutate: applyCustomChop, isPending: isApplyingChop } = useCustomChop();
 
   const [endDialogOpen, setEndDialogOpen] = useState(false);
   const [adminMode, setAdminMode] = useState(forceAdmin);
   const [editingLedgerId, setEditingLedgerId] = useState<number | null>(null);
   const [editLedgerAmount, setEditLedgerAmount] = useState("");
+  const [customChopOpen, setCustomChopOpen] = useState(false);
+  const [customPayouts, setCustomPayouts] = useState<Record<number, string>>({});
 
   const players = data?.players ?? [];
   const rankedPlayers = useMemo(() => {
@@ -44,7 +51,19 @@ export default function SessionView() {
       .sort((a, b) => b.netProfit - a.netProfit);
   }, [players]);
 
-  if (isLoading || !data) {
+  const session = data?.session;
+  const txList = data?.transactions ?? [];
+  const tournamentConfig = session?.type === 'tournament' ? session.config as TournamentConfig | null : null;
+  const appliedChop = useMemo(() => {
+    if (!tournamentConfig?.customPayouts) return null;
+    const result: Record<number, number> = {};
+    Object.entries(tournamentConfig.customPayouts).forEach(([id, val]) => {
+      result[Number(id)] = val;
+    });
+    return result;
+  }, [tournamentConfig?.customPayouts]);
+
+  if (isLoading || !data || !session) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center text-muted-foreground gap-4">
         <SuitsLoader />
@@ -53,17 +72,24 @@ export default function SessionView() {
     );
   }
 
-  const { session, transactions } = data;
+  const transactions = txList;
   const isHost = session.hostId === user?.id;
   const isActive = session.status === 'active';
   const isCompleted = session.status === 'completed';
   const isImported = !!(session.config && (session.config as Record<string, unknown>).source === 'import');
   const showSummary = isCompleted && !adminMode;
-  
+
   const totalWagered = players.reduce((sum, p) => sum + p.totalBuyIn, 0);
   const totalCashedOut = players.reduce((sum, p) => sum + p.totalCashOut, 0);
   const chipsInPlay = totalWagered - totalCashedOut;
   const pendingTransactions = transactions.filter(t => t.status === 'pending');
+
+  const tournamentActivePlayers = players.filter(p => p.status === 'active');
+  const tournamentEliminatedPlayers = [...players.filter(p => p.status === 'busted')]
+    .sort((a, b) => (b.tournamentPlace ?? 0) - (a.tournamentPlace ?? 0));
+
+  const tournamentResultPlayers = [...players]
+    .sort((a, b) => (a.tournamentPlace ?? 999) - (b.tournamentPlace ?? 999));
 
   const handleCopyCode = () => {
     navigator.clipboard.writeText(session.code);
@@ -93,6 +119,30 @@ export default function SessionView() {
   const handleLedgerDelete = (txId: number) => {
     deleteTx({ id: txId, sessionId });
   };
+
+  const handleRebuy = (playerId: number) => {
+    const amount = session.defaultBuyIn ?? 0;
+    if (amount <= 0) return;
+    addTransaction({ sessionId, data: { playerId, type: 'buy_in', amount } });
+  };
+
+  const handleBust = (playerId: number) => {
+    bustPlayer({ sessionId, playerId });
+  };
+
+  const initCustomPayouts = () => {
+    const payouts: Record<number, string> = {};
+    tournamentResultPlayers.forEach((player) => {
+      const place = player.tournamentPlace ?? 999;
+      const pct = tournamentConfig?.payoutStructure?.percentages?.[place - 1] ?? 0;
+      const payout = Math.round(totalWagered * pct / 100);
+      payouts[player.id] = String(payout);
+    });
+    setCustomPayouts(payouts);
+    setCustomChopOpen(true);
+  };
+
+  const customPayoutTotal = Object.values(customPayouts).reduce((sum, v) => sum + (Number(v) || 0), 0);
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
@@ -221,235 +271,613 @@ export default function SessionView() {
       </div>
 
       {showSummary ? (
-        <div className="space-y-6">
-          <div className="flex items-center justify-between gap-4 flex-wrap">
-            <h2 className="text-xl font-bold text-white flex items-center gap-2">
-              <Trophy className="w-5 h-5 text-primary" /> Post-Game Summary
-            </h2>
-            <div className="flex items-center gap-3 flex-wrap">
-              <div className="glass-card px-4 py-2 rounded-lg">
-                <span className="text-xs text-muted-foreground uppercase tracking-wider mr-2">Total Wagered</span>
-                <span className="text-xl font-mono font-bold text-muted-foreground" data-testid="text-summary-wagered">${totalWagered}</span>
-              </div>
-              <div className="glass-card px-4 py-2 rounded-lg">
-                <span className="text-xs text-muted-foreground uppercase tracking-wider mr-2">Players</span>
-                <span className="text-xl font-mono font-bold text-muted-foreground" data-testid="text-summary-players">{players.length}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="glass-card rounded-xl overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full whitespace-nowrap" data-testid="table-post-game-summary">
-                <thead>
-                  <tr className="border-b border-white/[0.06]">
-                    <th className="text-left text-xs text-muted-foreground uppercase tracking-wider px-4 py-3 w-12">#</th>
-                    <th className="text-left text-xs text-muted-foreground uppercase tracking-wider px-4 py-3">Player</th>
-                    <th className="text-right text-xs text-muted-foreground uppercase tracking-wider px-4 py-3">Buy-In</th>
-                    <th className="text-right text-xs text-muted-foreground uppercase tracking-wider px-4 py-3">Cash-Out</th>
-                    <th className="text-right text-xs text-muted-foreground uppercase tracking-wider px-4 py-3">Net Profit</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/[0.04]">
-                  {rankedPlayers.map((player, index) => (
-                    <tr key={player.id} className="hover-elevate" data-testid={`row-summary-player-${player.id}`}>
-                      <td className="px-4 py-3 text-sm font-mono text-muted-foreground" data-testid={`text-rank-${player.id}`}>
-                        {index === 0 && rankedPlayers.length > 1 ? (
-                          <Trophy className="w-4 h-4 text-amber-400 inline" />
-                        ) : (
-                          index + 1
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="font-medium text-white" data-testid={`text-player-name-${player.id}`}>{player.name}</span>
-                      </td>
-                      <td className="px-4 py-3 text-right font-mono text-sm text-muted-foreground" data-testid={`text-buyin-${player.id}`}>
-                        ${player.totalBuyIn}
-                      </td>
-                      <td className="px-4 py-3 text-right font-mono text-sm text-muted-foreground" data-testid={`text-cashout-${player.id}`}>
-                        ${player.totalCashOut}
-                      </td>
-                      <td className="px-4 py-3 text-right font-mono text-sm font-bold" data-testid={`text-profit-${player.id}`}>
-                        <span className={player.netProfit > 0 ? 'text-emerald-500' : player.netProfit < 0 ? 'text-red-500' : 'text-muted-foreground'}>
-                          {player.netProfit > 0 ? '+' : ''}{player.netProfit === 0 ? '' : ''}${player.netProfit}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
-            <div className="flex items-center justify-between gap-4 flex-wrap">
-              <h2 className="text-xl font-bold text-white">Players</h2>
-              <div className="flex items-center gap-3 flex-wrap">
-                {adminMode && (
-                  <AddPlayerDialog
-                    sessionId={sessionId}
-                    leagueId={session.leagueId}
-                    existingPlayerNames={players.map(p => p.name)}
-                  />
-                )}
-                <div className="flex items-center gap-3 flex-wrap">
-                  <div className="glass-card px-4 py-2 rounded-lg">
-                    <span className="text-xs text-muted-foreground uppercase tracking-wider mr-2">Wagered</span>
-                    <span className="text-xl font-mono font-bold text-muted-foreground" data-testid="text-total-wagered">${totalWagered}</span>
-                  </div>
-                  <div className="glass-card px-4 py-2 rounded-lg">
-                    <span className="text-xs text-muted-foreground uppercase tracking-wider mr-2">In Play</span>
-                    <span className="text-xl font-mono font-bold text-primary" data-testid="text-chips-in-play">${chipsInPlay}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <PlayerList 
-              players={players} 
-              hostId={session.hostId} 
-              sessionId={sessionId} 
-              currentUserId={user?.id}
-              adminMode={adminMode}
-              transactions={transactions}
-              isActive={isActive}
-            />
-          </div>
-
+        session.type === 'tournament' ? (
           <div className="space-y-6">
-            {isHost && pendingTransactions.length > 0 && (
-              <div className="glass-card rounded-xl overflow-hidden border-primary/20">
-                <div className="bg-primary/10 p-4 border-b border-primary/20 flex items-center gap-2">
-                  <AlertTriangle className="w-5 h-5 text-primary animate-pulse" />
-                  <h3 className="font-bold text-primary">Approvals Needed</h3>
-                </div>
-                <div className="divide-y divide-white/[0.06]">
-                  {pendingTransactions.map(tx => {
-                    const player = players.find(p => p.id === tx.playerId);
-                    return (
-                      <div key={tx.id} className="p-4 flex flex-col gap-3">
-                        <div className="flex justify-between items-start gap-2">
-                          <div>
-                            <p className="font-bold text-white">{player?.name}</p>
-                            <p className="text-xs text-muted-foreground capitalize">{tx.type.replace('_', ' ')}</p>
-                          </div>
-                          <div className="text-xl font-mono font-bold text-white">${tx.amount}</div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-2">
-                          <Button 
-                            size="sm" 
-                            variant="ghost" 
-                            className="text-destructive min-h-[44px]"
-                            onClick={() => updateTx({ id: tx.id, sessionId, data: { status: 'rejected' } })}
-                            data-testid={`button-reject-${tx.id}`}
-                          >
-                            <XCircle className="w-4 h-4 mr-1" /> Reject
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            className="min-h-[44px]"
-                            onClick={() => updateTx({ id: tx.id, sessionId, data: { status: 'approved' } })}
-                            data-testid={`button-approve-${tx.id}`}
-                          >
-                            <CheckCircle className="w-4 h-4 mr-1" /> Approve
-                          </Button>
-                        </div>
-                      </div>
-                    );
-                  })}
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <Trophy className="w-5 h-5 text-primary" /> Tournament Results
+                {appliedChop && (
+                  <span className="px-2 py-0.5 rounded-full text-xs font-bold uppercase bg-amber-500/20 text-amber-400" data-testid="badge-custom-chop">Custom Chop</span>
+                )}
+              </h2>
+            </div>
+
+            <div className="glass-card rounded-xl p-6 text-center" data-testid="tournament-prize-pool-summary">
+              <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Total Prize Pool</p>
+              <p className="text-5xl font-bold font-mono text-primary" data-testid="text-tournament-prize-pool">${totalWagered}</p>
+              <p className="text-sm text-muted-foreground mt-2">{players.length} players</p>
+            </div>
+
+            {tournamentConfig?.payoutStructure && (
+              <div className="glass-card rounded-xl p-4" data-testid="tournament-payout-structure">
+                <h3 className="font-bold text-base mb-3 text-white">Payout Structure</h3>
+                <div className="flex items-center gap-3 flex-wrap">
+                  {tournamentConfig.payoutStructure.percentages.map((pct, i) => (
+                    <div key={i} className="glass-card px-4 py-2 rounded-lg text-center" data-testid={`payout-place-${i + 1}`}>
+                      <p className="text-xs text-muted-foreground">{i === 0 ? '1st' : i === 1 ? '2nd' : i === 2 ? '3rd' : `${i + 1}th`}</p>
+                      <p className="text-lg font-mono font-bold text-primary">{pct}%</p>
+                      <p className="text-xs text-muted-foreground font-mono">${Math.round(totalWagered * pct / 100)}</p>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
 
-            <div className="glass-card rounded-xl p-4">
-              <h3 className="font-bold text-base mb-4 text-white">Ledger</h3>
-              <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
-                {transactions
-                  .filter(t => t.status !== 'pending')
-                  .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-                  .map(tx => {
-                    const player = players.find(p => p.id === tx.playerId);
-                    const isBuyIn = tx.type === 'buy_in';
-                    const isEditingThis = editingLedgerId === tx.id;
+            <div className="glass-card rounded-xl overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full whitespace-nowrap" data-testid="table-tournament-results">
+                  <thead>
+                    <tr className="border-b border-white/[0.06]">
+                      <th className="text-left text-xs text-muted-foreground uppercase tracking-wider px-4 py-3 w-12">Place</th>
+                      <th className="text-left text-xs text-muted-foreground uppercase tracking-wider px-4 py-3">Player</th>
+                      <th className="text-right text-xs text-muted-foreground uppercase tracking-wider px-4 py-3">Buy-in</th>
+                      <th className="text-right text-xs text-muted-foreground uppercase tracking-wider px-4 py-3">Payout</th>
+                      <th className="text-right text-xs text-muted-foreground uppercase tracking-wider px-4 py-3">Net</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/[0.04]">
+                    {tournamentResultPlayers.map((player) => {
+                      const place = player.tournamentPlace ?? '-';
+                      const payoutPct = tournamentConfig?.payoutStructure?.percentages?.[(player.tournamentPlace ?? 0) - 1] ?? 0;
+                      const defaultPayout = Math.round(totalWagered * payoutPct / 100);
+                      const payout = appliedChop ? (appliedChop[player.id] ?? 0) : defaultPayout;
+                      const net = payout - player.totalBuyIn;
+                      return (
+                        <tr key={player.id} className="hover-elevate" data-testid={`row-tournament-result-${player.id}`}>
+                          <td className="px-4 py-3 text-sm font-mono text-muted-foreground" data-testid={`text-tournament-place-${player.id}`}>
+                            {place === 1 ? (
+                              <Trophy className="w-4 h-4 text-amber-400 inline" />
+                            ) : (
+                              `#${place}`
+                            )}
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="font-medium text-white" data-testid={`text-tournament-player-${player.id}`}>{player.name}</span>
+                          </td>
+                          <td className="px-4 py-3 text-right font-mono text-sm text-muted-foreground" data-testid={`text-tournament-buyin-${player.id}`}>
+                            ${player.totalBuyIn}
+                          </td>
+                          <td className="px-4 py-3 text-right font-mono text-sm text-muted-foreground" data-testid={`text-tournament-payout-${player.id}`}>
+                            ${payout}
+                          </td>
+                          <td className="px-4 py-3 text-right font-mono text-sm font-bold" data-testid={`text-tournament-net-${player.id}`}>
+                            <span className={net > 0 ? 'text-emerald-500' : net < 0 ? 'text-red-500' : 'text-muted-foreground'}>
+                              {net > 0 ? '+' : ''}${net}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
 
-                    let actionLabel = 'cashed out';
-                    if (isBuyIn) {
-                      const playerBuyIns = transactions
-                        .filter(t => t.playerId === tx.playerId && t.type === 'buy_in' && t.status !== 'pending')
-                        .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-                      const buyInIndex = playerBuyIns.findIndex(t => t.id === tx.id);
-                      actionLabel = buyInIndex > 0 ? 're-bought' : 'bought in';
-                    }
-
-                    return (
-                      <div key={tx.id} className="flex items-center justify-between gap-2 text-sm py-1" data-testid={`ledger-entry-${tx.id}`}>
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span className="text-muted-foreground text-xs font-mono shrink-0">
-                            {format(new Date(tx.timestamp), 'HH:mm')}
-                          </span>
-                          <span className="font-medium text-white truncate">{player?.name}</span>
-                          <span className="text-muted-foreground text-xs shrink-0">{actionLabel}</span>
+            <div className="flex justify-center">
+              <Dialog open={customChopOpen} onOpenChange={setCustomChopOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="gap-2 min-h-[44px]" onClick={initCustomPayouts} data-testid="button-custom-chop">
+                    <RefreshCw className="w-4 h-4" /> Custom Payout / Chop
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="glass-card sm:max-w-md max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle className="text-xl text-center">Custom Chop</DialogTitle>
+                  </DialogHeader>
+                  <p className="text-xs text-muted-foreground text-center">Override the automatic payouts. The total must equal the prize pool (${totalWagered}).</p>
+                  <div className="space-y-3 mt-2">
+                    {tournamentResultPlayers.map((player) => {
+                      const place = player.tournamentPlace ?? '-';
+                      return (
+                        <div key={player.id} className="flex items-center gap-3">
+                          <span className="text-xs font-mono text-muted-foreground w-8 shrink-0">#{place}</span>
+                          <span className="text-sm font-medium text-white flex-1 truncate" data-testid={`text-chop-player-${player.id}`}>{player.name}</span>
+                          <div className="relative w-28 shrink-0">
+                            <DollarSign className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                            <Input
+                              type="number"
+                              value={customPayouts[player.id] ?? '0'}
+                              onChange={(e) => setCustomPayouts(prev => ({ ...prev, [player.id]: e.target.value }))}
+                              className="pl-7 bg-background/50 border-white/[0.08] min-h-[44px] text-base font-mono"
+                              min="0"
+                              data-testid={`input-chop-payout-${player.id}`}
+                            />
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          {isEditingThis ? (
-                            <div className="flex items-center gap-1">
-                              <input
-                                type="number"
-                                value={editLedgerAmount}
-                                onChange={(e) => setEditLedgerAmount(e.target.value)}
-                                className="w-20 bg-background/50 border border-white/[0.08] rounded px-2 py-0.5 text-xs font-mono text-white"
-                                autoFocus
-                                data-testid={`input-ledger-edit-${tx.id}`}
-                              />
-                              <Button size="icon" variant="ghost" onClick={() => handleLedgerEdit(tx.id)} data-testid={`button-ledger-save-${tx.id}`}>
-                                <CheckCircle className="w-3 h-3 text-primary" />
-                              </Button>
-                              <Button size="icon" variant="ghost" onClick={() => { setEditingLedgerId(null); setEditLedgerAmount(""); }} data-testid={`button-ledger-cancel-${tx.id}`}>
-                                <XCircle className="w-3 h-3" />
-                              </Button>
-                            </div>
+                      );
+                    })}
+                  </div>
+                  <div className={`text-sm text-center font-mono font-bold mt-2 ${customPayoutTotal === totalWagered ? 'text-emerald-400' : 'text-red-400'}`} data-testid="text-chop-total">
+                    Total: ${customPayoutTotal} / ${totalWagered} {customPayoutTotal === totalWagered ? '(valid)' : `(${customPayoutTotal > totalWagered ? 'over' : 'under'} by $${Math.abs(customPayoutTotal - totalWagered)})`}
+                  </div>
+                  <DialogFooter className="mt-2">
+                    <Button variant="ghost" className="min-h-[44px]" onClick={() => setCustomChopOpen(false)} data-testid="button-chop-cancel">
+                      Cancel
+                    </Button>
+                    <Button
+                      className="glow-emerald min-h-[44px]"
+                      disabled={customPayoutTotal !== totalWagered || isApplyingChop}
+                      onClick={() => {
+                        const applied: Record<number, number> = {};
+                        Object.entries(customPayouts).forEach(([id, val]) => {
+                          applied[Number(id)] = Number(val) || 0;
+                        });
+                        applyCustomChop({ sessionId, payouts: applied }, {
+                          onSuccess: () => {
+                            setCustomChopOpen(false);
+                          }
+                        });
+                      }}
+                      data-testid="button-chop-apply"
+                    >
+                      {isApplyingChop ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Apply Chop'}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <Trophy className="w-5 h-5 text-primary" /> Post-Game Summary
+              </h2>
+              <div className="flex items-center gap-3 flex-wrap">
+                <div className="glass-card px-4 py-2 rounded-lg">
+                  <span className="text-xs text-muted-foreground uppercase tracking-wider mr-2">Total Wagered</span>
+                  <span className="text-xl font-mono font-bold text-muted-foreground" data-testid="text-summary-wagered">${totalWagered}</span>
+                </div>
+                <div className="glass-card px-4 py-2 rounded-lg">
+                  <span className="text-xs text-muted-foreground uppercase tracking-wider mr-2">Players</span>
+                  <span className="text-xl font-mono font-bold text-muted-foreground" data-testid="text-summary-players">{players.length}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="glass-card rounded-xl overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full whitespace-nowrap" data-testid="table-post-game-summary">
+                  <thead>
+                    <tr className="border-b border-white/[0.06]">
+                      <th className="text-left text-xs text-muted-foreground uppercase tracking-wider px-4 py-3 w-12">#</th>
+                      <th className="text-left text-xs text-muted-foreground uppercase tracking-wider px-4 py-3">Player</th>
+                      <th className="text-right text-xs text-muted-foreground uppercase tracking-wider px-4 py-3">Buy-In</th>
+                      <th className="text-right text-xs text-muted-foreground uppercase tracking-wider px-4 py-3">Cash-Out</th>
+                      <th className="text-right text-xs text-muted-foreground uppercase tracking-wider px-4 py-3">Net Profit</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/[0.04]">
+                    {rankedPlayers.map((player, index) => (
+                      <tr key={player.id} className="hover-elevate" data-testid={`row-summary-player-${player.id}`}>
+                        <td className="px-4 py-3 text-sm font-mono text-muted-foreground" data-testid={`text-rank-${player.id}`}>
+                          {index === 0 && rankedPlayers.length > 1 ? (
+                            <Trophy className="w-4 h-4 text-amber-400 inline" />
                           ) : (
-                            <>
-                              <span className={`font-mono font-bold ${isBuyIn ? 'text-destructive' : 'text-emerald-400'}`}>
-                                {isBuyIn ? '-' : '+'}${tx.amount}
-                              </span>
-                              {adminMode && (
-                                <div className="flex items-center gap-0.5">
-                                  <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    className="opacity-50"
-                                    onClick={() => { setEditingLedgerId(tx.id); setEditLedgerAmount(tx.amount.toString()); }}
-                                    data-testid={`button-ledger-edit-${tx.id}`}
-                                  >
-                                    <Pencil className="w-3 h-3" />
-                                  </Button>
-                                  <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    className="opacity-50 text-destructive"
-                                    onClick={() => handleLedgerDelete(tx.id)}
-                                    data-testid={`button-ledger-delete-${tx.id}`}
-                                  >
-                                    <Trash2 className="w-3 h-3" />
-                                  </Button>
-                                </div>
-                              )}
-                            </>
+                            index + 1
                           )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                {transactions.length === 0 && (
-                  <p className="text-xs text-muted-foreground text-center py-4">No transactions yet.</p>
-                )}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="font-medium text-white" data-testid={`text-player-name-${player.id}`}>{player.name}</span>
+                        </td>
+                        <td className="px-4 py-3 text-right font-mono text-sm text-muted-foreground" data-testid={`text-buyin-${player.id}`}>
+                          ${player.totalBuyIn}
+                        </td>
+                        <td className="px-4 py-3 text-right font-mono text-sm text-muted-foreground" data-testid={`text-cashout-${player.id}`}>
+                          ${player.totalCashOut}
+                        </td>
+                        <td className="px-4 py-3 text-right font-mono text-sm font-bold" data-testid={`text-profit-${player.id}`}>
+                          <span className={player.netProfit > 0 ? 'text-emerald-500' : player.netProfit < 0 ? 'text-red-500' : 'text-muted-foreground'}>
+                            {player.netProfit > 0 ? '+' : ''}{player.netProfit === 0 ? '' : ''}${player.netProfit}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
-        </div>
+        )
+      ) : (
+        session.type === 'tournament' ? (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-6">
+              <div className="glass-card rounded-xl p-6 text-center" data-testid="tournament-prize-pool">
+                <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Total Prize Pool</p>
+                <p className="text-5xl font-bold font-mono text-primary" data-testid="text-live-prize-pool">${totalWagered}</p>
+                <div className="flex items-center justify-center gap-6 mt-3 text-sm text-muted-foreground">
+                  <span data-testid="text-players-remaining">{tournamentActivePlayers.length} remaining</span>
+                  {tournamentConfig?.allowRebuys && <span data-testid="text-rebuys-enabled">Re-buys enabled</span>}
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between gap-4 mb-4 flex-wrap">
+                  <h3 className="text-lg font-bold text-white" data-testid="text-active-players-heading">Active Players ({tournamentActivePlayers.length})</h3>
+                  {adminMode && (
+                    <AddPlayerDialog
+                      sessionId={sessionId}
+                      leagueId={session.leagueId}
+                      existingPlayerNames={players.map(p => p.name)}
+                    />
+                  )}
+                </div>
+                <div className="space-y-3">
+                  {tournamentActivePlayers.map(player => (
+                    <div
+                      key={player.id}
+                      className="glass-card rounded-xl p-4 flex items-center justify-between gap-3"
+                      data-testid={`card-tournament-player-${player.id}`}
+                    >
+                      <div className="min-w-0">
+                        <p className="font-bold text-white text-lg truncate" data-testid={`text-active-player-name-${player.id}`}>{player.name}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">Buy-in: <span className="font-mono font-bold text-white">${player.totalBuyIn}</span></p>
+                      </div>
+                      {adminMode && (
+                        <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                          {tournamentConfig?.allowRebuys && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="gap-1.5 min-h-[44px] border-primary/30 text-primary"
+                              onClick={() => handleRebuy(player.id)}
+                              disabled={isAddingTx}
+                              data-testid={`button-rebuy-${player.id}`}
+                            >
+                              <RefreshCw className="w-3.5 h-3.5" /> Re-buy
+                            </Button>
+                          )}
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            className="gap-1.5 min-h-[44px]"
+                            onClick={() => handleBust(player.id)}
+                            disabled={isBusting}
+                            data-testid={`button-bust-${player.id}`}
+                          >
+                            <Skull className="w-3.5 h-3.5" /> Bust
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  {tournamentActivePlayers.length === 0 && (
+                    <div className="text-center py-12 border border-dashed border-white/10 rounded-xl">
+                      <p className="text-muted-foreground">No active players remaining.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {tournamentEliminatedPlayers.length > 0 && (
+                <div data-testid="tournament-eliminated-section">
+                  <h3 className="text-lg font-bold text-white mb-4" data-testid="text-eliminated-heading">Eliminated ({tournamentEliminatedPlayers.length})</h3>
+                  <div className="glass-card rounded-xl overflow-hidden">
+                    <div className="divide-y divide-white/[0.04]">
+                      {tournamentEliminatedPlayers.map(player => (
+                        <div
+                          key={player.id}
+                          className="flex items-center justify-between gap-3 px-4 py-3"
+                          data-testid={`row-eliminated-${player.id}`}
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <span className="text-sm font-mono font-bold text-muted-foreground w-8 shrink-0" data-testid={`text-eliminated-place-${player.id}`}>
+                              #{player.tournamentPlace}
+                            </span>
+                            <span className="font-medium text-white truncate" data-testid={`text-eliminated-name-${player.id}`}>{player.name}</span>
+                          </div>
+                          <span className="text-xs text-red-400 font-bold uppercase shrink-0" data-testid={`text-eliminated-status-${player.id}`}>Busted</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-6">
+              {isHost && pendingTransactions.length > 0 && (
+                <div className="glass-card rounded-xl overflow-hidden border-primary/20">
+                  <div className="bg-primary/10 p-4 border-b border-primary/20 flex items-center gap-2">
+                    <AlertTriangle className="w-5 h-5 text-primary animate-pulse" />
+                    <h3 className="font-bold text-primary">Approvals Needed</h3>
+                  </div>
+                  <div className="divide-y divide-white/[0.06]">
+                    {pendingTransactions.map(tx => {
+                      const player = players.find(p => p.id === tx.playerId);
+                      return (
+                        <div key={tx.id} className="p-4 flex flex-col gap-3">
+                          <div className="flex justify-between items-start gap-2">
+                            <div>
+                              <p className="font-bold text-white">{player?.name}</p>
+                              <p className="text-xs text-muted-foreground capitalize">{tx.type.replace('_', ' ')}</p>
+                            </div>
+                            <div className="text-xl font-mono font-bold text-white">${tx.amount}</div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <Button 
+                              size="sm" 
+                              variant="ghost" 
+                              className="text-destructive min-h-[44px]"
+                              onClick={() => updateTx({ id: tx.id, sessionId, data: { status: 'rejected' } })}
+                              data-testid={`button-reject-${tx.id}`}
+                            >
+                              <XCircle className="w-4 h-4 mr-1" /> Reject
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              className="min-h-[44px]"
+                              onClick={() => updateTx({ id: tx.id, sessionId, data: { status: 'approved' } })}
+                              data-testid={`button-approve-${tx.id}`}
+                            >
+                              <CheckCircle className="w-4 h-4 mr-1" /> Approve
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              <div className="glass-card rounded-xl p-4">
+                <h3 className="font-bold text-base mb-4 text-white">Ledger</h3>
+                <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
+                  {transactions
+                    .filter(t => t.status !== 'pending')
+                    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+                    .map(tx => {
+                      const player = players.find(p => p.id === tx.playerId);
+                      const isBuyIn = tx.type === 'buy_in';
+                      const isEditingThis = editingLedgerId === tx.id;
+
+                      let actionLabel = 'cashed out';
+                      if (isBuyIn) {
+                        const playerBuyIns = transactions
+                          .filter(t => t.playerId === tx.playerId && t.type === 'buy_in' && t.status !== 'pending')
+                          .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+                        const buyInIndex = playerBuyIns.findIndex(t => t.id === tx.id);
+                        actionLabel = buyInIndex > 0 ? 're-bought' : 'bought in';
+                      }
+
+                      return (
+                        <div key={tx.id} className="flex items-center justify-between gap-2 text-sm py-1" data-testid={`ledger-entry-${tx.id}`}>
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="text-muted-foreground text-xs font-mono shrink-0">
+                              {format(new Date(tx.timestamp), 'HH:mm')}
+                            </span>
+                            <span className="font-medium text-white truncate">{player?.name}</span>
+                            <span className="text-muted-foreground text-xs shrink-0">{actionLabel}</span>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            {isEditingThis ? (
+                              <div className="flex items-center gap-1">
+                                <input
+                                  type="number"
+                                  value={editLedgerAmount}
+                                  onChange={(e) => setEditLedgerAmount(e.target.value)}
+                                  className="w-20 bg-background/50 border border-white/[0.08] rounded px-2 py-0.5 text-xs font-mono text-white"
+                                  autoFocus
+                                  data-testid={`input-ledger-edit-${tx.id}`}
+                                />
+                                <Button size="icon" variant="ghost" onClick={() => handleLedgerEdit(tx.id)} data-testid={`button-ledger-save-${tx.id}`}>
+                                  <CheckCircle className="w-3 h-3 text-primary" />
+                                </Button>
+                                <Button size="icon" variant="ghost" onClick={() => { setEditingLedgerId(null); setEditLedgerAmount(""); }} data-testid={`button-ledger-cancel-${tx.id}`}>
+                                  <XCircle className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <>
+                                <span className={`font-mono font-bold ${isBuyIn ? 'text-destructive' : 'text-emerald-400'}`}>
+                                  {isBuyIn ? '-' : '+'}${tx.amount}
+                                </span>
+                                {adminMode && (
+                                  <div className="flex items-center gap-0.5">
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="opacity-50"
+                                      onClick={() => { setEditingLedgerId(tx.id); setEditLedgerAmount(tx.amount.toString()); }}
+                                      data-testid={`button-ledger-edit-${tx.id}`}
+                                    >
+                                      <Pencil className="w-3 h-3" />
+                                    </Button>
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="opacity-50 text-destructive"
+                                      onClick={() => handleLedgerDelete(tx.id)}
+                                      data-testid={`button-ledger-delete-${tx.id}`}
+                                    >
+                                      <Trash2 className="w-3 h-3" />
+                                    </Button>
+                                  </div>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  {transactions.length === 0 && (
+                    <p className="text-xs text-muted-foreground text-center py-4">No transactions yet.</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-6">
+              <div className="flex items-center justify-between gap-4 flex-wrap">
+                <h2 className="text-xl font-bold text-white">Players</h2>
+                <div className="flex items-center gap-3 flex-wrap">
+                  {adminMode && (
+                    <AddPlayerDialog
+                      sessionId={sessionId}
+                      leagueId={session.leagueId}
+                      existingPlayerNames={players.map(p => p.name)}
+                    />
+                  )}
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <div className="glass-card px-4 py-2 rounded-lg">
+                      <span className="text-xs text-muted-foreground uppercase tracking-wider mr-2">Wagered</span>
+                      <span className="text-xl font-mono font-bold text-muted-foreground" data-testid="text-total-wagered">${totalWagered}</span>
+                    </div>
+                    <div className="glass-card px-4 py-2 rounded-lg">
+                      <span className="text-xs text-muted-foreground uppercase tracking-wider mr-2">In Play</span>
+                      <span className="text-xl font-mono font-bold text-primary" data-testid="text-chips-in-play">${chipsInPlay}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <PlayerList 
+                players={players} 
+                hostId={session.hostId} 
+                sessionId={sessionId} 
+                currentUserId={user?.id}
+                adminMode={adminMode}
+                transactions={transactions}
+                isActive={isActive}
+              />
+            </div>
+
+            <div className="space-y-6">
+              {isHost && pendingTransactions.length > 0 && (
+                <div className="glass-card rounded-xl overflow-hidden border-primary/20">
+                  <div className="bg-primary/10 p-4 border-b border-primary/20 flex items-center gap-2">
+                    <AlertTriangle className="w-5 h-5 text-primary animate-pulse" />
+                    <h3 className="font-bold text-primary">Approvals Needed</h3>
+                  </div>
+                  <div className="divide-y divide-white/[0.06]">
+                    {pendingTransactions.map(tx => {
+                      const player = players.find(p => p.id === tx.playerId);
+                      return (
+                        <div key={tx.id} className="p-4 flex flex-col gap-3">
+                          <div className="flex justify-between items-start gap-2">
+                            <div>
+                              <p className="font-bold text-white">{player?.name}</p>
+                              <p className="text-xs text-muted-foreground capitalize">{tx.type.replace('_', ' ')}</p>
+                            </div>
+                            <div className="text-xl font-mono font-bold text-white">${tx.amount}</div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <Button 
+                              size="sm" 
+                              variant="ghost" 
+                              className="text-destructive min-h-[44px]"
+                              onClick={() => updateTx({ id: tx.id, sessionId, data: { status: 'rejected' } })}
+                              data-testid={`button-reject-${tx.id}`}
+                            >
+                              <XCircle className="w-4 h-4 mr-1" /> Reject
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              className="min-h-[44px]"
+                              onClick={() => updateTx({ id: tx.id, sessionId, data: { status: 'approved' } })}
+                              data-testid={`button-approve-${tx.id}`}
+                            >
+                              <CheckCircle className="w-4 h-4 mr-1" /> Approve
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              <div className="glass-card rounded-xl p-4">
+                <h3 className="font-bold text-base mb-4 text-white">Ledger</h3>
+                <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
+                  {transactions
+                    .filter(t => t.status !== 'pending')
+                    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+                    .map(tx => {
+                      const player = players.find(p => p.id === tx.playerId);
+                      const isBuyIn = tx.type === 'buy_in';
+                      const isEditingThis = editingLedgerId === tx.id;
+
+                      let actionLabel = 'cashed out';
+                      if (isBuyIn) {
+                        const playerBuyIns = transactions
+                          .filter(t => t.playerId === tx.playerId && t.type === 'buy_in' && t.status !== 'pending')
+                          .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+                        const buyInIndex = playerBuyIns.findIndex(t => t.id === tx.id);
+                        actionLabel = buyInIndex > 0 ? 're-bought' : 'bought in';
+                      }
+
+                      return (
+                        <div key={tx.id} className="flex items-center justify-between gap-2 text-sm py-1" data-testid={`ledger-entry-${tx.id}`}>
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="text-muted-foreground text-xs font-mono shrink-0">
+                              {format(new Date(tx.timestamp), 'HH:mm')}
+                            </span>
+                            <span className="font-medium text-white truncate">{player?.name}</span>
+                            <span className="text-muted-foreground text-xs shrink-0">{actionLabel}</span>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            {isEditingThis ? (
+                              <div className="flex items-center gap-1">
+                                <input
+                                  type="number"
+                                  value={editLedgerAmount}
+                                  onChange={(e) => setEditLedgerAmount(e.target.value)}
+                                  className="w-20 bg-background/50 border border-white/[0.08] rounded px-2 py-0.5 text-xs font-mono text-white"
+                                  autoFocus
+                                  data-testid={`input-ledger-edit-${tx.id}`}
+                                />
+                                <Button size="icon" variant="ghost" onClick={() => handleLedgerEdit(tx.id)} data-testid={`button-ledger-save-${tx.id}`}>
+                                  <CheckCircle className="w-3 h-3 text-primary" />
+                                </Button>
+                                <Button size="icon" variant="ghost" onClick={() => { setEditingLedgerId(null); setEditLedgerAmount(""); }} data-testid={`button-ledger-cancel-${tx.id}`}>
+                                  <XCircle className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <>
+                                <span className={`font-mono font-bold ${isBuyIn ? 'text-destructive' : 'text-emerald-400'}`}>
+                                  {isBuyIn ? '-' : '+'}${tx.amount}
+                                </span>
+                                {adminMode && (
+                                  <div className="flex items-center gap-0.5">
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="opacity-50"
+                                      onClick={() => { setEditingLedgerId(tx.id); setEditLedgerAmount(tx.amount.toString()); }}
+                                      data-testid={`button-ledger-edit-${tx.id}`}
+                                    >
+                                      <Pencil className="w-3 h-3" />
+                                    </Button>
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="opacity-50 text-destructive"
+                                      onClick={() => handleLedgerDelete(tx.id)}
+                                      data-testid={`button-ledger-delete-${tx.id}`}
+                                    >
+                                      <Trash2 className="w-3 h-3" />
+                                    </Button>
+                                  </div>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  {transactions.length === 0 && (
+                    <p className="text-xs text-muted-foreground text-center py-4">No transactions yet.</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )
       )}
     </div>
   );

@@ -19,12 +19,15 @@ export interface IStorage {
   getUserSessions(userId: string): Promise<PokerSession[]>;
   getLeagueSessions(leagueId: number): Promise<PokerSession[]>;
   updateSessionStatus(id: number, status: 'active' | 'completed', endTime?: Date): Promise<PokerSession>;
+  updateSessionConfig(id: number, config: Record<string, unknown>): Promise<PokerSession>;
 
   addPlayer(player: InsertSessionPlayer): Promise<SessionPlayer>;
   getSessionPlayers(sessionId: number): Promise<SessionPlayer[]>;
   getPlayer(id: number): Promise<SessionPlayer | undefined>;
   getPlayerBySessionAndUser(sessionId: number, userId: string): Promise<SessionPlayer | undefined>;
   updatePlayerStatus(id: number, status: 'active' | 'busted' | 'cashed_out' | 'left'): Promise<SessionPlayer>;
+  updatePlayerTournamentPlace(id: number, place: number): Promise<SessionPlayer>;
+  bustPlayer(id: number, place: number): Promise<SessionPlayer>;
 
   addTransaction(transaction: InsertTransaction): Promise<Transaction>;
   getSessionTransactions(sessionId: number): Promise<Transaction[]>;
@@ -98,6 +101,14 @@ export class DatabaseStorage implements IStorage {
     return updated;
   }
 
+  async updateSessionConfig(id: number, config: Record<string, unknown>): Promise<PokerSession> {
+    const [updated] = await db.update(pokerSessions)
+      .set({ config })
+      .where(eq(pokerSessions.id, id))
+      .returning();
+    return updated;
+  }
+
   async addPlayer(player: InsertSessionPlayer): Promise<SessionPlayer> {
     const [newPlayer] = await db.insert(sessionPlayers).values(player).returning();
     return newPlayer;
@@ -122,6 +133,22 @@ export class DatabaseStorage implements IStorage {
   async updatePlayerStatus(id: number, status: 'active' | 'busted' | 'cashed_out' | 'left'): Promise<SessionPlayer> {
     const [updated] = await db.update(sessionPlayers)
       .set({ status })
+      .where(eq(sessionPlayers.id, id))
+      .returning();
+    return updated;
+  }
+
+  async updatePlayerTournamentPlace(id: number, place: number): Promise<SessionPlayer> {
+    const [updated] = await db.update(sessionPlayers)
+      .set({ tournamentPlace: place })
+      .where(eq(sessionPlayers.id, id))
+      .returning();
+    return updated;
+  }
+
+  async bustPlayer(id: number, place: number): Promise<SessionPlayer> {
+    const [updated] = await db.update(sessionPlayers)
+      .set({ status: 'busted', tournamentPlace: place, leftAt: new Date() })
       .where(eq(sessionPlayers.id, id))
       .returning();
     return updated;

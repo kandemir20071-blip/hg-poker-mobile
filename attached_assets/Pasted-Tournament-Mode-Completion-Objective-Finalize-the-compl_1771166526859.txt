@@ -1,0 +1,51 @@
+Tournament Mode Completion
+
+Objective: Finalize the complete Tournament Mode flow. The "set default buy-ins" window already works well. Now we need to implement Re-buys, Payout Structures, Mid-Game tracking, and End-Game Settlement (including a Custom Chop).
+
+Please implement this in 4 distinct steps:
+
+Step 1: Schema & State Updates
+
+Ensure the session_players table has a placement column (integer, nullable) to track elimination order.
+
+Ensure the poker_sessions table's config JSON column can store tournament rules. We need it to hold:
+
+allowRebuys (boolean)
+
+rebuyTimeLimit (string or number, e.g., "90 mins" or null)
+
+payoutStructure (object containing the type: 'winner_takes_all', 'top_2', 'top_3', or 'custom', and an array of percentages).
+
+Step 2: Pre-Tournament Setup UI (Lobby)
+
+Add to the existing session creation/defaults window for Tournaments:
+
+Re-buys Toggle: A switch for "Allow Re-buys". If toggled on, show an optional text input for a time limit (e.g., "Valid for first 90 minutes").
+
+Payout Structure Dropdown: >   * Winner Takes All (100%)
+
+Top 2 Paid (65% / 35%)
+
+Top 3 Paid (50% / 30% / 20%)
+
+Custom Split (renders dynamic input fields so the host can set their own percentages that must equal 100%).
+
+Step 3: Mid-Game Dashboard (Active Tournament)
+
+Modify the active session view when type === 'tournament'.
+
+Live Prize Pool Header: A massive, highly visible number at the top. It must auto-calculate: (Total Initial Buy-ins + Total Re-buys).
+
+Player Actions: Instead of cash game controls, active players get two buttons:
+
+"Re-buy": Instantly adds a buy-in transaction, increasing the Total Prize Pool.
+
+"Bust" (Kill Switch): Changes their status to 'busted', assigns their placement (e.g., if 8 players started and they are the first out, placement = 8), and moves them to an "Eliminated" list at the bottom.
+
+Step 4: End-Game & "The Chop" (Tournament Resolution)
+
+When ending the session, display the Payout Screen.
+
+Auto-Calculate: Look at the total Prize Pool and apply the percentages defined in the payoutStructure to the top placements.
+
+The Chop Override (Crucial): Add a "Custom Payout / Chop" button. When clicked, it changes the calculated payouts into editable number inputs. The host can manually type exact monetary values for the remaining players. (Include a validation check that the custom inputs exactly equal the total Prize Pool before allowing them to save/close the session).

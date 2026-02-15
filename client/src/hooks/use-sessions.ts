@@ -136,6 +136,61 @@ export function useDeleteSession() {
   });
 }
 
+export function useBustPlayer() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ sessionId, playerId }: { sessionId: number; playerId: number }) => {
+      const res = await fetch(`/api/sessions/${sessionId}/players/${playerId}/bust`, {
+        method: 'POST',
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ message: "Failed to bust player" }));
+        throw new Error(err.message);
+      }
+      return res.json();
+    },
+    onSuccess: (_, { sessionId }) => {
+      queryClient.invalidateQueries({ queryKey: [api.sessions.get.path, sessionId] });
+      toast({ title: "Player Eliminated", description: "Player has been busted from the tournament." });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    },
+  });
+}
+
+export function useCustomChop() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ sessionId, payouts }: { sessionId: number; payouts: Record<number, number> }) => {
+      const res = await fetch(`/api/sessions/${sessionId}/custom-chop`, {
+        method: 'PUT',
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ payouts }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ message: "Failed to apply custom chop" }));
+        throw new Error(err.message);
+      }
+      return res.json();
+    },
+    onSuccess: (_, { sessionId }) => {
+      queryClient.invalidateQueries({ queryKey: [api.sessions.get.path, sessionId] });
+      toast({ title: "Custom chop saved", description: "Payouts have been updated and saved." });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    },
+  });
+}
+
 export function useAddPlayerManually() {
   const queryClient = useQueryClient();
   const { toast } = useToast();

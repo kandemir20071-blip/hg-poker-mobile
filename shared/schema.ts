@@ -125,6 +125,16 @@ export type InsertLeagueMember = z.infer<typeof insertLeagueMemberSchema>;
 export type LeaguePlayer = typeof leaguePlayers.$inferSelect;
 export type InsertLeaguePlayer = z.infer<typeof insertLeaguePlayerSchema>;
 
+export type TournamentConfig = {
+  allowRebuys: boolean;
+  rebuyTimeLimit: number | null;
+  payoutStructure: {
+    type: 'winner_takes_all' | 'top_2' | 'top_3' | 'custom';
+    percentages: number[];
+  };
+  customPayouts?: Record<string, number>;
+};
+
 export type CreateSessionRequest = {
   type: 'cash' | 'tournament';
   leagueId?: number;

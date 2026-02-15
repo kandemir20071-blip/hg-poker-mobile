@@ -9,7 +9,9 @@ import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Coins, Trophy, TrendingUp, History, Play, Loader2, ArrowRight, Upload, Pencil, Trash2, AlertTriangle, Users, Plus, LogIn, User, Shield, Copy, Check, ArrowDownLeft, ArrowUpRight, DollarSign, Info } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Coins, Trophy, TrendingUp, History, Play, Loader2, ArrowRight, Upload, Pencil, Trash2, AlertTriangle, Users, Plus, LogIn, User, Shield, Copy, Check, ArrowDownLeft, ArrowUpRight, DollarSign, Info, Clock, Percent, X } from "lucide-react";
 import { Tooltip as UITooltip, TooltipContent as UITooltipContent, TooltipTrigger as UITooltipTrigger } from "@/components/ui/tooltip";
 import { SuitAccent, SuitsLoader, SuitsRow } from "@/components/ui/Suits";
 import { Link, useLocation } from "wouter";
@@ -220,6 +222,11 @@ function LeaguesTab({
   const [newSessionType, setNewSessionType] = useState<"cash" | "tournament" | null>(null);
   const [defaultBuyIn, setDefaultBuyIn] = useState<number | null>(null);
   const [customBuyIn, setCustomBuyIn] = useState("");
+  const [tournamentStep, setTournamentStep] = useState<"buyin" | "rules">("buyin");
+  const [allowRebuys, setAllowRebuys] = useState(false);
+  const [rebuyTimeLimit, setRebuyTimeLimit] = useState("");
+  const [payoutType, setPayoutType] = useState<"winner_takes_all" | "top_2" | "top_3" | "custom">("winner_takes_all");
+  const [customPercentages, setCustomPercentages] = useState<string[]>(["100"]);
 
   const buyInPresets = [5, 10, 20, 30, 50, 100];
 
@@ -238,12 +245,36 @@ function LeaguesTab({
     setNewSessionType(null);
     setDefaultBuyIn(null);
     setCustomBuyIn("");
+    setTournamentStep("buyin");
+    setAllowRebuys(false);
+    setRebuyTimeLimit("");
+    setPayoutType("winner_takes_all");
+    setCustomPercentages(["100"]);
   };
+
+  const getPayoutPercentages = () => {
+    switch (payoutType) {
+      case 'winner_takes_all': return [100];
+      case 'top_2': return [65, 35];
+      case 'top_3': return [50, 30, 20];
+      case 'custom': return customPercentages.map(p => Number(p) || 0);
+    }
+  };
+
+  const customPercentageSum = customPercentages.reduce((s, p) => s + (Number(p) || 0), 0);
 
   const handleStartSession = () => {
     if (!selectedLeagueId || !newSessionType) return;
+    const config = newSessionType === 'tournament' ? {
+      allowRebuys,
+      rebuyTimeLimit: rebuyTimeLimit ? Number(rebuyTimeLimit) : null,
+      payoutStructure: {
+        type: payoutType,
+        percentages: getPayoutPercentages(),
+      },
+    } : undefined;
     createSession(
-      { type: newSessionType, leagueId: selectedLeagueId, defaultBuyIn: defaultBuyIn || undefined },
+      { type: newSessionType, leagueId: selectedLeagueId, defaultBuyIn: defaultBuyIn || undefined, config },
       {
         onSuccess: (session: any) => {
           setNewSessionOpen(false);
@@ -348,12 +379,116 @@ function LeaguesTab({
                     </button>
                   </div>
                 </>
+              ) : newSessionType === 'tournament' && tournamentStep === 'rules' ? (
+                <>
+                  <DialogHeader>
+                    <DialogTitle className="text-2xl text-center">Tournament Rules</DialogTitle>
+                    <DialogDescription className="text-center text-muted-foreground">
+                      Configure re-buys and payout structure for this tournament.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-5 mt-2">
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between gap-4">
+                        <div>
+                          <Label className="text-sm font-medium text-white">Allow Re-buys</Label>
+                          <p className="text-xs text-muted-foreground mt-0.5">Players can buy back in after busting</p>
+                        </div>
+                        <Switch checked={allowRebuys} onCheckedChange={setAllowRebuys} data-testid="switch-allow-rebuys" />
+                      </div>
+                      {allowRebuys && (
+                        <div className="relative">
+                          <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            type="number"
+                            placeholder="Time limit in minutes (optional)"
+                            value={rebuyTimeLimit}
+                            onChange={(e) => setRebuyTimeLimit(e.target.value)}
+                            className="pl-9 bg-background/50 border-white/[0.08] min-h-[44px] text-base"
+                            min="1"
+                            data-testid="input-rebuy-time-limit"
+                          />
+                          <p className="text-xs text-muted-foreground mt-1">Leave empty for unlimited re-buys</p>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-3">
+                      <Label className="text-sm font-medium text-white">Payout Structure</Label>
+                      <Select value={payoutType} onValueChange={(v: any) => {
+                        setPayoutType(v);
+                        if (v === 'custom') setCustomPercentages(["60", "30", "10"]);
+                      }}>
+                        <SelectTrigger className="bg-background/50 border-white/[0.08] min-h-[44px]" data-testid="select-payout-structure">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="winner_takes_all">Winner Takes All (100%)</SelectItem>
+                          <SelectItem value="top_2">Top 2 Paid (65% / 35%)</SelectItem>
+                          <SelectItem value="top_3">Top 3 Paid (50% / 30% / 20%)</SelectItem>
+                          <SelectItem value="custom">Custom Split</SelectItem>
+                        </SelectContent>
+                      </Select>
+
+                      {payoutType === 'custom' && (
+                        <div className="space-y-2">
+                          {customPercentages.map((pct, idx) => (
+                            <div key={idx} className="flex items-center gap-2">
+                              <span className="text-xs text-muted-foreground w-10 shrink-0">#{idx + 1}</span>
+                              <div className="relative flex-1">
+                                <Input
+                                  type="number"
+                                  value={pct}
+                                  onChange={(e) => {
+                                    const updated = [...customPercentages];
+                                    updated[idx] = e.target.value;
+                                    setCustomPercentages(updated);
+                                  }}
+                                  className="pr-8 bg-background/50 border-white/[0.08] min-h-[44px] text-base"
+                                  min="0"
+                                  max="100"
+                                  data-testid={`input-payout-pct-${idx}`}
+                                />
+                                <Percent className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                              </div>
+                              {customPercentages.length > 1 && (
+                                <Button size="icon" variant="ghost" onClick={() => setCustomPercentages(customPercentages.filter((_, i) => i !== idx))} data-testid={`button-remove-pct-${idx}`}>
+                                  <X className="h-3.5 w-3.5" />
+                                </Button>
+                              )}
+                            </div>
+                          ))}
+                          <Button variant="outline" size="sm" className="w-full min-h-[44px]" onClick={() => setCustomPercentages([...customPercentages, "0"])} data-testid="button-add-payout-place">
+                            <Plus className="h-3.5 w-3.5 mr-2" /> Add Place
+                          </Button>
+                          <div className={`text-xs text-center font-medium ${customPercentageSum === 100 ? 'text-emerald-400' : 'text-red-400'}`} data-testid="text-payout-sum">
+                            Total: {customPercentageSum}% {customPercentageSum === 100 ? '(valid)' : `(must equal 100%)`}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-2">
+                      <Button variant="ghost" className="flex-1 min-h-[44px]" onClick={() => setTournamentStep("buyin")} data-testid="button-back-buyin">
+                        Back
+                      </Button>
+                      <Button
+                        className="flex-1 font-semibold glow-emerald min-h-[44px]"
+                        onClick={handleStartSession}
+                        disabled={isCreatingSession || !defaultBuyIn || (payoutType === 'custom' && customPercentageSum !== 100)}
+                        data-testid="button-start-tournament"
+                      >
+                        {isCreatingSession ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Start Tournament</>}
+                      </Button>
+                    </div>
+                  </div>
+                </>
               ) : (
                 <>
                   <DialogHeader>
                     <DialogTitle className="text-2xl text-center">Set Default Buy-in</DialogTitle>
                     <DialogDescription className="text-center text-muted-foreground">
-                      Every player added will automatically get this buy-in. You can skip this step.
+                      Every player added will automatically get this buy-in.{newSessionType === 'cash' ? ' You can skip this step.' : ''}
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4 mt-2">
@@ -366,7 +501,7 @@ function LeaguesTab({
                           onClick={() => handleSelectBuyIn(amount)}
                           data-testid={`button-buyin-${amount}`}
                         >
-                          €{amount}
+                          ${amount}
                         </Button>
                       ))}
                     </div>
@@ -386,24 +521,32 @@ function LeaguesTab({
                       <Button variant="ghost" className="flex-1 min-h-[44px]" onClick={() => setNewSessionType(null)} data-testid="button-back-type">
                         Back
                       </Button>
-                      <Button variant="outline" className="flex-1 min-h-[44px]" onClick={() => {
-                        if (!selectedLeagueId || !newSessionType) return;
-                        createSession(
-                          { type: newSessionType, leagueId: selectedLeagueId },
-                          {
-                            onSuccess: (session: any) => {
-                              setNewSessionOpen(false);
-                              resetNewSession();
-                              setLocation(`/session/${session.id}`);
-                            },
-                          }
-                        );
-                      }} disabled={isCreatingSession} data-testid="button-skip-buyin">
-                        Skip
-                      </Button>
-                      <Button className="flex-1 font-semibold glow-emerald min-h-[44px]" onClick={handleStartSession} disabled={isCreatingSession || !defaultBuyIn} data-testid="button-start-session">
-                        {isCreatingSession ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Start</>}
-                      </Button>
+                      {newSessionType === 'cash' ? (
+                        <>
+                          <Button variant="outline" className="flex-1 min-h-[44px]" onClick={() => {
+                            if (!selectedLeagueId) return;
+                            createSession(
+                              { type: 'cash', leagueId: selectedLeagueId },
+                              {
+                                onSuccess: (session: any) => {
+                                  setNewSessionOpen(false);
+                                  resetNewSession();
+                                  setLocation(`/session/${session.id}`);
+                                },
+                              }
+                            );
+                          }} disabled={isCreatingSession} data-testid="button-skip-buyin">
+                            Skip
+                          </Button>
+                          <Button className="flex-1 font-semibold glow-emerald min-h-[44px]" onClick={handleStartSession} disabled={isCreatingSession || !defaultBuyIn} data-testid="button-start-session">
+                            {isCreatingSession ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Start</>}
+                          </Button>
+                        </>
+                      ) : (
+                        <Button className="flex-1 font-semibold glow-emerald min-h-[44px]" onClick={() => setTournamentStep("rules")} disabled={!defaultBuyIn} data-testid="button-next-rules">
+                          Next: Rules
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </>

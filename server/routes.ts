@@ -452,6 +452,75 @@ export async function registerRoutes(
     }
   });
 
+  // ==================== TOURNAMENT: BUST PLAYER ====================
+
+  app.post('/api/sessions/:id/players/:playerId/bust', requireAuth, async (req, res) => {
+    try {
+      const sessionId = Number(req.params.id);
+      const playerId = Number(req.params.playerId);
+
+      const session = await storage.getSession(sessionId);
+      if (!session) return res.status(404).json({ message: "Session not found" });
+      if (session.hostId !== (req.user as any).claims.sub) return res.status(401).json({ message: "Only the host can bust players" });
+      if (session.type !== 'tournament') return res.status(400).json({ message: "Bust is only available in tournaments" });
+      if (session.status !== 'active') return res.status(400).json({ message: "Session is not active" });
+
+      const player = await storage.getPlayer(playerId);
+      if (!player || player.sessionId !== sessionId) return res.status(404).json({ message: "Player not found in this session" });
+      if (player.status !== 'active') return res.status(400).json({ message: "Player is not active" });
+
+      const allPlayers = await storage.getSessionPlayers(sessionId);
+      const activePlayers = allPlayers.filter(p => p.status === 'active');
+      const placement = activePlayers.length;
+
+      const updated = await storage.bustPlayer(playerId, placement);
+      res.json(updated);
+    } catch (err) {
+      console.error("Bust player error:", err);
+      res.status(500).json({ message: "Internal Server Error" });
+    }
+  });
+
+  // ==================== CUSTOM CHOP ====================
+
+  app.put('/api/sessions/:id/custom-chop', requireAuth, async (req, res) => {
+    try {
+      const sessionId = Number(req.params.id);
+      const { payouts } = req.body as { payouts: Record<string, number> };
+
+      if (!payouts || typeof payouts !== 'object') {
+        return res.status(400).json({ message: "payouts object is required" });
+      }
+
+      const session = await storage.getSession(sessionId);
+      if (!session) return res.status(404).json({ message: "Session not found" });
+      if (session.hostId !== (req.user as any).claims.sub) return res.status(401).json({ message: "Only the host can set custom payouts" });
+      if (session.type !== 'tournament') return res.status(400).json({ message: "Custom chop is only available for tournaments" });
+
+      const allPlayers = await storage.getSessionPlayers(sessionId);
+      const allTx = await storage.getSessionTransactions(sessionId);
+      const totalBuyIns = allTx
+        .filter(t => t.type === 'buy_in' && t.status === 'approved')
+        .reduce((sum, t) => sum + t.amount, 0);
+      const payoutTotal = Object.values(payouts).reduce((sum, v) => sum + v, 0);
+
+      if (payoutTotal !== totalBuyIns) {
+        return res.status(400).json({ message: `Payouts total (${payoutTotal}) must equal prize pool (${totalBuyIns})` });
+      }
+
+      const existingConfig = (session.config as Record<string, unknown>) || {};
+      const updated = await storage.updateSessionConfig(sessionId, {
+        ...existingConfig,
+        customPayouts: payouts,
+      });
+
+      res.json(updated);
+    } catch (err) {
+      console.error("Custom chop error:", err);
+      res.status(500).json({ message: "Internal Server Error" });
+    }
+  });
+
   // ==================== TRANSACTIONS ====================
 
   app.post(api.transactions.create.path, async (req, res) => {
