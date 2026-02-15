@@ -1,0 +1,41 @@
+Tournament Blinds & Auto-Finish Logic
+
+Objective: Add a Blind Timer system to the Tournament Setup/Dashboard and implement an Auto-Finish/Payout logic when only one player remains. Ensure tournament winnings correctly calculate into the global leaderboard.
+
+Step 1: Pre-Tournament Setup (Blinds Configuration)
+
+In the Tournament creation screen, add a toggle: "Enable Blind Timer".
+
+If toggled ON, show two new inputs:
+
+Level Duration (Minutes): Default to 15 or 20 minutes.
+
+Starting Big Blind: Create a dynamic default that is exactly 10% of the selected Buy-in amount (e.g., if Buy-in is €20, Big Blind defaults to 2). Allow the host to edit this.
+
+Save these to the session_config JSON.
+
+Step 2: Mid-Game Dashboard (The Blind Clock)
+
+If the Blind Timer is enabled, display a prominent countdown clock widget at the top of the active tournament dashboard.
+
+Include basic controls: Play, Pause, and "Next Level" buttons.
+
+Display the "Current Blinds" (e.g., 1/2) and "Next Blinds" (e.g., 2/4). Use a standard poker blind progression (doubling or standard intervals: 1/2, 2/4, 3/6, 5/10, 10/20, etc.).
+
+Alert System: When the timer hits 0:00, trigger a highly visible UI alert (like a toast notification or modal) notifying players: "Blinds have increased to X/Y!", and automatically start the countdown for the next level.
+
+Step 3: Auto-Finish & The "Last Man Standing" Logic
+
+Update the "Bust" (Eliminate) button logic.
+
+Every time a player busts, check the count of remaining active players.
+
+If activePlayers === 1, automatically trigger the "End Session" / Payout Settlement flow. The remaining player is automatically assigned placement = 1 (1st Place).
+
+Step 4: Payout Execution & Leaderboard Integration
+
+On the final Payout/Chop screen, execute the math based on the selected Payout Structure and the Total Prize Pool (e.g., if Top 2 Paid 70/30, 1st place gets 70% of the pool, 2nd gets 30%).
+
+CRITICAL DATABASE HOOK: When the host clicks "Confirm Payouts / End Tournament", the app MUST record these final prize amounts as Cash Out transactions in the transactions table for the winning players.
+
+This ensures the global League Leaderboard correctly registers their tournament winnings as net profit (Total Cash Out - Total Buy-ins = Net Profit).

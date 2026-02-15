@@ -339,6 +339,58 @@ export async function registerRoutes(
       }
     }
 
+    if (session.type === 'tournament') {
+      const allPlayers = await storage.getSessionPlayers(sessionId);
+      const activePlayers = allPlayers.filter(p => p.status === 'active');
+
+      if (activePlayers.length > 0) {
+        const sortedByJoin = [...activePlayers].sort(
+          (a, b) => new Date(a.joinedAt).getTime() - new Date(b.joinedAt).getTime()
+        );
+        for (let i = 0; i < sortedByJoin.length; i++) {
+          const place = sortedByJoin.length - i;
+          if (place === 1) {
+            await storage.updatePlayerTournamentPlace(sortedByJoin[i].id, 1);
+          } else {
+            await storage.bustPlayer(sortedByJoin[i].id, place);
+          }
+        }
+      }
+
+      const existingCashOuts = (await storage.getSessionTransactions(sessionId))
+        .filter(t => t.type === 'cash_out' && t.status === 'approved');
+
+      if (existingCashOuts.length === 0) {
+        const allTx = await storage.getSessionTransactions(sessionId);
+        const totalBuyIns = allTx
+          .filter(t => t.type === 'buy_in' && t.status === 'approved')
+          .reduce((sum, t) => sum + t.amount, 0);
+
+        const config = session.config as any;
+        const customPayouts = config?.customPayouts;
+        const payoutStructure = config?.payoutStructure;
+        const percentages: number[] = payoutStructure?.percentages ?? [100];
+
+        const finalPlayers = await storage.getSessionPlayers(sessionId);
+        for (const sp of finalPlayers) {
+          let payout = 0;
+          if (customPayouts && customPayouts[String(sp.id)] !== undefined) {
+            payout = customPayouts[String(sp.id)];
+          } else {
+            const place = sp.tournamentPlace ?? 999;
+            const pct = percentages[place - 1] ?? 0;
+            payout = Math.round(totalBuyIns * pct / 100);
+          }
+          if (payout > 0) {
+            await storage.addTransaction({
+              sessionId, playerId: sp.id, type: 'cash_out',
+              amount: payout, paymentMethod: 'cash', status: 'approved',
+            });
+          }
+        }
+      }
+    }
+
     const updated = await storage.updateSessionStatus(sessionId, 'completed', new Date());
 
     try {
@@ -474,7 +526,97 @@ export async function registerRoutes(
       const placement = activePlayers.length;
 
       const updated = await storage.bustPlayer(playerId, placement);
-      res.json(updated);
+
+      const remainingActive = activePlayers.filter(p => p.id !== playerId);
+      if (remainingActive.length === 1) {
+        const freshSession = await storage.getSession(sessionId);
+        if (!freshSession || freshSession.status !== 'active') {
+          return res.json(updated);
+        }
+
+        const winner = remainingActive[0];
+        await storage.updatePlayerTournamentPlace(winner.id, 1);
+
+        const existingCashOuts = (await storage.getSessionTransactions(sessionId))
+          .filter(t => t.type === 'cash_out' && t.status === 'approved');
+        if (existingCashOuts.length === 0) {
+          const allTx = await storage.getSessionTransactions(sessionId);
+          const totalBuyIns = allTx
+            .filter(t => t.type === 'buy_in' && t.status === 'approved')
+            .reduce((sum, t) => sum + t.amount, 0);
+
+          const config = freshSession.config as any;
+          const customPayouts = config?.customPayouts;
+          const payoutStructure = config?.payoutStructure;
+          const percentages: number[] = payoutStructure?.percentages ?? [100];
+
+          const allSessionPlayers = await storage.getSessionPlayers(sessionId);
+          for (const sp of allSessionPlayers) {
+            let payout = 0;
+            if (customPayouts && customPayouts[String(sp.id)] !== undefined) {
+              payout = customPayouts[String(sp.id)];
+            } else {
+              const place = sp.tournamentPlace ?? 999;
+              const pct = percentages[place - 1] ?? 0;
+              payout = Math.round(totalBuyIns * pct / 100);
+            }
+            if (payout > 0) {
+              await storage.addTransaction({
+                sessionId, playerId: sp.id, type: 'cash_out',
+                amount: payout, paymentMethod: 'cash', status: 'approved',
+              });
+            }
+          }
+        }
+
+        await storage.updateSessionStatus(sessionId, 'completed', new Date());
+
+        const updatedSession = await storage.getSession(sessionId);
+        try {
+          const finalPlayers = await storage.getSessionPlayers(sessionId);
+          const finalTx = await storage.getSessionTransactions(sessionId);
+          const approvedTx = finalTx.filter(t => t.status === 'approved');
+          const hostId = freshSession.hostId;
+
+          for (const fp of finalPlayers) {
+            const playerTx = approvedTx.filter(t => t.playerId === fp.id);
+            const buyIn = playerTx.filter(t => t.type === 'buy_in').reduce((sum, t) => sum + t.amount, 0);
+            const cashOut = playerTx.filter(t => t.type === 'cash_out').reduce((sum, t) => sum + t.amount, 0);
+
+            if (buyIn > 0 || cashOut > 0) {
+              await storage.addGameResult({
+                userId: fp.userId || hostId,
+                leagueId: freshSession.leagueId ?? undefined,
+                sessionId,
+                playerName: fp.name,
+                date: updatedSession?.endTime || new Date(),
+                buyIn,
+                cashOut,
+                netProfit: cashOut - buyIn,
+              });
+
+              if (freshSession.leagueId) {
+                const existingPlayers = await storage.getLeaguePlayers(freshSession.leagueId);
+                const normalizedName = fp.name.toLowerCase().trim();
+                const exists = existingPlayers.some(p => p.name.toLowerCase().trim() === normalizedName);
+                if (!exists) {
+                  await storage.addLeaguePlayer({
+                    leagueId: freshSession.leagueId,
+                    name: fp.name,
+                    claimedByUserId: fp.userId,
+                  });
+                }
+              }
+            }
+          }
+        } catch (err) {
+          console.error("Error generating game results from auto-finished tournament:", err);
+        }
+
+        res.json({ ...updated, autoFinished: true });
+      } else {
+        res.json(updated);
+      }
     } catch (err) {
       console.error("Bust player error:", err);
       res.status(500).json({ message: "Internal Server Error" });

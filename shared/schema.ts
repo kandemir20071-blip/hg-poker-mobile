@@ -133,6 +133,11 @@ export type TournamentConfig = {
     percentages: number[];
   };
   customPayouts?: Record<string, number>;
+  blindTimer?: {
+    enabled: boolean;
+    levelDurationMinutes: number;
+    startingBigBlind: number;
+  };
 };
 
 export type CreateSessionRequest = {

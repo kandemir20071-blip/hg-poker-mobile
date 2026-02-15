@@ -10,6 +10,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { Input } from "@/components/ui/input";
 import { Loader2, Share2, Copy, AlertTriangle, CheckCircle, XCircle, LogOut, Shield, Pencil, Trash2, Trophy, Calendar, Clock, Skull, RefreshCw, DollarSign } from "lucide-react";
 import { SuitsLoader, SuitAccent } from "@/components/ui/Suits";
+import { BlindClock } from "@/components/game/BlindClock";
 import { format } from "date-fns";
 import { useState, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -491,6 +492,13 @@ export default function SessionView() {
                   {tournamentConfig?.allowRebuys && <span data-testid="text-rebuys-enabled">Re-buys enabled</span>}
                 </div>
               </div>
+
+              {tournamentConfig?.blindTimer?.enabled && (
+                <BlindClock
+                  levelDurationMinutes={tournamentConfig.blindTimer.levelDurationMinutes}
+                  startingBigBlind={tournamentConfig.blindTimer.startingBigBlind}
+                />
+              )}
 
               <div>
                 <div className="flex items-center justify-between gap-4 mb-4 flex-wrap">

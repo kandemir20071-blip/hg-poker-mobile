@@ -227,6 +227,9 @@ function LeaguesTab({
   const [rebuyTimeLimit, setRebuyTimeLimit] = useState("");
   const [payoutType, setPayoutType] = useState<"winner_takes_all" | "top_2" | "top_3" | "custom">("winner_takes_all");
   const [customPercentages, setCustomPercentages] = useState<string[]>(["100"]);
+  const [enableBlindTimer, setEnableBlindTimer] = useState(false);
+  const [blindLevelDuration, setBlindLevelDuration] = useState("15");
+  const [startingBigBlind, setStartingBigBlind] = useState("");
 
   const buyInPresets = [5, 10, 20, 30, 50, 100];
 
@@ -250,6 +253,9 @@ function LeaguesTab({
     setRebuyTimeLimit("");
     setPayoutType("winner_takes_all");
     setCustomPercentages(["100"]);
+    setEnableBlindTimer(false);
+    setBlindLevelDuration("15");
+    setStartingBigBlind("");
   };
 
   const getPayoutPercentages = () => {
@@ -272,6 +278,13 @@ function LeaguesTab({
         type: payoutType,
         percentages: getPayoutPercentages(),
       },
+      ...(enableBlindTimer ? {
+        blindTimer: {
+          enabled: true,
+          levelDurationMinutes: Number(blindLevelDuration) || 15,
+          startingBigBlind: Number(startingBigBlind) || Math.round((defaultBuyIn || 20) * 0.1),
+        }
+      } : {}),
     } : undefined;
     createSession(
       { type: newSessionType, leagueId: selectedLeagueId, defaultBuyIn: defaultBuyIn || undefined, config },
@@ -463,6 +476,56 @@ function LeaguesTab({
                           </Button>
                           <div className={`text-xs text-center font-medium ${customPercentageSum === 100 ? 'text-emerald-400' : 'text-red-400'}`} data-testid="text-payout-sum">
                             Total: {customPercentageSum}% {customPercentageSum === 100 ? '(valid)' : `(must equal 100%)`}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between gap-4">
+                        <div>
+                          <Label className="text-sm font-medium text-white">Enable Blind Timer</Label>
+                          <p className="text-xs text-muted-foreground mt-0.5">Countdown clock with increasing blinds</p>
+                        </div>
+                        <Switch checked={enableBlindTimer} onCheckedChange={(checked) => {
+                          setEnableBlindTimer(checked);
+                          if (checked && !startingBigBlind) {
+                            setStartingBigBlind(String(Math.round((defaultBuyIn || 20) * 0.1) || 2));
+                          }
+                        }} data-testid="switch-blind-timer" />
+                      </div>
+                      {enableBlindTimer && (
+                        <div className="space-y-3">
+                          <div>
+                            <Label className="text-xs text-muted-foreground mb-1 block">Level Duration (minutes)</Label>
+                            <div className="relative">
+                              <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                              <Input
+                                type="number"
+                                value={blindLevelDuration}
+                                onChange={(e) => setBlindLevelDuration(e.target.value)}
+                                className="pl-9 bg-background/50 border-white/[0.08] min-h-[44px] text-base"
+                                min="1"
+                                placeholder="15"
+                                data-testid="input-blind-level-duration"
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <Label className="text-xs text-muted-foreground mb-1 block">Starting Big Blind</Label>
+                            <div className="relative">
+                              <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                              <Input
+                                type="number"
+                                value={startingBigBlind}
+                                onChange={(e) => setStartingBigBlind(e.target.value)}
+                                className="pl-9 bg-background/50 border-white/[0.08] min-h-[44px] text-base"
+                                min="1"
+                                placeholder={String(Math.round((defaultBuyIn || 20) * 0.1) || 2)}
+                                data-testid="input-starting-big-blind"
+                              />
+                              <p className="text-xs text-muted-foreground mt-1">Default: 10% of buy-in ({Math.round((defaultBuyIn || 20) * 0.1) || 2})</p>
+                            </div>
                           </div>
                         </div>
                       )}

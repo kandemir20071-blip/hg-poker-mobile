@@ -153,9 +153,18 @@ export function useBustPlayer() {
       }
       return res.json();
     },
-    onSuccess: (_, { sessionId }) => {
+    onSuccess: (data: any, { sessionId }) => {
       queryClient.invalidateQueries({ queryKey: [api.sessions.get.path, sessionId] });
-      toast({ title: "Player Eliminated", description: "Player has been busted from the tournament." });
+      queryClient.invalidateQueries({ queryKey: [api.sessions.list.path], refetchType: 'all' });
+      if (data?.autoFinished) {
+        queryClient.invalidateQueries({ queryKey: [api.stats.get.path], refetchType: 'all' });
+        queryClient.invalidateQueries({ queryKey: [api.stats.league.path], refetchType: 'all' });
+        queryClient.invalidateQueries({ queryKey: [api.stats.personal.path], refetchType: 'all' });
+        queryClient.invalidateQueries({ queryKey: ['/api/leagues'], refetchType: 'all' });
+        toast({ title: "Tournament Complete!", description: "The last player standing wins! Payouts have been calculated." });
+      } else {
+        toast({ title: "Player Eliminated", description: "Player has been busted from the tournament." });
+      }
     },
     onError: (err: Error) => {
       toast({ title: "Error", description: err.message, variant: "destructive" });
