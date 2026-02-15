@@ -16,8 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { TrendingUp, Upload, Search } from "lucide-react";
+import { TrendingUp, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 
@@ -88,10 +87,10 @@ export function PlayerProfitChart({
       case "all":
         return sortedByProfit;
       case "select": {
-        const q = searchQuery.toLowerCase().trim();
+        const q = searchQuery.trim();
         if (!q) return [];
         return sortedByProfit.filter((p) =>
-          p.playerName.toLowerCase().includes(q)
+          p.playerName === q
         );
       }
       default:
@@ -234,16 +233,18 @@ export function PlayerProfitChart({
               </SelectContent>
             </Select>
             {filterMode === "select" && (
-              <div className="relative">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                <Input
-                  placeholder="Search player..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-8 w-[160px] bg-background/50 border-white/[0.08]"
-                  data-testid="input-player-search"
-                />
-              </div>
+              <Select value={searchQuery} onValueChange={setSearchQuery}>
+                <SelectTrigger className="w-[180px] bg-background/50 border-white/[0.08]" data-testid="select-player-picker">
+                  <SelectValue placeholder="Pick a player..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {sortedByProfit.map((p) => (
+                    <SelectItem key={p.playerName} value={p.playerName} data-testid={`option-player-${p.playerName}`}>
+                      {p.playerName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             )}
           </div>
         </div>
@@ -297,7 +298,7 @@ export function PlayerProfitChart({
         ) : (
           <div className="h-full flex items-center justify-center text-muted-foreground">
             {filterMode === "select"
-              ? "Type a player name to see their graph"
+              ? "Pick a player to see their graph"
               : "No data for this filter"}
           </div>
         )}

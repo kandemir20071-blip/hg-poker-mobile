@@ -22,9 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { HelpCircle, Search, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { HelpCircle, X } from "lucide-react";
 import { PlayerProfitChart, type FilterMode } from "./PlayerProfitChart";
 
 type PlayerSeries = {
@@ -142,27 +140,21 @@ export function LeagueAnalytics({ playerProfitHistory, playerAnalytics, sessionH
             </SelectContent>
           </Select>
           {perfFilterMode === "select" && (
-            <div className="relative flex-1 min-w-[160px]">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-              <Input
-                placeholder="Search player..."
-                value={perfSearchQuery}
-                onChange={(e) => setPerfSearchQuery(e.target.value)}
-                className="pl-8 pr-8 bg-background/50 border-white/[0.08]"
-                data-testid="input-player-search"
-              />
-              {perfSearchQuery && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-0.5 top-1/2 -translate-y-1/2 h-7 w-7"
-                  onClick={() => setPerfSearchQuery("")}
-                  data-testid="button-clear-search"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </Button>
-              )}
-            </div>
+            <Select value={perfSearchQuery} onValueChange={setPerfSearchQuery}>
+              <SelectTrigger className="w-[180px] bg-background/50 border-white/[0.08]" data-testid="select-player-picker">
+                <SelectValue placeholder="Pick a player..." />
+              </SelectTrigger>
+              <SelectContent>
+                {playerProfitHistory
+                  .slice()
+                  .sort((a, b) => a.playerName.localeCompare(b.playerName))
+                  .map((p) => (
+                    <SelectItem key={p.playerName} value={p.playerName} data-testid={`option-player-${p.playerName}`}>
+                      {p.playerName}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
           )}
         </>
       );
