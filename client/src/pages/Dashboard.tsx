@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Coins, Trophy, TrendingUp, History, Play, Loader2, ArrowRight, Upload, Pencil, Trash2, AlertTriangle, Users, Plus, LogIn, User, Shield, Copy, Check, ArrowDownLeft, ArrowUpRight, DollarSign, Info, Clock, Percent, X, ChevronRight } from "lucide-react";
 import frogClockSrc from "@assets/image-removebg-preview-2_1771174670390.png";
 import frogBankerSrc from "@assets/image-removebg-preview-3_1771176202817.png";
+import frogBalanceSrc from "@assets/image-removebg-preview-4_1771176899418.png";
 import { Tooltip as UITooltip, TooltipContent as UITooltipContent, TooltipTrigger as UITooltipTrigger } from "@/components/ui/tooltip";
 import { SuitAccent, SuitsLoader, SuitsRow } from "@/components/ui/Suits";
 import { Link, useLocation } from "wouter";
@@ -704,6 +705,7 @@ function LeaguesTab({
               title="Avg Buy-in"
               value={`$${avgBuyIn}`}
               icon={DollarSign}
+              customIconSrc={frogBalanceSrc}
               subtitle={
                 <span className="flex items-center gap-1 flex-wrap">
                   <span>{entries} total entries</span>
