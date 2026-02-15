@@ -138,14 +138,30 @@ export async function registerRoutes(
       const updated = await storage.claimLeaguePlayer(playerId, userId);
 
       const { db: database } = await import("./db");
-      const { gameResults } = await import("@shared/schema");
-      const { eq: eqOp, and: andOp, sql: sqlOp } = await import("drizzle-orm");
+      const { gameResults, sessionPlayers, pokerSessions } = await import("@shared/schema");
+      const { eq: eqOp, and: andOp, sql: sqlOp, inArray } = await import("drizzle-orm");
+
       await database.update(gameResults)
         .set({ userId })
         .where(andOp(
           eqOp(gameResults.leagueId, leagueId),
           sqlOp`LOWER(TRIM(${gameResults.playerName})) = LOWER(TRIM(${player.name}))`
         ));
+
+      const leagueSessions = await database.select({ id: pokerSessions.id })
+        .from(pokerSessions)
+        .where(eqOp(pokerSessions.leagueId, leagueId));
+      const leagueSessionIds = leagueSessions.map(s => s.id);
+
+      if (leagueSessionIds.length > 0) {
+        await database.update(sessionPlayers)
+          .set({ userId })
+          .where(andOp(
+            inArray(sessionPlayers.sessionId, leagueSessionIds),
+            sqlOp`LOWER(TRIM(${sessionPlayers.name})) = LOWER(TRIM(${player.name}))`,
+            sqlOp`${sessionPlayers.userId} IS NULL`
+          ));
+      }
 
       res.json(updated);
     } catch (err) {
@@ -776,7 +792,7 @@ export async function registerRoutes(
     const totalCashOut = allResults.reduce((sum, r) => sum + r.cashOut, 0);
     const roi = totalBuyIn > 0 ? Math.round((totalProfit / totalBuyIn) * 100) : 0;
 
-    const recentGames = allResults.slice(-20).reverse().map(r => ({
+    const recentGames = [...allResults].reverse().map(r => ({
       date: r.date.toISOString().split('T')[0],
       leagueName: r.leagueName,
       profit: r.profit,
