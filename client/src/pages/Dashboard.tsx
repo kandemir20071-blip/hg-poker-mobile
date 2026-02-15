@@ -16,6 +16,7 @@ import frogClockSrc from "@assets/image-removebg-preview-2_1771174670390.png";
 import frogBankerSrc from "@assets/image-removebg-preview-3_1771176202817.png";
 import frogBalanceSrc from "@assets/image-removebg-preview-4_1771176899418.png";
 import frogMoneyBagSrc from "@assets/image-removebg-preview-5_1771177431227.png";
+import frogGladiatorSrc from "@assets/image-removebg-preview-6_1771182160649.png";
 import { Tooltip as UITooltip, TooltipContent as UITooltipContent, TooltipTrigger as UITooltipTrigger } from "@/components/ui/tooltip";
 import { SuitAccent, SuitsLoader, SuitsRow } from "@/components/ui/Suits";
 import { Link, useLocation } from "wouter";
@@ -401,9 +402,9 @@ function LeaguesTab({
                       <h3 className="font-bold text-lg text-white">Cash Game</h3>
                       <p className="text-xs text-muted-foreground text-center mt-2">Flexible buy-ins, cash out anytime.</p>
                     </button>
-                    <button onClick={() => setNewSessionType('tournament')} className="flex flex-col items-center justify-center p-8 rounded-xl bg-background/50 border border-white/[0.08] hover:border-primary/40 hover:bg-primary/5 transition-all group relative overflow-hidden" data-testid="button-tournament">
+                    <button onClick={() => setNewSessionType('tournament')} className="flex flex-col items-center justify-center p-4 pt-6 rounded-xl bg-background/50 border border-white/[0.08] hover:border-primary/40 hover:bg-primary/5 transition-all group relative overflow-hidden" data-testid="button-tournament">
                       <div className="absolute top-2 right-2"><SuitAccent suit="spade" size={16} /></div>
-                      <Trophy className="w-12 h-12 text-primary mb-4 group-hover:scale-105 transition-transform" />
+                      <img src={frogGladiatorSrc} alt="" className="w-full max-w-[16rem] h-auto object-contain mx-auto mb-4 group-hover:scale-105 transition-transform drop-shadow-[0_0_20px_rgba(34,197,94,0.6)]" style={{ imageRendering: 'pixelated' }} />
                       <h3 className="font-bold text-lg text-white">Tournament</h3>
                       <p className="text-xs text-muted-foreground text-center mt-2">Fixed buy-in, blinds increase, last one standing.</p>
                     </button>
