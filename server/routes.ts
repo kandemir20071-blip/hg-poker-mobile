@@ -222,6 +222,34 @@ export async function registerRoutes(
     }
   });
 
+  app.post(api.leagues.renamePlayer.path, requireAuth, async (req, res) => {
+    try {
+      const leagueId = Number(req.params.id);
+      const { playerId, newName } = api.leagues.renamePlayer.input.parse(req.body);
+      const userId = (req.user as any).claims.sub;
+
+      const league = await storage.getLeague(leagueId);
+      if (!league) return res.status(404).json({ message: "League not found" });
+      if (league.creatorId !== userId) return res.status(401).json({ message: "Only the league creator can rename players" });
+
+      const player = await storage.getLeaguePlayer(playerId);
+      if (!player || player.leagueId !== leagueId) return res.status(404).json({ message: "Player not found in this league" });
+
+      const trimmedName = newName.trim();
+      if (!trimmedName) return res.status(400).json({ message: "Name cannot be empty" });
+
+      const existing = await storage.getLeaguePlayerByName(leagueId, trimmedName);
+      if (existing && existing.id !== playerId) return res.status(400).json({ message: "A player with that name already exists in this league" });
+
+      const updated = await storage.renameLeaguePlayer(playerId, trimmedName, leagueId);
+      res.json(updated);
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
+      console.error("Rename player error:", err);
+      res.status(500).json({ message: "Internal Server Error" });
+    }
+  });
+
   // League sessions endpoint
   app.get('/api/leagues/:id/sessions', requireAuth, async (req, res) => {
     const leagueId = Number(req.params.id);

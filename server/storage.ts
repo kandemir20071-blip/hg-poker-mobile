@@ -60,6 +60,7 @@ export interface IStorage {
   getLeaguePlayerByName(leagueId: number, name: string): Promise<LeaguePlayer | undefined>;
   unclaimLeaguePlayer(playerId: number): Promise<LeaguePlayer>;
   mergeLeaguePlayers(sourcePlayerId: number, targetPlayerId: number, leagueId: number): Promise<void>;
+  renameLeaguePlayer(playerId: number, newName: string, leagueId: number): Promise<LeaguePlayer>;
   deleteLeaguePlayer(playerId: number): Promise<void>;
 }
 
@@ -353,6 +354,40 @@ export class DatabaseStorage implements IStorage {
 
       await tx.delete(leaguePlayers).where(eq(leaguePlayers.id, sourcePlayerId));
     });
+  }
+
+  async renameLeaguePlayer(playerId: number, newName: string, leagueId: number): Promise<LeaguePlayer> {
+    const [updated] = await db.transaction(async (tx) => {
+      const [player] = await tx.select().from(leaguePlayers).where(eq(leaguePlayers.id, playerId));
+      if (!player) throw new Error("Player not found");
+      if (player.leagueId !== leagueId) throw new Error("Player not in this league");
+
+      const oldName = player.name;
+
+      const [updatedPlayer] = await tx.update(leaguePlayers)
+        .set({ name: newName })
+        .where(eq(leaguePlayers.id, playerId))
+        .returning();
+
+      await tx.update(sessionPlayers)
+        .set({ name: newName })
+        .where(
+          and(
+            eq(sessionPlayers.name, oldName),
+            inArray(
+              sessionPlayers.sessionId,
+              tx.select({ id: pokerSessions.id }).from(pokerSessions).where(eq(pokerSessions.leagueId, leagueId))
+            )
+          )
+        );
+
+      await tx.update(gameResults)
+        .set({ playerName: newName })
+        .where(and(eq(gameResults.playerName, oldName), eq(gameResults.leagueId, leagueId)));
+
+      return [updatedPlayer];
+    });
+    return updated;
   }
 
   async deleteLeaguePlayer(playerId: number): Promise<void> {

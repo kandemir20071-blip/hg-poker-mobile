@@ -233,6 +233,41 @@ export function useMergePlayers() {
   });
 }
 
+export function useRenamePlayer() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ leagueId, playerId, newName }: { leagueId: number; playerId: number; newName: string }) => {
+      const url = buildUrl(api.leagues.renamePlayer.path, { id: leagueId });
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ playerId, newName }),
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        throw new Error(err?.message || "Failed to rename player");
+      }
+      return res.json();
+    },
+    onSuccess: (_, { leagueId }) => {
+      queryClient.invalidateQueries({ queryKey: [api.leagues.get.path, leagueId], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: [api.leagues.list.path], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: [api.leagues.players.path, leagueId], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: [api.stats.personal.path], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: [api.stats.league.path], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: [api.stats.get.path], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ['/api/leagues/sessions', leagueId], refetchType: 'all' });
+      toast({ title: "Player Renamed", description: "The player name has been updated across all historical data." });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    },
+  });
+}
+
 export function useMigrateToLeague() {
   const queryClient = useQueryClient();
   const { toast } = useToast();

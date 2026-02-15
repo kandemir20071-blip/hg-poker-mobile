@@ -16,8 +16,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { useUnclaimPlayer, useMergePlayers } from "@/hooks/use-leagues";
-import { UserX, GitMerge, Search, AlertTriangle, Loader2 } from "lucide-react";
+import { useUnclaimPlayer, useMergePlayers, useRenamePlayer } from "@/hooks/use-leagues";
+import { UserX, GitMerge, Search, AlertTriangle, Loader2, Pencil, Check, X } from "lucide-react";
 
 type LeaguePlayer = {
   id: number;
@@ -38,9 +38,12 @@ export function LeagueAdminDialog({ open, onOpenChange, leagueId, players }: Lea
   const [mergeSource, setMergeSource] = useState<LeaguePlayer | null>(null);
   const [mergeTarget, setMergeTarget] = useState<string>("");
   const [mergeConfirmText, setMergeConfirmText] = useState("");
+  const [editingPlayerId, setEditingPlayerId] = useState<number | null>(null);
+  const [editName, setEditName] = useState("");
 
   const { mutate: unclaim, isPending: isUnclaiming } = useUnclaimPlayer();
   const { mutate: merge, isPending: isMerging } = useMergePlayers();
+  const { mutate: rename, isPending: isRenaming } = useRenamePlayer();
 
   const sorted = [...players].sort((a, b) => {
     if (a.claimedByUserId && !b.claimedByUserId) return -1;
@@ -64,6 +67,26 @@ export function LeagueAdminDialog({ open, onOpenChange, leagueId, players }: Lea
         setMergeSource(null);
         setMergeTarget("");
         setMergeConfirmText("");
+      },
+    });
+  };
+
+  const handleStartEdit = (player: LeaguePlayer) => {
+    setEditingPlayerId(player.id);
+    setEditName(player.name);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingPlayerId(null);
+    setEditName("");
+  };
+
+  const handleSubmitRename = () => {
+    if (!editingPlayerId || !editName.trim()) return;
+    rename({ leagueId, playerId: editingPlayerId, newName: editName.trim() }, {
+      onSuccess: () => {
+        setEditingPlayerId(null);
+        setEditName("");
       },
     });
   };
@@ -155,7 +178,7 @@ export function LeagueAdminDialog({ open, onOpenChange, leagueId, players }: Lea
         <DialogHeader>
           <DialogTitle>Manage Players</DialogTitle>
           <DialogDescription className="text-muted-foreground">
-            Unclaim names or merge duplicate players. Only the league creator can use these tools.
+            Edit names, unclaim, or merge duplicate players. Only the league creator can use these tools.
           </DialogDescription>
         </DialogHeader>
 
@@ -180,43 +203,87 @@ export function LeagueAdminDialog({ open, onOpenChange, leagueId, players }: Lea
                 className="flex items-center justify-between gap-2 p-3 rounded-lg hover-elevate"
                 data-testid={`row-player-${player.id}`}
               >
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-sm text-white font-medium truncate" data-testid={`text-player-name-${player.id}`}>
-                    {player.name}
-                  </span>
-                  {player.claimedByUserId ? (
-                    <Badge variant="secondary" className="text-xs shrink-0" data-testid={`badge-claimed-${player.id}`}>
-                      Claimed
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline" className="text-xs shrink-0 text-muted-foreground" data-testid={`badge-guest-${player.id}`}>
-                      Guest
-                    </Badge>
-                  )}
-                </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  {player.claimedByUserId && (
+                {editingPlayerId === player.id ? (
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <Input
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      className="bg-background/50 border-white/[0.08] min-h-[36px] text-sm flex-1"
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleSubmitRename();
+                        if (e.key === 'Escape') handleCancelEdit();
+                      }}
+                      data-testid={`input-rename-${player.id}`}
+                    />
                     <Button
-                      size="sm"
+                      size="icon"
                       variant="ghost"
-                      onClick={() => handleUnclaim(player.id)}
-                      disabled={isUnclaiming}
-                      data-testid={`button-unclaim-${player.id}`}
+                      onClick={handleSubmitRename}
+                      disabled={isRenaming || !editName.trim() || editName.trim() === player.name}
+                      data-testid={`button-confirm-rename-${player.id}`}
                     >
-                      <UserX className="h-3.5 w-3.5 mr-1" />
-                      Unclaim
+                      {isRenaming ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4 text-emerald-400" />}
                     </Button>
-                  )}
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => setMergeSource(player)}
-                    data-testid={`button-merge-${player.id}`}
-                  >
-                    <GitMerge className="h-3.5 w-3.5 mr-1" />
-                    Merge
-                  </Button>
-                </div>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={handleCancelEdit}
+                      disabled={isRenaming}
+                      data-testid={`button-cancel-rename-${player.id}`}
+                    >
+                      <X className="h-4 w-4 text-muted-foreground" />
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-sm text-white font-medium truncate" data-testid={`text-player-name-${player.id}`}>
+                        {player.name}
+                      </span>
+                      {player.claimedByUserId ? (
+                        <Badge variant="secondary" className="text-xs shrink-0" data-testid={`badge-claimed-${player.id}`}>
+                          Claimed
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-xs shrink-0 text-muted-foreground" data-testid={`badge-guest-${player.id}`}>
+                          Guest
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => handleStartEdit(player)}
+                        data-testid={`button-edit-${player.id}`}
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      {player.claimedByUserId && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleUnclaim(player.id)}
+                          disabled={isUnclaiming}
+                          data-testid={`button-unclaim-${player.id}`}
+                        >
+                          <UserX className="h-3.5 w-3.5 mr-1" />
+                          Unclaim
+                        </Button>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setMergeSource(player)}
+                        data-testid={`button-merge-${player.id}`}
+                      >
+                        <GitMerge className="h-3.5 w-3.5 mr-1" />
+                        Merge
+                      </Button>
+                    </div>
+                  </>
+                )}
               </div>
             ))
           )}

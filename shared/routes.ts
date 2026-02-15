@@ -329,6 +329,19 @@ export const api = {
         401: errorSchemas.unauthorized,
       },
     },
+    renamePlayer: {
+      method: 'POST' as const,
+      path: '/api/leagues/:id/rename-player' as const,
+      input: z.object({
+        playerId: z.number(),
+        newName: z.string().min(1).max(50),
+      }),
+      responses: {
+        200: z.any(),
+        400: errorSchemas.validation,
+        401: errorSchemas.unauthorized,
+      },
+    },
   },
   import: {
     upload: {
