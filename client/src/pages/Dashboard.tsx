@@ -15,6 +15,7 @@ import { Coins, Trophy, TrendingUp, History, Play, Loader2, ArrowRight, Upload, 
 import frogClockSrc from "@assets/image-removebg-preview-2_1771174670390.png";
 import frogBankerSrc from "@assets/image-removebg-preview-3_1771176202817.png";
 import frogBalanceSrc from "@assets/image-removebg-preview-4_1771176899418.png";
+import frogMoneyBagSrc from "@assets/image-removebg-preview-5_1771177431227.png";
 import { Tooltip as UITooltip, TooltipContent as UITooltipContent, TooltipTrigger as UITooltipTrigger } from "@/components/ui/tooltip";
 import { SuitAccent, SuitsLoader, SuitsRow } from "@/components/ui/Suits";
 import { Link, useLocation } from "wouter";
@@ -124,7 +125,7 @@ function ProfileTab() {
           className="col-span-2 md:col-span-1"
         />
         <StatCard title="Money Wagered" value={`$${personalStats?.totalBuyIn || 0}`} icon={ArrowUpRight} customIconSrc={frogBankerSrc} />
-        <StatCard title="Total Cash Out" value={`$${personalStats?.totalCashOut || 0}`} icon={ArrowDownLeft} />
+        <StatCard title="Total Cash Out" value={`$${personalStats?.totalCashOut || 0}`} icon={ArrowDownLeft} customIconSrc={frogMoneyBagSrc} />
         <StatCard title="Games Played" value={stats?.totalGames || 0} icon={History} customIconSrc={frogClockSrc} />
       </div>
 
