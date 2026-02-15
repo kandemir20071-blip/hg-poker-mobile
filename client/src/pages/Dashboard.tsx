@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Coins, Trophy, TrendingUp, History, Play, Loader2, ArrowRight, Upload, Pencil, Trash2, AlertTriangle, Users, Plus, LogIn, User, Shield, Copy, Check, ArrowDownLeft, ArrowUpRight, DollarSign, Info, Clock, Percent, X, ChevronRight } from "lucide-react";
+import frogClockSrc from "@assets/image-removebg-preview-2_1771174670390.png";
 import { Tooltip as UITooltip, TooltipContent as UITooltipContent, TooltipTrigger as UITooltipTrigger } from "@/components/ui/tooltip";
 import { SuitAccent, SuitsLoader, SuitsRow } from "@/components/ui/Suits";
 import { Link, useLocation } from "wouter";
@@ -122,7 +123,7 @@ function ProfileTab() {
         />
         <StatCard title="Money Wagered" value={`$${personalStats?.totalBuyIn || 0}`} icon={ArrowUpRight} />
         <StatCard title="Total Cash Out" value={`$${personalStats?.totalCashOut || 0}`} icon={ArrowDownLeft} />
-        <StatCard title="Games Played" value={stats?.totalGames || 0} icon={History} />
+        <StatCard title="Games Played" value={stats?.totalGames || 0} icon={History} customIconSrc={frogClockSrc} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -672,7 +673,7 @@ function LeaguesTab({
       )}
 
       <div className="grid grid-cols-3 gap-4">
-        <StatCard title="Games Played" value={leagueStats?.totalGames || 0} icon={History} />
+        <StatCard title="Games Played" value={leagueStats?.totalGames || 0} icon={History} customIconSrc={frogClockSrc} />
         {(() => {
           const wagered = leagueStats?.totalMoneyWagered || 0;
           const cashOut = leagueStats?.totalPot || 0;
