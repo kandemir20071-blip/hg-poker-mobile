@@ -734,7 +734,7 @@ export async function registerRoutes(
     const userId = (req.user as any).claims.sub;
     const userLeagues = await storage.getUserLeagues(userId);
 
-    let allResults: Array<{ date: Date; profit: number; buyIn: number; cashOut: number; leagueName: string }> = [];
+    let allResults: Array<{ date: Date; profit: number; buyIn: number; cashOut: number; leagueName: string; sessionId: number | null }> = [];
 
     for (const league of userLeagues) {
       const results = await storage.getLeagueGameResults(league.id);
@@ -753,6 +753,7 @@ export async function registerRoutes(
           buyIn: r.buyIn,
           cashOut: r.cashOut,
           leagueName: league.name,
+          sessionId: r.sessionId ?? null,
         });
       }
     }
@@ -779,6 +780,7 @@ export async function registerRoutes(
       date: r.date.toISOString().split('T')[0],
       leagueName: r.leagueName,
       profit: r.profit,
+      sessionId: r.sessionId,
     }));
 
     res.json({ totalGames, totalProfit, totalBuyIn, totalCashOut, roi, bankrollHistory, recentGames });

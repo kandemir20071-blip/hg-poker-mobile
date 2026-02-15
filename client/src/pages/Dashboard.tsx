@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Coins, Trophy, TrendingUp, History, Play, Loader2, ArrowRight, Upload, Pencil, Trash2, AlertTriangle, Users, Plus, LogIn, User, Shield, Copy, Check, ArrowDownLeft, ArrowUpRight, DollarSign, Info, Clock, Percent, X } from "lucide-react";
+import { Coins, Trophy, TrendingUp, History, Play, Loader2, ArrowRight, Upload, Pencil, Trash2, AlertTriangle, Users, Plus, LogIn, User, Shield, Copy, Check, ArrowDownLeft, ArrowUpRight, DollarSign, Info, Clock, Percent, X, ChevronRight } from "lucide-react";
 import { Tooltip as UITooltip, TooltipContent as UITooltipContent, TooltipTrigger as UITooltipTrigger } from "@/components/ui/tooltip";
 import { SuitAccent, SuitsLoader, SuitsRow } from "@/components/ui/Suits";
 import { Link, useLocation } from "wouter";
@@ -87,6 +87,7 @@ export default function Dashboard() {
 }
 
 function ProfileTab() {
+  const [, setLocation] = useLocation();
   const { data: personalStats, isLoading } = usePersonalStats();
   const { data: legacyStats } = useStats();
 
@@ -152,16 +153,24 @@ function ProfileTab() {
         <div className="space-y-6">
           <div className="glass-card rounded-xl p-5">
             <h3 className="font-bold text-base mb-4 text-white">Recent Games</h3>
-            <div className="space-y-2">
+            <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
               {recentGames.length > 0 ? recentGames.map((game: any, i: number) => (
-                <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-background/30" data-testid={`card-personal-game-${i}`}>
-                  <div>
+                <div
+                  key={i}
+                  className={`flex items-center justify-between p-3 rounded-lg bg-background/30 transition-colors ${game.sessionId ? 'cursor-pointer hover:bg-white/[0.04]' : ''}`}
+                  onClick={() => game.sessionId && setLocation(`/session/${game.sessionId}`)}
+                  data-testid={`card-personal-game-${i}`}
+                >
+                  <div className="flex-1 min-w-0">
                     <div className="text-sm text-white">{game.leagueName}</div>
                     <div className="text-xs text-muted-foreground">{format(new Date(game.date), 'MMM d, yyyy')}</div>
                   </div>
-                  <span className={`font-semibold tabular-nums ${game.profit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                    {game.profit >= 0 ? "+" : ""}${game.profit}
-                  </span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className={`font-semibold tabular-nums ${game.profit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                      {game.profit >= 0 ? "+" : ""}${game.profit}
+                    </span>
+                    {game.sessionId && <ChevronRight className="w-4 h-4 text-muted-foreground" />}
+                  </div>
                 </div>
               )) : (
                 <p className="text-sm text-muted-foreground">No games yet. Join a league and claim your name to track your stats.</p>
