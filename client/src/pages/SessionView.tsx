@@ -36,6 +36,7 @@ export default function SessionView() {
   const { mutate: applyCustomChop, isPending: isApplyingChop } = useCustomChop();
 
   const [endDialogOpen, setEndDialogOpen] = useState(false);
+  const [finishTournamentOpen, setFinishTournamentOpen] = useState(false);
   const [adminMode, setAdminMode] = useState(forceAdmin);
   const [editingLedgerId, setEditingLedgerId] = useState<number | null>(null);
   const [editLedgerAmount, setEditLedgerAmount] = useState("");
@@ -78,7 +79,7 @@ export default function SessionView() {
   const isActive = session.status === 'active';
   const isCompleted = session.status === 'completed';
   const isImported = !!(session.config && (session.config as Record<string, unknown>).source === 'import');
-  const showSummary = isCompleted && !adminMode;
+  const showSummary = isCompleted;
 
   const totalWagered = players.reduce((sum, p) => sum + p.totalBuyIn, 0);
   const totalCashedOut = players.reduce((sum, p) => sum + p.totalCashOut, 0);
@@ -101,7 +102,6 @@ export default function SessionView() {
     endSession({ id: sessionId, data: {} }, {
       onSuccess: () => {
         setEndDialogOpen(false);
-        setLocation('/dashboard');
       }
     });
   };
@@ -141,6 +141,35 @@ export default function SessionView() {
     });
     setCustomPayouts(payouts);
     setCustomChopOpen(true);
+  };
+
+  const initFinishTournament = () => {
+    const payouts: Record<number, string> = {};
+    const allSorted = [...players].sort((a, b) => (a.tournamentPlace ?? 999) - (b.tournamentPlace ?? 999));
+    allSorted.forEach((player) => {
+      const place = player.tournamentPlace ?? 999;
+      const pct = tournamentConfig?.payoutStructure?.percentages?.[place - 1] ?? 0;
+      const payout = Math.round(totalWagered * pct / 100);
+      payouts[player.id] = String(payout);
+    });
+    setCustomPayouts(payouts);
+    setFinishTournamentOpen(true);
+  };
+
+  const handleFinishTournament = () => {
+    const applied: Record<number, number> = {};
+    Object.entries(customPayouts).forEach(([id, val]) => {
+      applied[Number(id)] = Number(val) || 0;
+    });
+    applyCustomChop({ sessionId, payouts: applied }, {
+      onSuccess: () => {
+        endSession({ id: sessionId, data: {} }, {
+          onSuccess: () => {
+            setFinishTournamentOpen(false);
+          }
+        });
+      }
+    });
   };
 
   const customPayoutTotal = Object.values(customPayouts).reduce((sum, v) => sum + (Number(v) || 0), 0);
@@ -202,7 +231,7 @@ export default function SessionView() {
         </div>
 
         <div className="flex items-center gap-3 flex-wrap">
-          {isHost && !isImported && (
+          {isHost && !isImported && isActive && (
             <Button
               variant={adminMode ? "default" : "outline"}
               size="sm"
@@ -238,7 +267,7 @@ export default function SessionView() {
             </Dialog>
           )}
 
-          {isHost && isActive && (
+          {isHost && isActive && session.type === 'cash' && (
             <Dialog open={endDialogOpen} onOpenChange={setEndDialogOpen}>
               <DialogTrigger asChild>
                 <Button variant="destructive" size="sm" className="gap-2 min-h-[44px]" data-testid="button-end-session">
@@ -274,37 +303,45 @@ export default function SessionView() {
       {showSummary ? (
         session.type === 'tournament' ? (
           <div className="space-y-6">
-            <div className="flex items-center justify-between gap-4 flex-wrap">
-              <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                <Trophy className="w-5 h-5 text-primary" /> Tournament Results
+            <div className="glass-card rounded-xl p-8 text-center" data-testid="tournament-complete-header">
+              <div className="flex items-center justify-center gap-2 mb-4">
+                <Trophy className="w-6 h-6 text-amber-400" />
+                <h2 className="text-2xl font-bold text-white">Tournament Complete</h2>
                 {appliedChop && (
                   <span className="px-2 py-0.5 rounded-full text-xs font-bold uppercase bg-amber-500/20 text-amber-400" data-testid="badge-custom-chop">Custom Chop</span>
                 )}
-              </h2>
-            </div>
-
-            <div className="glass-card rounded-xl p-6 text-center" data-testid="tournament-prize-pool-summary">
-              <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Total Prize Pool</p>
-              <p className="text-5xl font-bold font-mono text-primary" data-testid="text-tournament-prize-pool">${totalWagered}</p>
-              <p className="text-sm text-muted-foreground mt-2">{players.length} players</p>
-            </div>
-
-            {tournamentConfig?.payoutStructure && (
-              <div className="glass-card rounded-xl p-4" data-testid="tournament-payout-structure">
-                <h3 className="font-bold text-base mb-3 text-white">Payout Structure</h3>
-                <div className="flex items-center gap-3 flex-wrap">
-                  {tournamentConfig.payoutStructure.percentages.map((pct, i) => (
-                    <div key={i} className="glass-card px-4 py-2 rounded-lg text-center" data-testid={`payout-place-${i + 1}`}>
-                      <p className="text-xs text-muted-foreground">{i === 0 ? '1st' : i === 1 ? '2nd' : i === 2 ? '3rd' : `${i + 1}th`}</p>
-                      <p className="text-lg font-mono font-bold text-primary">{pct}%</p>
-                      <p className="text-xs text-muted-foreground font-mono">${Math.round(totalWagered * pct / 100)}</p>
-                    </div>
-                  ))}
-                </div>
               </div>
-            )}
+              <p className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Total Prize Pool</p>
+              <p className="text-6xl font-bold font-mono text-primary mb-4" data-testid="text-tournament-prize-pool">${totalWagered}</p>
+              <div className="flex items-center justify-center gap-6 text-sm text-muted-foreground flex-wrap">
+                <span className="flex items-center gap-1.5" data-testid="text-summary-players-count">
+                  <Trophy className="w-3.5 h-3.5" /> {players.length} players
+                </span>
+                <span className="flex items-center gap-1.5" data-testid="text-summary-duration">
+                  <Clock className="w-3.5 h-3.5" />
+                  {(() => {
+                    if (!session.endTime) return 'Duration Unknown';
+                    const ms = new Date(session.endTime).getTime() - new Date(session.startTime).getTime();
+                    if (ms <= 0) return 'Duration Unknown';
+                    const totalMinutes = Math.round(ms / 60000);
+                    const hours = Math.floor(totalMinutes / 60);
+                    const minutes = totalMinutes % 60;
+                    if (hours > 0 && minutes > 0) return `${hours}h ${minutes}m`;
+                    if (hours > 0) return `${hours}h`;
+                    return `${minutes}m`;
+                  })()}
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5" />
+                  {format(new Date(session.startTime), 'dd.MM.yyyy')}
+                </span>
+              </div>
+            </div>
 
             <div className="glass-card rounded-xl overflow-hidden">
+              <div className="p-4 border-b border-white/[0.06]">
+                <h3 className="font-bold text-base text-white">Final Standings</h3>
+              </div>
               <div className="overflow-x-auto">
                 <table className="w-full whitespace-nowrap" data-testid="table-tournament-results">
                   <thead>
@@ -319,9 +356,7 @@ export default function SessionView() {
                   <tbody className="divide-y divide-white/[0.04]">
                     {tournamentResultPlayers.map((player) => {
                       const place = player.tournamentPlace ?? '-';
-                      const payoutPct = tournamentConfig?.payoutStructure?.percentages?.[(player.tournamentPlace ?? 0) - 1] ?? 0;
-                      const defaultPayout = Math.round(totalWagered * payoutPct / 100);
-                      const payout = appliedChop ? (appliedChop[player.id] ?? 0) : defaultPayout;
+                      const payout = player.totalCashOut;
                       const net = payout - player.totalBuyIn;
                       return (
                         <tr key={player.id} className="hover-elevate" data-testid={`row-tournament-result-${player.id}`}>
@@ -335,11 +370,11 @@ export default function SessionView() {
                           <td className="px-4 py-3">
                             <span className="font-medium text-white" data-testid={`text-tournament-player-${player.id}`}>{player.name}</span>
                           </td>
-                          <td className="px-4 py-3 text-right font-mono text-sm text-muted-foreground" data-testid={`text-tournament-buyin-${player.id}`}>
-                            ${player.totalBuyIn}
+                          <td className="px-4 py-3 text-right font-mono text-sm font-bold text-red-400" data-testid={`text-tournament-buyin-${player.id}`}>
+                            -${player.totalBuyIn}
                           </td>
-                          <td className="px-4 py-3 text-right font-mono text-sm text-muted-foreground" data-testid={`text-tournament-payout-${player.id}`}>
-                            ${payout}
+                          <td className="px-4 py-3 text-right font-mono text-sm font-bold text-emerald-400" data-testid={`text-tournament-payout-${player.id}`}>
+                            {payout > 0 ? `+$${payout}` : '$0'}
                           </td>
                           <td className="px-4 py-3 text-right font-mono text-sm font-bold" data-testid={`text-tournament-net-${player.id}`}>
                             <span className={net > 0 ? 'text-emerald-500' : net < 0 ? 'text-red-500' : 'text-muted-foreground'}>
@@ -354,68 +389,73 @@ export default function SessionView() {
               </div>
             </div>
 
-            <div className="flex justify-center">
-              <Dialog open={customChopOpen} onOpenChange={setCustomChopOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="outline" className="gap-2 min-h-[44px]" onClick={initCustomPayouts} data-testid="button-custom-chop">
-                    <RefreshCw className="w-4 h-4" /> Custom Payout / Chop
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="glass-card sm:max-w-md max-h-[90vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle className="text-xl text-center">Custom Chop</DialogTitle>
-                  </DialogHeader>
-                  <p className="text-xs text-muted-foreground text-center">Override the automatic payouts. The total must equal the prize pool (${totalWagered}).</p>
-                  <div className="space-y-3 mt-2">
-                    {tournamentResultPlayers.map((player) => {
-                      const place = player.tournamentPlace ?? '-';
-                      return (
-                        <div key={player.id} className="flex items-center gap-3">
-                          <span className="text-xs font-mono text-muted-foreground w-8 shrink-0">#{place}</span>
-                          <span className="text-sm font-medium text-white flex-1 truncate" data-testid={`text-chop-player-${player.id}`}>{player.name}</span>
-                          <div className="relative w-28 shrink-0">
-                            <DollarSign className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                            <Input
-                              type="number"
-                              value={customPayouts[player.id] ?? '0'}
-                              onChange={(e) => setCustomPayouts(prev => ({ ...prev, [player.id]: e.target.value }))}
-                              className="pl-7 bg-background/50 border-white/[0.08] min-h-[44px] text-base font-mono"
-                              min="0"
-                              data-testid={`input-chop-payout-${player.id}`}
-                            />
+            <div className="flex justify-center gap-3 flex-wrap">
+              <Button variant="outline" className="gap-2 min-h-[44px]" onClick={() => setLocation('/dashboard')} data-testid="button-back-to-dashboard">
+                <LogOut className="w-4 h-4" /> Back to Dashboard
+              </Button>
+              {isHost && (
+                <Dialog open={customChopOpen} onOpenChange={setCustomChopOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" className="gap-2 min-h-[44px]" onClick={initCustomPayouts} data-testid="button-custom-chop">
+                      <RefreshCw className="w-4 h-4" /> Adjust Payouts
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="glass-card sm:max-w-md max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle className="text-xl text-center">Custom Chop</DialogTitle>
+                    </DialogHeader>
+                    <p className="text-xs text-muted-foreground text-center">Override the automatic payouts. The total must equal the prize pool (${totalWagered}).</p>
+                    <div className="space-y-3 mt-2">
+                      {tournamentResultPlayers.map((player) => {
+                        const place = player.tournamentPlace ?? '-';
+                        return (
+                          <div key={player.id} className="flex items-center gap-3">
+                            <span className="text-xs font-mono text-muted-foreground w-8 shrink-0">#{place}</span>
+                            <span className="text-sm font-medium text-white flex-1 truncate" data-testid={`text-chop-player-${player.id}`}>{player.name}</span>
+                            <div className="relative w-28 shrink-0">
+                              <DollarSign className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                              <Input
+                                type="number"
+                                value={customPayouts[player.id] ?? '0'}
+                                onChange={(e) => setCustomPayouts(prev => ({ ...prev, [player.id]: e.target.value }))}
+                                className="pl-7 bg-background/50 border-white/[0.08] min-h-[44px] text-base font-mono"
+                                min="0"
+                                data-testid={`input-chop-payout-${player.id}`}
+                              />
+                            </div>
                           </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <div className={`text-sm text-center font-mono font-bold mt-2 ${customPayoutTotal === totalWagered ? 'text-emerald-400' : 'text-red-400'}`} data-testid="text-chop-total">
-                    Total: ${customPayoutTotal} / ${totalWagered} {customPayoutTotal === totalWagered ? '(valid)' : `(${customPayoutTotal > totalWagered ? 'over' : 'under'} by $${Math.abs(customPayoutTotal - totalWagered)})`}
-                  </div>
-                  <DialogFooter className="mt-2">
-                    <Button variant="ghost" className="min-h-[44px]" onClick={() => setCustomChopOpen(false)} data-testid="button-chop-cancel">
-                      Cancel
-                    </Button>
-                    <Button
-                      className="glow-emerald min-h-[44px]"
-                      disabled={customPayoutTotal !== totalWagered || isApplyingChop}
-                      onClick={() => {
-                        const applied: Record<number, number> = {};
-                        Object.entries(customPayouts).forEach(([id, val]) => {
-                          applied[Number(id)] = Number(val) || 0;
-                        });
-                        applyCustomChop({ sessionId, payouts: applied }, {
-                          onSuccess: () => {
-                            setCustomChopOpen(false);
-                          }
-                        });
-                      }}
-                      data-testid="button-chop-apply"
-                    >
-                      {isApplyingChop ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Apply Chop'}
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
+                        );
+                      })}
+                    </div>
+                    <div className={`text-sm text-center font-mono font-bold mt-2 ${customPayoutTotal === totalWagered ? 'text-emerald-400' : 'text-red-400'}`} data-testid="text-chop-total">
+                      Total: ${customPayoutTotal} / ${totalWagered} {customPayoutTotal === totalWagered ? '(valid)' : `(${customPayoutTotal > totalWagered ? 'over' : 'under'} by $${Math.abs(customPayoutTotal - totalWagered)})`}
+                    </div>
+                    <DialogFooter className="mt-2">
+                      <Button variant="ghost" className="min-h-[44px]" onClick={() => setCustomChopOpen(false)} data-testid="button-chop-cancel">
+                        Cancel
+                      </Button>
+                      <Button
+                        className="glow-emerald min-h-[44px]"
+                        disabled={customPayoutTotal !== totalWagered || isApplyingChop}
+                        onClick={() => {
+                          const applied: Record<number, number> = {};
+                          Object.entries(customPayouts).forEach(([id, val]) => {
+                            applied[Number(id)] = Number(val) || 0;
+                          });
+                          applyCustomChop({ sessionId, payouts: applied }, {
+                            onSuccess: () => {
+                              setCustomChopOpen(false);
+                            }
+                          });
+                        }}
+                        data-testid="button-chop-apply"
+                      >
+                        {isApplyingChop ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Apply Chop'}
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              )}
             </div>
           </div>
         ) : (
@@ -496,7 +536,7 @@ export default function SessionView() {
                     variant="destructive"
                     size="sm"
                     className="mt-4 gap-2 min-h-[44px]"
-                    onClick={() => setEndDialogOpen(true)}
+                    onClick={initFinishTournament}
                     data-testid="button-finish-tournament"
                   >
                     <Trophy className="w-4 h-4" /> Finish Game
@@ -898,6 +938,67 @@ export default function SessionView() {
           </div>
         )
       )}
+
+      <Dialog open={finishTournamentOpen} onOpenChange={setFinishTournamentOpen}>
+        <DialogContent className="glass-card sm:max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-xl text-center flex items-center justify-center gap-2">
+              <Trophy className="w-5 h-5 text-primary" /> Payout Settlement
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="text-center">
+              <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Total Prize Pool</p>
+              <p className="text-3xl font-bold font-mono text-primary">${totalWagered}</p>
+            </div>
+
+            <div className="flex items-center gap-4 p-3 bg-amber-500/10 rounded-lg border border-amber-500/20 text-amber-400">
+              <AlertTriangle className="h-5 w-5 shrink-0" />
+              <p className="text-xs">Review payouts below. You can adjust amounts for a custom chop before concluding.</p>
+            </div>
+
+            <div className="space-y-2">
+              {[...players].sort((a, b) => (a.tournamentPlace ?? 999) - (b.tournamentPlace ?? 999)).map((player) => {
+                const place = player.tournamentPlace ?? '-';
+                return (
+                  <div key={player.id} className="flex items-center gap-3">
+                    <span className="text-xs font-mono text-muted-foreground w-8 shrink-0">#{place}</span>
+                    <span className="text-sm font-medium text-white flex-1 truncate" data-testid={`text-finish-player-${player.id}`}>{player.name}</span>
+                    <div className="relative w-28 shrink-0">
+                      <DollarSign className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                      <Input
+                        type="number"
+                        value={customPayouts[player.id] ?? '0'}
+                        onChange={(e) => setCustomPayouts(prev => ({ ...prev, [player.id]: e.target.value }))}
+                        className="pl-7 bg-background/50 border-white/[0.08] min-h-[44px] text-base font-mono"
+                        min="0"
+                        data-testid={`input-finish-payout-${player.id}`}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className={`text-sm text-center font-mono font-bold ${customPayoutTotal === totalWagered ? 'text-emerald-400' : 'text-red-400'}`} data-testid="text-finish-payout-total">
+              Total: ${customPayoutTotal} / ${totalWagered} {customPayoutTotal === totalWagered ? '(valid)' : `(${customPayoutTotal > totalWagered ? 'over' : 'under'} by $${Math.abs(customPayoutTotal - totalWagered)})`}
+            </div>
+          </div>
+          <DialogFooter className="mt-2">
+            <Button variant="ghost" className="min-h-[44px]" onClick={() => setFinishTournamentOpen(false)} data-testid="button-finish-cancel">
+              Cancel
+            </Button>
+            <Button
+              className="glow-emerald min-h-[44px] gap-2"
+              disabled={customPayoutTotal !== totalWagered || isApplyingChop || isEnding}
+              onClick={handleFinishTournament}
+              data-testid="button-confirm-conclude"
+            >
+              {(isApplyingChop || isEnding) ? <Loader2 className="h-4 w-4 animate-spin" /> : <><CheckCircle className="w-4 h-4" /> Confirm Payouts & Conclude</>}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
