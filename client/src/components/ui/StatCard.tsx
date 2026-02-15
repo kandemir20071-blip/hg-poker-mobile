@@ -21,18 +21,20 @@ export function StatCard({ title, value, icon: Icon, customIconSrc, trend, trend
       prominent ? "p-6 border-primary/10" : "p-5",
       className
     )} data-testid={`stat-card-${title.toLowerCase().replace(/\s+/g, '-')}`}>
-      <div className={cn("absolute top-0 right-0 p-4 transition-opacity", customIconSrc ? "opacity-[0.35] group-hover:opacity-[0.5]" : "opacity-[0.04] group-hover:opacity-[0.08]")}>
-        {customIconSrc ? (
-          <img src={customIconSrc} alt="" className={cn("transform translate-x-4 -translate-y-4 object-contain", prominent ? "w-28 h-28" : "w-24 h-24")} style={{ imageRendering: 'pixelated' }} />
-        ) : (
+      {customIconSrc ? (
+        <div className={cn("absolute -bottom-2 -right-2 transition-opacity", "opacity-[0.35] group-hover:opacity-[0.5]")}>
+          <img src={customIconSrc} alt="" className={cn("object-contain", prominent ? "w-40 h-40" : "w-36 h-36")} style={{ imageRendering: 'pixelated' }} />
+        </div>
+      ) : (
+        <div className="absolute top-0 right-0 p-4 opacity-[0.04] group-hover:opacity-[0.08] transition-opacity">
           <Icon className={cn("transform translate-x-4 -translate-y-4 text-primary", prominent ? "w-24 h-24" : "w-20 h-20")} />
-        )}
-      </div>
+        </div>
+      )}
 
       <div className="relative z-10 flex flex-col h-full justify-between">
         <div className="flex items-center gap-3 mb-3">
           {customIconSrc ? (
-            <img src={customIconSrc} alt="" className={cn("object-contain drop-shadow-md", prominent ? "w-10 h-10" : "w-8 h-8")} style={{ imageRendering: 'pixelated' }} />
+            <img src={customIconSrc} alt="" className={cn("object-contain drop-shadow-md shrink-0", prominent ? "w-14 h-14" : "w-12 h-12")} style={{ imageRendering: 'pixelated' }} />
           ) : (
             <div className={cn("bg-primary/10 rounded-lg text-primary", prominent ? "p-2.5" : "p-2")}>
               <Icon className={cn(prominent ? "w-5 h-5" : "w-4 h-4")} />
