@@ -17,13 +17,14 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { useUnclaimPlayer, useMergePlayers, useRenamePlayer } from "@/hooks/use-leagues";
-import { UserX, GitMerge, Search, AlertTriangle, Loader2, Pencil, Check, X } from "lucide-react";
+import { UserX, GitMerge, Search, AlertTriangle, Loader2, Pencil, Check, X, ArrowDownAZ, Activity } from "lucide-react";
 
 type LeaguePlayer = {
   id: number;
   leagueId: number;
   name: string;
   claimedByUserId: string | null;
+  sessionCount?: number;
 };
 
 interface LeagueAdminDialogProps {
@@ -35,6 +36,7 @@ interface LeagueAdminDialogProps {
 
 export function LeagueAdminDialog({ open, onOpenChange, leagueId, players }: LeagueAdminDialogProps) {
   const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState<"alphabetical" | "most_active">("alphabetical");
   const [mergeSource, setMergeSource] = useState<LeaguePlayer | null>(null);
   const [mergeTarget, setMergeTarget] = useState<string>("");
   const [mergeConfirmText, setMergeConfirmText] = useState("");
@@ -46,6 +48,10 @@ export function LeagueAdminDialog({ open, onOpenChange, leagueId, players }: Lea
   const { mutate: rename, isPending: isRenaming } = useRenamePlayer();
 
   const sorted = [...players].sort((a, b) => {
+    if (sortBy === "most_active") {
+      const diff = (b.sessionCount ?? 0) - (a.sessionCount ?? 0);
+      return diff !== 0 ? diff : a.name.localeCompare(b.name);
+    }
     if (a.claimedByUserId && !b.claimedByUserId) return -1;
     if (!a.claimedByUserId && b.claimedByUserId) return 1;
     return a.name.localeCompare(b.name);
@@ -182,15 +188,30 @@ export function LeagueAdminDialog({ open, onOpenChange, leagueId, players }: Lea
           </DialogDescription>
         </DialogHeader>
 
-        <div className="relative mt-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search players..."
-            className="pl-9 bg-background/50 border-white/[0.08] min-h-[44px] text-base"
-            data-testid="input-search-players"
-          />
+        <div className="flex items-center gap-2 mt-1">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search players..."
+              className="pl-9 bg-background/50 border-white/[0.08] min-h-[44px] text-base"
+              data-testid="input-search-players"
+            />
+          </div>
+          <Select value={sortBy} onValueChange={(v) => setSortBy(v as "alphabetical" | "most_active")}>
+            <SelectTrigger className="w-[160px] bg-background/50 border-white/[0.08]" data-testid="select-sort-players">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="alphabetical">
+                <span className="flex items-center gap-2"><ArrowDownAZ className="h-3.5 w-3.5" /> A-Z</span>
+              </SelectItem>
+              <SelectItem value="most_active">
+                <span className="flex items-center gap-2"><Activity className="h-3.5 w-3.5" /> Most Active</span>
+              </SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="flex-1 overflow-y-auto space-y-1 mt-2 min-h-0 max-h-[50vh]">
@@ -248,6 +269,11 @@ export function LeagueAdminDialog({ open, onOpenChange, leagueId, players }: Lea
                       ) : (
                         <Badge variant="outline" className="text-xs shrink-0 text-muted-foreground" data-testid={`badge-guest-${player.id}`}>
                           Guest
+                        </Badge>
+                      )}
+                      {sortBy === "most_active" && player.sessionCount !== undefined && (
+                        <Badge variant="outline" className="text-xs shrink-0 text-emerald-400 border-emerald-400/30" data-testid={`badge-sessions-${player.id}`}>
+                          {player.sessionCount} {player.sessionCount === 1 ? "game" : "games"}
                         </Badge>
                       )}
                     </div>

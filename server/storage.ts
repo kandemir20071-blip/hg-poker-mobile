@@ -62,6 +62,7 @@ export interface IStorage {
   mergeLeaguePlayers(sourcePlayerId: number, targetPlayerId: number, leagueId: number): Promise<void>;
   renameLeaguePlayer(playerId: number, newName: string, leagueId: number): Promise<LeaguePlayer>;
   deleteLeaguePlayer(playerId: number): Promise<void>;
+  getPlayerSessionCounts(leagueId: number): Promise<Map<string, number>>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -392,6 +393,24 @@ export class DatabaseStorage implements IStorage {
 
   async deleteLeaguePlayer(playerId: number): Promise<void> {
     await db.delete(leaguePlayers).where(eq(leaguePlayers.id, playerId));
+  }
+
+  async getPlayerSessionCounts(leagueId: number): Promise<Map<string, number>> {
+    const rows = await db
+      .select({
+        name: sql<string>`lower(trim(${sessionPlayers.name}))`,
+        count: sql<number>`count(distinct ${sessionPlayers.sessionId})`,
+      })
+      .from(sessionPlayers)
+      .innerJoin(pokerSessions, eq(sessionPlayers.sessionId, pokerSessions.id))
+      .where(eq(pokerSessions.leagueId, leagueId))
+      .groupBy(sql`lower(trim(${sessionPlayers.name}))`);
+
+    const map = new Map<string, number>();
+    for (const row of rows) {
+      map.set(row.name, Number(row.count));
+    }
+    return map;
   }
 }
 

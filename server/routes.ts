@@ -76,8 +76,13 @@ export async function registerRoutes(
 
     const members = await storage.getLeagueMembers(leagueId);
     const players = await storage.getLeaguePlayers(leagueId);
+    const sessionCountMap = await storage.getPlayerSessionCounts(leagueId);
+    const playersWithCounts = players.map(p => ({
+      ...p,
+      sessionCount: sessionCountMap.get(p.name.toLowerCase().trim()) || 0,
+    }));
 
-    res.json({ ...league, memberCount: members.length, players });
+    res.json({ ...league, memberCount: members.length, players: playersWithCounts });
   });
 
   app.post(api.leagues.join.path, requireAuth, async (req, res) => {
@@ -109,7 +114,13 @@ export async function registerRoutes(
     const isMember = await storage.isLeagueMember(leagueId, userId);
     if (!isMember) return res.status(401).json({ message: "Not a member of this league" });
     const players = await storage.getLeaguePlayers(leagueId);
-    res.json(players);
+    const sessionCountMap = await storage.getPlayerSessionCounts(leagueId);
+    const playersWithCounts = players.map(p => ({
+      ...p,
+      sessionCount: sessionCountMap.get(p.name.toLowerCase().trim()) || 0,
+    }));
+
+    res.json(playersWithCounts);
   });
 
   app.post(api.leagues.claimPlayer.path, requireAuth, async (req, res) => {
