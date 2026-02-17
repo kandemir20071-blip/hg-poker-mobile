@@ -82,12 +82,12 @@ export function useEndSession() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ id, data, forceUnbalanced }: { id: number; data: EndSessionRequest; forceUnbalanced?: boolean }) => {
+    mutationFn: async ({ id, data, forceUnbalanced, adjustments }: { id: number; data: EndSessionRequest; forceUnbalanced?: boolean; adjustments?: { playerId: number; amount: number }[] }) => {
       const url = buildUrl(api.sessions.end.path, { id });
       const res = await fetch(url, {
         method: api.sessions.end.method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...data, forceUnbalanced }),
+        body: JSON.stringify({ ...data, forceUnbalanced, adjustments }),
         credentials: "include",
       });
       if (!res.ok) {

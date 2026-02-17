@@ -1,0 +1,37 @@
+Advanced Ledger Reconciliation & Mismatch Resolution
+
+Objective: Upgrade the "End Session" flow for Cash Games to handle Ledger Mismatches (when Total Buy-ins do not equal Total Cash-outs). If money is missing from the pot, provide an automated UI to deduct the difference from the winners or a specific player to balance the books.
+
+Step 1: Calculate the Mismatch State
+
+Intercept the "End Session" action. Calculate the difference: Total Buy-ins - Total Cash-outs.
+
+State A (Extra Money): If Buy-ins > Cash-outs (e.g., someone forgot to cash out their last $10).
+
+State B (Missing Money): If Cash-outs > Buy-ins (e.g., the pot is short by $20).
+
+Step 2: Build the Reconciliation Modal (Frontend)
+
+If a mismatch exists, open a "Ledger Mismatch" Dialog before ending the session.
+
+If State A (Extra Money): Display a warning: "There is +$X unaccounted for in the pot. Someone may have forgotten to cash out." Provide two buttons: Cancel (to fix manually) and End Session Anyway.
+
+If State B (Missing Money): Display: "The pot is short by -$X. How would you like to resolve this deficit?"
+
+Step 3: Implement Resolution UI for Missing Money (State B)
+
+Provide a radio group or selection for how to cover the missing money:
+
+Option 1: "Tax the Winners" (Top 3) - Automatically identify the top 3 players with the highest net profit in this session.
+
+Option 2: "Select Specific Player" - Render a searchable dropdown/combobox of all players currently in the session.
+
+Step 4: Execute the Deduction Logic
+
+When the user selects a resolution and clicks "Resolve & End Session", update the ledger before closing the game.
+
+If "Specific Player": Subtract the missing amount from that player's total cash-out record (or add a negative adjustment transaction).
+
+If "Top 3 Winners": Divide the missing amount equally among the top profitable players (up to 3). Example: If $15 is missing, deduct $5 from the top 3 winners' cash-outs. (Ensure it handles edge cases, like if only 1 or 2 players are actually in profit).
+
+Once the database adjustments are made and the ledger balances to $0, mark the session as complete.

@@ -426,6 +426,7 @@ export async function registerRoutes(
     if (session.hostId !== hostId) return res.status(401).json({ message: "Only host can end session" });
 
     const forceUnbalanced = req.body.forceUnbalanced === true;
+    const adjustments: { playerId: number; amount: number }[] = req.body.adjustments ?? [];
 
     if (req.body.cashOuts) {
       for (const cashOut of req.body.cashOuts) {
@@ -433,6 +434,32 @@ export async function registerRoutes(
           sessionId, playerId: cashOut.playerId, type: 'cash_out',
           amount: cashOut.amount, paymentMethod: 'cash', status: 'approved',
         });
+      }
+    }
+
+    if (adjustments.length > 0 && session.type === 'cash') {
+      for (const adj of adjustments) {
+        if (adj.amount > 0) {
+          await storage.addTransaction({
+            sessionId, playerId: adj.playerId, type: 'cash_out',
+            amount: adj.amount, paymentMethod: 'cash', status: 'approved',
+          });
+        } else if (adj.amount < 0) {
+          const playerTx = (await storage.getSessionTransactions(sessionId))
+            .filter(t => t.playerId === adj.playerId && t.type === 'cash_out' && t.status === 'approved')
+            .sort((a, b) => b.amount - a.amount);
+          let remaining = Math.abs(adj.amount);
+          for (const tx of playerTx) {
+            if (remaining <= 0) break;
+            if (tx.amount <= remaining) {
+              await storage.deleteTransaction(tx.id);
+              remaining -= tx.amount;
+            } else {
+              await storage.updateTransaction(tx.id, { amount: tx.amount - remaining });
+              remaining = 0;
+            }
+          }
+        }
       }
     }
 

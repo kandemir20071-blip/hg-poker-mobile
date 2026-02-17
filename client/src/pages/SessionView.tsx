@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
 import { QRCodeSVG } from "qrcode.react";
 import { Input } from "@/components/ui/input";
-import { Loader2, Share2, Copy, AlertTriangle, CheckCircle, XCircle, LogOut, Shield, Pencil, Trash2, Trophy, Calendar, Clock, Skull, RefreshCw, DollarSign } from "lucide-react";
+import { Loader2, Share2, Copy, AlertTriangle, CheckCircle, XCircle, LogOut, Shield, Pencil, Trash2, Trophy, Calendar, Clock, Skull, RefreshCw, DollarSign, Search, Check } from "lucide-react";
 import { SuitsLoader, SuitAccent } from "@/components/ui/Suits";
 import { BlindClock } from "@/components/game/BlindClock";
 import { format } from "date-fns";
@@ -38,6 +38,9 @@ export default function SessionView() {
 
   const [endDialogOpen, setEndDialogOpen] = useState(false);
   const [mismatchWarningOpen, setMismatchWarningOpen] = useState(false);
+  const [reconcileMode, setReconcileMode] = useState<"none" | "tax_winners" | "specific_player">("none");
+  const [specificPlayerId, setSpecificPlayerId] = useState<number | null>(null);
+  const [playerSearchQuery, setPlayerSearchQuery] = useState("");
   const [finishTournamentOpen, setFinishTournamentOpen] = useState(false);
   const [adminMode, setAdminMode] = useState(forceAdmin);
   const [editingLedgerId, setEditingLedgerId] = useState<number | null>(null);
@@ -67,6 +70,46 @@ export default function SessionView() {
     return result;
   }, [tournamentConfig?.customPayouts]);
 
+  const totalWagered = players.reduce((sum, p) => sum + p.totalBuyIn, 0);
+  const totalCashedOut = players.reduce((sum, p) => sum + p.totalCashOut, 0);
+  const ledgerDifference = totalWagered - totalCashedOut;
+  const isLedgerBalanced = ledgerDifference === 0;
+  const isExtraMoney = ledgerDifference > 0;
+  const isMissingMoney = ledgerDifference < 0;
+  const absDifference = Math.abs(ledgerDifference);
+
+  const winnersForTax = useMemo(() => {
+    return rankedPlayers
+      .filter(p => p.netProfit > 0)
+      .slice(0, 3);
+  }, [rankedPlayers]);
+
+  const taxAdjustments = useMemo(() => {
+    if (reconcileMode !== "tax_winners" || winnersForTax.length === 0) return [];
+    const totalProfit = winnersForTax.reduce((s, p) => s + p.netProfit, 0);
+    if (totalProfit <= 0) return [];
+    let allocated = 0;
+    return winnersForTax.map((p, i) => {
+      const isLast = i === winnersForTax.length - 1;
+      const share = isLast
+        ? absDifference - allocated
+        : Math.round((p.netProfit / totalProfit) * absDifference);
+      allocated += share;
+      return {
+        playerId: p.id,
+        amount: -share,
+        name: p.name,
+        deduction: share,
+      };
+    });
+  }, [reconcileMode, winnersForTax, absDifference]);
+
+  const filteredSessionPlayers = useMemo(() => {
+    return rankedPlayers.filter(p =>
+      !playerSearchQuery || p.name.toLowerCase().includes(playerSearchQuery.toLowerCase())
+    );
+  }, [rankedPlayers, playerSearchQuery]);
+
   if (isLoading || !data || !session) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center text-muted-foreground gap-4">
@@ -83,8 +126,6 @@ export default function SessionView() {
   const isImported = !!(session.config && (session.config as Record<string, unknown>).source === 'import');
   const showSummary = isCompleted;
 
-  const totalWagered = players.reduce((sum, p) => sum + p.totalBuyIn, 0);
-  const totalCashedOut = players.reduce((sum, p) => sum + p.totalCashOut, 0);
   const chipsInPlay = totalWagered - totalCashedOut;
   const pendingTransactions = transactions.filter(t => t.status === 'pending');
 
@@ -100,25 +141,34 @@ export default function SessionView() {
     toast({ title: "Copied!", description: "Session code copied to clipboard." });
   };
 
-  const ledgerDifference = totalWagered - totalCashedOut;
-  const isLedgerBalanced = ledgerDifference === 0;
-
   const handleEndSessionClick = () => {
     if (session?.type === 'cash' && !isLedgerBalanced) {
       setEndDialogOpen(false);
+      setReconcileMode("none");
+      setSpecificPlayerId(null);
+      setPlayerSearchQuery("");
       setMismatchWarningOpen(true);
     } else {
       confirmEndSession();
     }
   };
 
-  const confirmEndSession = (forceUnbalanced = false) => {
-    endSession({ id: sessionId, data: {}, forceUnbalanced }, {
+  const confirmEndSession = (forceUnbalanced = false, adjustments?: { playerId: number; amount: number }[]) => {
+    endSession({ id: sessionId, data: {}, forceUnbalanced, adjustments }, {
       onSuccess: () => {
         setEndDialogOpen(false);
         setMismatchWarningOpen(false);
       }
     });
+  };
+
+  const handleResolveAndEnd = () => {
+    if (reconcileMode === "tax_winners") {
+      const adjs = taxAdjustments.map(a => ({ playerId: a.playerId, amount: a.amount }));
+      confirmEndSession(false, adjs);
+    } else if (reconcileMode === "specific_player" && specificPlayerId !== null) {
+      confirmEndSession(false, [{ playerId: specificPlayerId, amount: -absDifference }]);
+    }
   };
 
   const handleLedgerEdit = (txId: number) => {
@@ -313,58 +363,219 @@ export default function SessionView() {
             </Dialog>
           )}
 
-          <AlertDialog open={mismatchWarningOpen} onOpenChange={setMismatchWarningOpen}>
-            <AlertDialogContent className="glass-card" data-testid="dialog-ledger-mismatch">
-              <AlertDialogHeader>
-                <AlertDialogTitle className="flex items-center gap-2 text-amber-400">
+          <Dialog open={mismatchWarningOpen} onOpenChange={setMismatchWarningOpen}>
+            <DialogContent className="glass-card sm:max-w-lg max-h-[90vh] overflow-y-auto" data-testid="dialog-ledger-mismatch">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2 text-amber-400 text-lg">
                   <AlertTriangle className="w-5 h-5" />
                   Ledger Mismatch Detected
-                </AlertDialogTitle>
-                <AlertDialogDescription asChild>
-                  <div className="space-y-3 pt-2">
-                    <p className="text-sm text-muted-foreground">
-                      Total Buy-ins do not match Total Cash-outs. The books are not balanced.
-                    </p>
-                    <div className="rounded-lg bg-muted/50 p-4 space-y-2 font-mono text-sm">
-                      <div className="flex items-center justify-between gap-4 flex-wrap">
-                        <span className="text-muted-foreground">Total Buy-ins</span>
-                        <span className="text-white font-bold" data-testid="text-mismatch-buyins">${totalWagered}</span>
-                      </div>
-                      <div className="flex items-center justify-between gap-4 flex-wrap">
-                        <span className="text-muted-foreground">Total Cash-outs</span>
-                        <span className="text-white font-bold" data-testid="text-mismatch-cashouts">${totalCashedOut}</span>
-                      </div>
-                      <div className="border-t border-white/10 pt-2 flex items-center justify-between gap-4 flex-wrap">
-                        <span className="text-muted-foreground">Difference</span>
-                        <span className={`font-bold ${ledgerDifference > 0 ? 'text-amber-400' : 'text-red-400'}`} data-testid="text-mismatch-difference">
-                          {ledgerDifference > 0 ? '+' : '-'}${Math.abs(ledgerDifference)}
-                        </span>
-                      </div>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {ledgerDifference > 0
-                        ? "More chips were bought in than cashed out. Some players may still need to cash out."
-                        : "More was cashed out than bought in. Some transactions may need correction."}
-                    </p>
+                </DialogTitle>
+              </DialogHeader>
+
+              <div className="space-y-4">
+                <div className="rounded-lg bg-muted/50 p-4 space-y-2 font-mono text-sm">
+                  <div className="flex items-center justify-between gap-4 flex-wrap">
+                    <span className="text-muted-foreground">Total Buy-ins</span>
+                    <span className="text-white font-bold" data-testid="text-mismatch-buyins">${totalWagered}</span>
                   </div>
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel className="min-h-[44px]" data-testid="button-mismatch-cancel">
-                  Go Back & Fix
-                </AlertDialogCancel>
-                <AlertDialogAction
-                  className="min-h-[44px] bg-destructive text-destructive-foreground"
-                  onClick={() => confirmEndSession(true)}
-                  disabled={isEnding}
-                  data-testid="button-mismatch-force-end"
-                >
-                  {isEnding ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : null}
-                  End Session Anyway
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+                  <div className="flex items-center justify-between gap-4 flex-wrap">
+                    <span className="text-muted-foreground">Total Cash-outs</span>
+                    <span className="text-white font-bold" data-testid="text-mismatch-cashouts">${totalCashedOut}</span>
+                  </div>
+                  <div className="border-t border-white/10 pt-2 flex items-center justify-between gap-4 flex-wrap">
+                    <span className="text-muted-foreground">Difference</span>
+                    <span className={`font-bold ${isExtraMoney ? 'text-amber-400' : 'text-red-400'}`} data-testid="text-mismatch-difference">
+                      {isExtraMoney ? '+' : '-'}${absDifference}
+                    </span>
+                  </div>
+                </div>
+
+                {isExtraMoney && (
+                  <div className="space-y-3">
+                    <p className="text-sm text-muted-foreground">
+                      There is <span className="text-amber-400 font-semibold">+${absDifference}</span> unaccounted for in the pot. Someone may have forgotten to cash out.
+                    </p>
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                      <Button
+                        variant="ghost"
+                        className="flex-1 min-h-[44px]"
+                        onClick={() => setMismatchWarningOpen(false)}
+                        data-testid="button-mismatch-cancel"
+                      >
+                        Go Back & Fix
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        className="flex-1 min-h-[44px]"
+                        onClick={() => confirmEndSession(true)}
+                        disabled={isEnding}
+                        data-testid="button-mismatch-force-end"
+                      >
+                        {isEnding ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : null}
+                        End Session Anyway
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {isMissingMoney && (
+                  <div className="space-y-4">
+                    <p className="text-sm text-muted-foreground">
+                      The pot is short by <span className="text-red-400 font-semibold">-${absDifference}</span>. How would you like to resolve this deficit?
+                    </p>
+
+                    <div className="space-y-2">
+                      <button
+                        type="button"
+                        onClick={() => { setReconcileMode("tax_winners"); setSpecificPlayerId(null); }}
+                        className={`w-full text-left rounded-lg border p-3 transition-colors ${
+                          reconcileMode === "tax_winners"
+                            ? "border-emerald-500/50 bg-emerald-500/10"
+                            : "border-white/[0.08] hover-elevate"
+                        }`}
+                        data-testid="option-tax-winners"
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                            reconcileMode === "tax_winners" ? "border-emerald-500 bg-emerald-500" : "border-white/30"
+                          }`}>
+                            {reconcileMode === "tax_winners" && <Check className="w-2.5 h-2.5 text-white" />}
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium">Tax the Winners</p>
+                            <p className="text-xs text-muted-foreground">
+                              Split the deficit proportionally among the top {Math.min(3, winnersForTax.length)} winner{winnersForTax.length !== 1 ? 's' : ''}
+                            </p>
+                          </div>
+                        </div>
+                      </button>
+
+                      {reconcileMode === "tax_winners" && winnersForTax.length > 0 && (
+                        <div className="ml-6 rounded-lg bg-muted/30 p-3 space-y-1.5">
+                          {taxAdjustments.map(adj => (
+                            <div key={adj.playerId} className="flex items-center justify-between gap-4 flex-wrap text-sm">
+                              <span className="text-muted-foreground">{adj.name}</span>
+                              <span className="text-red-400 font-mono font-semibold" data-testid={`text-tax-${adj.playerId}`}>
+                                -${adj.deduction}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {reconcileMode === "tax_winners" && winnersForTax.length === 0 && (
+                        <div className="ml-6 text-xs text-muted-foreground">
+                          No players are currently in profit. Select a specific player instead.
+                        </div>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => { setReconcileMode("specific_player"); setPlayerSearchQuery(""); }}
+                        className={`w-full text-left rounded-lg border p-3 transition-colors ${
+                          reconcileMode === "specific_player"
+                            ? "border-emerald-500/50 bg-emerald-500/10"
+                            : "border-white/[0.08] hover-elevate"
+                        }`}
+                        data-testid="option-specific-player"
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                            reconcileMode === "specific_player" ? "border-emerald-500 bg-emerald-500" : "border-white/30"
+                          }`}>
+                            {reconcileMode === "specific_player" && <Check className="w-2.5 h-2.5 text-white" />}
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium">Select Specific Player</p>
+                            <p className="text-xs text-muted-foreground">
+                              Deduct the full ${absDifference} from one player's cash-out
+                            </p>
+                          </div>
+                        </div>
+                      </button>
+
+                      {reconcileMode === "specific_player" && (
+                        <div className="ml-6 space-y-2">
+                          <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                            <Input
+                              value={playerSearchQuery}
+                              onChange={(e) => setPlayerSearchQuery(e.target.value)}
+                              className="pl-8 h-9 text-sm bg-background/50 border-white/[0.08]"
+                              placeholder="Search players..."
+                              data-testid="input-reconcile-search"
+                            />
+                          </div>
+                          <div className="max-h-[160px] overflow-y-auto rounded-lg border border-white/[0.06]">
+                            {filteredSessionPlayers.map(p => (
+                              <button
+                                key={p.id}
+                                type="button"
+                                onClick={() => setSpecificPlayerId(p.id)}
+                                className={`w-full flex items-center gap-2 px-3 py-2 text-sm text-left transition-colors hover-elevate ${
+                                  specificPlayerId === p.id ? "bg-emerald-500/10" : ""
+                                }`}
+                                data-testid={`reconcile-player-${p.id}`}
+                              >
+                                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                                  specificPlayerId === p.id ? "border-emerald-500 bg-emerald-500" : "border-white/30"
+                                }`}>
+                                  {specificPlayerId === p.id && <Check className="w-2.5 h-2.5 text-white" />}
+                                </div>
+                                <span className="flex-1 truncate">{p.name}</span>
+                                <span className={`font-mono text-xs ${p.netProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                  {p.netProfit >= 0 ? '+' : '-'}${Math.abs(p.netProfit)}
+                                </span>
+                              </button>
+                            ))}
+                            {filteredSessionPlayers.length === 0 && (
+                              <div className="py-3 text-center text-sm text-muted-foreground">No players match</div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex flex-col gap-2 sm:flex-row pt-1">
+                      <Button
+                        variant="ghost"
+                        className="flex-1 min-h-[44px]"
+                        onClick={() => setMismatchWarningOpen(false)}
+                        data-testid="button-mismatch-cancel"
+                      >
+                        Go Back & Fix
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="flex-1 min-h-[44px]"
+                        onClick={() => confirmEndSession(true)}
+                        disabled={isEnding}
+                        data-testid="button-mismatch-force-end"
+                      >
+                        {isEnding ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : null}
+                        End Without Fixing
+                      </Button>
+                      {reconcileMode !== "none" && (
+                        <Button
+                          className="flex-1 min-h-[44px]"
+                          onClick={handleResolveAndEnd}
+                          disabled={
+                            isEnding ||
+                            (reconcileMode === "tax_winners" && winnersForTax.length === 0) ||
+                            (reconcileMode === "specific_player" && specificPlayerId === null)
+                          }
+                          data-testid="button-resolve-end"
+                        >
+                          {isEnding ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : null}
+                          Resolve & End Session
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
