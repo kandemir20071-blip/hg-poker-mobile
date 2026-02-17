@@ -707,11 +707,81 @@ CardShark 50 Endstand: 0`}
   );
 }
 
+function normalizeDate(raw: string): string {
+  const trimmed = raw.trim();
+  const ddmmyyyy = trimmed.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})$/);
+  if (ddmmyyyy) {
+    const day = ddmmyyyy[1].padStart(2, '0');
+    const month = ddmmyyyy[2].padStart(2, '0');
+    let year = ddmmyyyy[3];
+    if (year.length === 2) year = '20' + year;
+    return `${year}-${month}-${day}`;
+  }
+  const yyyymmdd = trimmed.match(/^(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})$/);
+  if (yyyymmdd) {
+    return `${yyyymmdd[1]}-${yyyymmdd[2].padStart(2, '0')}-${yyyymmdd[3].padStart(2, '0')}`;
+  }
+  const parsed = new Date(trimmed);
+  if (!isNaN(parsed.getTime())) {
+    return parsed.toISOString().split("T")[0];
+  }
+  return trimmed;
+}
+
+function parseFlexibleRows(text: string): Array<{ date: string; playerName: string; buyIn: number; cashOut: number }> {
+  const rows: Array<{ date: string; playerName: string; buyIn: number; cashOut: number }> = [];
+  const lines = text.split("\n").map(l => l.trim()).filter(l => l.length > 0);
+  if (lines.length === 0) return rows;
+
+  const headerPattern = /date|player|name|buy.?in|cash.?out|payout/i;
+  let startIdx = 0;
+  if (headerPattern.test(lines[0])) {
+    startIdx = 1;
+  }
+
+  for (let i = startIdx; i < lines.length; i++) {
+    const line = lines[i];
+    const delimiter = line.includes('\t') ? '\t' : ',';
+    const parts = line.split(delimiter).map(p => p.trim());
+    if (parts.length < 3) continue;
+
+    if (parts.length >= 4) {
+      const date = normalizeDate(parts[0]);
+      const playerName = parts[1].replace(/^["']|["']$/g, '');
+      const buyIn = parseFloat(parts[2].replace(/[$€£,\s]/g, '')) || 0;
+      const cashOut = parseFloat(parts[3].replace(/[$€£,\s]/g, '')) || 0;
+      if (date && playerName && (buyIn > 0 || cashOut > 0)) {
+        rows.push({ date, playerName, buyIn, cashOut });
+        continue;
+      }
+    }
+
+    if (parts.length === 3) {
+      const first = parts[0].trim();
+      const dateMatch = first.match(/\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}|\d{4}[\/\-\.]\d{1,2}[\/\-\.]\d{1,2}/);
+      if (dateMatch) {
+        const date = normalizeDate(dateMatch[0]);
+        const playerName = parts[0].replace(dateMatch[0], '').trim().replace(/^["']|["']$/g, '') || parts[1].replace(/^["']|["']$/g, '');
+        const buyIn = parseFloat(parts[1].replace(/[$€£,\s]/g, '')) || 0;
+        const cashOut = parseFloat(parts[2].replace(/[$€£,\s]/g, '')) || 0;
+        if (date && (buyIn > 0 || cashOut > 0)) {
+          rows.push({ date, playerName: playerName || 'Unknown', buyIn, cashOut });
+        }
+      }
+    }
+  }
+
+  return rows;
+}
+
 function tryParsePastedText(
   text: string
 ): Array<{ date: string; playerName: string; buyIn: number; cashOut: number }> {
   const pokerRows = parsePokerFormat(text);
   if (pokerRows.length > 0) return pokerRows;
+
+  const flexRows = parseFlexibleRows(text);
+  if (flexRows.length > 0) return flexRows;
 
   const rows: Array<{
     date: string;
@@ -752,14 +822,8 @@ function tryParsePastedText(
           .trim() || "Unknown";
     }
 
-    let formattedDate = dateStr;
-    const parsed = new Date(dateStr);
-    if (!isNaN(parsed.getTime())) {
-      formattedDate = parsed.toISOString().split("T")[0];
-    }
-
     rows.push({
-      date: formattedDate,
+      date: normalizeDate(dateStr),
       playerName,
       buyIn: numbers[0],
       cashOut: numbers[1],
