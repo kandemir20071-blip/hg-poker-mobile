@@ -6,7 +6,7 @@ import { useLeagues, useLeague, useLeagueStats, useLeagueSessions, usePersonalSt
 import { StatCard } from "@/components/ui/StatCard";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
+import { ResponsiveModal, ResponsiveModalContent, ResponsiveModalHeader, ResponsiveModalTitle, ResponsiveModalTrigger, ResponsiveModalDescription } from "@/components/ui/responsive-modal";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
@@ -362,7 +362,7 @@ function LeaguesTab({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3 flex-wrap">
           <Select value={selectedLeagueId?.toString() || ""} onValueChange={(v) => onSelectLeague(Number(v))}>
-            <SelectTrigger className="w-[220px] bg-background/50 border-white/[0.08]" data-testid="select-league">
+            <SelectTrigger className="w-full sm:w-[220px] bg-background/50 border-white/[0.08]" data-testid="select-league">
               <SelectValue placeholder="Select league" />
             </SelectTrigger>
             <SelectContent>
@@ -388,18 +388,18 @@ function LeaguesTab({
             </Button>
           )}
 
-          <Dialog open={newSessionOpen} onOpenChange={(v) => { setNewSessionOpen(v); if (!v) resetNewSession(); }}>
-            <DialogTrigger asChild>
+          <ResponsiveModal open={newSessionOpen} onOpenChange={(v) => { setNewSessionOpen(v); if (!v) resetNewSession(); }}>
+            <ResponsiveModalTrigger asChild>
               <Button size="default" className="rounded-full font-semibold glow-emerald" data-testid="button-new-session">
                 <Play className="mr-2 h-4 w-4" /> New Session
               </Button>
-            </DialogTrigger>
-            <DialogContent className="glass-card sm:max-w-lg max-h-[90vh] overflow-y-auto">
+            </ResponsiveModalTrigger>
+            <ResponsiveModalContent className="glass-card sm:max-w-lg max-h-[90vh] overflow-y-auto">
               {!newSessionType ? (
                 <>
-                  <DialogHeader>
-                    <DialogTitle className="text-2xl text-center">Select Game Type</DialogTitle>
-                  </DialogHeader>
+                  <ResponsiveModalHeader>
+                    <ResponsiveModalTitle className="text-2xl text-center">Select Game Type</ResponsiveModalTitle>
+                  </ResponsiveModalHeader>
                   <div className="grid grid-cols-2 gap-4 mt-4">
                     <button onClick={() => setNewSessionType('cash')} className="flex flex-col items-center justify-center p-4 pt-6 rounded-xl bg-background/50 border border-white/[0.08] hover:border-primary/40 hover:bg-primary/5 transition-all group relative overflow-hidden" data-testid="button-cash-game">
                       <div className="absolute top-2 right-2"><SuitAccent suit="diamond" size={16} /></div>
@@ -417,12 +417,12 @@ function LeaguesTab({
                 </>
               ) : newSessionType === 'tournament' && tournamentStep === 'rules' ? (
                 <>
-                  <DialogHeader>
-                    <DialogTitle className="text-2xl text-center">Tournament Rules</DialogTitle>
-                    <DialogDescription className="text-center text-muted-foreground">
+                  <ResponsiveModalHeader>
+                    <ResponsiveModalTitle className="text-2xl text-center">Tournament Rules</ResponsiveModalTitle>
+                    <ResponsiveModalDescription className="text-center text-muted-foreground">
                       Configure re-buys and payout structure for this tournament.
-                    </DialogDescription>
-                  </DialogHeader>
+                    </ResponsiveModalDescription>
+                  </ResponsiveModalHeader>
                   <div className="space-y-5 mt-2">
                     <div className="space-y-3">
                       <div className="flex items-center justify-between gap-4">
@@ -591,12 +591,12 @@ function LeaguesTab({
                 </>
               ) : (
                 <>
-                  <DialogHeader>
-                    <DialogTitle className="text-2xl text-center">Set Default Buy-in</DialogTitle>
-                    <DialogDescription className="text-center text-muted-foreground">
+                  <ResponsiveModalHeader>
+                    <ResponsiveModalTitle className="text-2xl text-center">Set Default Buy-in</ResponsiveModalTitle>
+                    <ResponsiveModalDescription className="text-center text-muted-foreground">
                       Every player added will automatically get this buy-in.{newSessionType === 'cash' ? ' You can skip this step.' : ''}
-                    </DialogDescription>
-                  </DialogHeader>
+                    </ResponsiveModalDescription>
+                  </ResponsiveModalHeader>
                   <div className="space-y-4 mt-2">
                     <div className="grid grid-cols-3 gap-2">
                       {buyInPresets.map((amount) => (
@@ -658,8 +658,8 @@ function LeaguesTab({
                 </>
               )}
               {isCreatingSession && <div className="flex justify-center mt-4"><SuitsLoader /></div>}
-            </DialogContent>
-          </Dialog>
+            </ResponsiveModalContent>
+          </ResponsiveModal>
         </div>
       </div>
 
@@ -681,7 +681,7 @@ function LeaguesTab({
         </Card>
       )}
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
         <StatCard title="Games Played" value={leagueStats?.totalGames || 0} icon={History} customIconSrc={frogClockSrc} />
         {(() => {
           const wagered = leagueStats?.totalMoneyWagered || 0;
@@ -873,16 +873,16 @@ function LeaguesTab({
         />
       )}
 
-      <Dialog open={showLeaveDialog} onOpenChange={setShowLeaveDialog}>
-        <DialogContent className="glass-card sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+      <ResponsiveModal open={showLeaveDialog} onOpenChange={setShowLeaveDialog}>
+        <ResponsiveModalContent className="glass-card sm:max-w-md">
+          <ResponsiveModalHeader>
+            <ResponsiveModalTitle className="flex items-center gap-2">
               <LogIn className="h-5 w-5 rotate-180" /> Leave League
-            </DialogTitle>
-            <DialogDescription className="text-muted-foreground">
+            </ResponsiveModalTitle>
+            <ResponsiveModalDescription className="text-muted-foreground">
               Are you sure you want to leave <span className="text-white font-medium">{currentLeague?.name}</span>? You will lose access to the dashboard and can only rejoin with a new invite code.
-            </DialogDescription>
-          </DialogHeader>
+            </ResponsiveModalDescription>
+          </ResponsiveModalHeader>
           <div className="flex justify-end gap-2 mt-2">
             <Button variant="ghost" onClick={() => setShowLeaveDialog(false)} data-testid="button-cancel-leave">Cancel</Button>
             <Button variant="destructive" disabled={isLeaving} onClick={() => {
@@ -899,19 +899,19 @@ function LeaguesTab({
               Leave League
             </Button>
           </div>
-        </DialogContent>
-      </Dialog>
+        </ResponsiveModalContent>
+      </ResponsiveModal>
 
-      <Dialog open={showDeleteLeagueDialog} onOpenChange={(v) => { setShowDeleteLeagueDialog(v); if (!v) setDeleteLeagueConfirmText(""); }}>
-        <DialogContent className="glass-card sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-red-400">
+      <ResponsiveModal open={showDeleteLeagueDialog} onOpenChange={(v) => { setShowDeleteLeagueDialog(v); if (!v) setDeleteLeagueConfirmText(""); }}>
+        <ResponsiveModalContent className="glass-card sm:max-w-md">
+          <ResponsiveModalHeader>
+            <ResponsiveModalTitle className="flex items-center gap-2 text-red-400">
               <AlertTriangle className="h-5 w-5" /> Delete League
-            </DialogTitle>
-            <DialogDescription className="text-muted-foreground">
+            </ResponsiveModalTitle>
+            <ResponsiveModalDescription className="text-muted-foreground">
               This will permanently delete <span className="text-white font-medium">{currentLeague?.name}</span> and all its data including sessions, transactions, player records, and game results. This cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
+            </ResponsiveModalDescription>
+          </ResponsiveModalHeader>
           <div className="space-y-4 mt-2">
             <div>
               <p className="text-sm text-muted-foreground mb-2">Type <span className="text-white font-bold">{currentLeague?.name}</span> to confirm:</p>
@@ -947,19 +947,19 @@ function LeaguesTab({
               </Button>
             </div>
           </div>
-        </DialogContent>
-      </Dialog>
+        </ResponsiveModalContent>
+      </ResponsiveModal>
 
-      <Dialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) { setDeleteTarget(null); setDeleteConfirmText(""); } }}>
-        <DialogContent className="glass-card sm:max-w-md max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-red-400">
+      <ResponsiveModal open={!!deleteTarget} onOpenChange={(open) => { if (!open) { setDeleteTarget(null); setDeleteConfirmText(""); } }}>
+        <ResponsiveModalContent className="glass-card sm:max-w-md max-h-[90vh] overflow-y-auto">
+          <ResponsiveModalHeader>
+            <ResponsiveModalTitle className="flex items-center gap-2 text-red-400">
               <AlertTriangle className="h-5 w-5" /> Delete Session
-            </DialogTitle>
-            <DialogDescription className="text-muted-foreground">
+            </ResponsiveModalTitle>
+            <ResponsiveModalDescription className="text-muted-foreground">
               This will permanently delete the <span className="text-white font-medium capitalize">{deleteTarget?.type}</span> game from <span className="text-white font-medium">{deleteTarget?.date}</span> and all associated transactions.
-            </DialogDescription>
-          </DialogHeader>
+            </ResponsiveModalDescription>
+          </ResponsiveModalHeader>
           <div className="space-y-4 mt-2">
             <div>
               <p className="text-sm text-muted-foreground mb-2">Type <span className="text-white font-bold">DELETE</span> to confirm:</p>
@@ -973,20 +973,20 @@ function LeaguesTab({
               </Button>
             </div>
           </div>
-        </DialogContent>
-      </Dialog>
+        </ResponsiveModalContent>
+      </ResponsiveModal>
     </div>
   );
 }
 
 function CreateLeagueDialog({ open, onOpenChange, name, onNameChange, onCreate, isCreating }: any) {
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="glass-card sm:max-w-md max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Create a League</DialogTitle>
-          <DialogDescription>Give your poker group a name. You'll get an invite code to share.</DialogDescription>
-        </DialogHeader>
+    <ResponsiveModal open={open} onOpenChange={onOpenChange}>
+      <ResponsiveModalContent className="glass-card sm:max-w-md max-h-[90vh] overflow-y-auto">
+        <ResponsiveModalHeader>
+          <ResponsiveModalTitle>Create a League</ResponsiveModalTitle>
+          <ResponsiveModalDescription>Give your poker group a name. You'll get an invite code to share.</ResponsiveModalDescription>
+        </ResponsiveModalHeader>
         <div className="space-y-4 mt-2">
           <Input value={name} onChange={(e: any) => onNameChange(e.target.value)} placeholder="League name (e.g. Friday Night Poker)" className="bg-background/50 border-white/[0.08] min-h-[44px] text-base" data-testid="input-league-name" />
           <Button className="w-full min-h-[44px]" disabled={!name.trim() || isCreating} onClick={onCreate} data-testid="button-confirm-create-league">
@@ -994,19 +994,19 @@ function CreateLeagueDialog({ open, onOpenChange, name, onNameChange, onCreate, 
             Create League
           </Button>
         </div>
-      </DialogContent>
-    </Dialog>
+      </ResponsiveModalContent>
+    </ResponsiveModal>
   );
 }
 
 function JoinLeagueDialog({ open, onOpenChange, code, onCodeChange, onJoin, isJoining }: any) {
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="glass-card sm:max-w-md max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Join a League</DialogTitle>
-          <DialogDescription>Enter the invite code shared by the league creator.</DialogDescription>
-        </DialogHeader>
+    <ResponsiveModal open={open} onOpenChange={onOpenChange}>
+      <ResponsiveModalContent className="glass-card sm:max-w-md max-h-[90vh] overflow-y-auto">
+        <ResponsiveModalHeader>
+          <ResponsiveModalTitle>Join a League</ResponsiveModalTitle>
+          <ResponsiveModalDescription>Enter the invite code shared by the league creator.</ResponsiveModalDescription>
+        </ResponsiveModalHeader>
         <div className="space-y-4 mt-2">
           <Input value={code} onChange={(e: any) => onCodeChange(e.target.value.toUpperCase())} placeholder="Enter 6-character code" maxLength={6} className="bg-background/50 border-white/[0.08] text-center font-mono text-lg tracking-widest min-h-[44px]" data-testid="input-join-code" />
           <Button className="w-full min-h-[44px]" disabled={code.length < 6 || isJoining} onClick={onJoin} data-testid="button-confirm-join-league">
@@ -1014,8 +1014,8 @@ function JoinLeagueDialog({ open, onOpenChange, code, onCodeChange, onJoin, isJo
             Join League
           </Button>
         </div>
-      </DialogContent>
-    </Dialog>
+      </ResponsiveModalContent>
+    </ResponsiveModal>
   );
 }
 
@@ -1023,12 +1023,12 @@ function ClaimNameDialog({ open, onOpenChange, league, onClaim }: any) {
   const unclaimedPlayers = league?.players?.filter((p: any) => !p.claimedByUserId) || [];
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="glass-card sm:max-w-md max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Claim Your Name</DialogTitle>
-          <DialogDescription>Select your player name to link it to your account. This lets the app track your personal stats.</DialogDescription>
-        </DialogHeader>
+    <ResponsiveModal open={open} onOpenChange={onOpenChange}>
+      <ResponsiveModalContent className="glass-card sm:max-w-md max-h-[90vh] overflow-y-auto">
+        <ResponsiveModalHeader>
+          <ResponsiveModalTitle>Claim Your Name</ResponsiveModalTitle>
+          <ResponsiveModalDescription>Select your player name to link it to your account. This lets the app track your personal stats.</ResponsiveModalDescription>
+        </ResponsiveModalHeader>
         <div className="space-y-2 mt-2 max-h-[300px] overflow-y-auto">
           {unclaimedPlayers.length > 0 ? unclaimedPlayers.map((player: any) => (
             <button key={player.id} onClick={() => onClaim(player.id)} className="w-full flex items-center justify-between p-3 rounded-lg bg-background/40 border border-white/[0.06] hover:border-primary/40 transition-colors text-left" data-testid={`button-claim-${player.id}`}>
@@ -1039,7 +1039,7 @@ function ClaimNameDialog({ open, onOpenChange, league, onClaim }: any) {
             <p className="text-sm text-muted-foreground text-center py-4">No unclaimed names available. All player names have been claimed.</p>
           )}
         </div>
-      </DialogContent>
-    </Dialog>
+      </ResponsiveModalContent>
+    </ResponsiveModal>
   );
 }

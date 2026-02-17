@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { ResponsiveModal, ResponsiveModalContent, ResponsiveModalHeader, ResponsiveModalTitle, ResponsiveModalTrigger } from "@/components/ui/responsive-modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -37,14 +37,14 @@ export function BuyInDialog({ sessionId, playerId, trigger, defaultAmount = 100,
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
+    <ResponsiveModal open={open} onOpenChange={setOpen}>
+      <ResponsiveModalTrigger asChild>
         {trigger || <Button className="w-full font-semibold" data-testid="button-buy-in">{label}</Button>}
-      </DialogTrigger>
-      <DialogContent className="glass-card sm:max-w-md max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-2xl text-center">{isReBuy ? "Re-Buy" : "Add Chips"}</DialogTitle>
-        </DialogHeader>
+      </ResponsiveModalTrigger>
+      <ResponsiveModalContent className="glass-card sm:max-w-md max-h-[90vh] overflow-y-auto">
+        <ResponsiveModalHeader>
+          <ResponsiveModalTitle className="text-2xl text-center">{isReBuy ? "Re-Buy" : "Add Chips"}</ResponsiveModalTitle>
+        </ResponsiveModalHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6 mt-4">
           <div className="space-y-4">
@@ -77,7 +77,7 @@ export function BuyInDialog({ sessionId, playerId, trigger, defaultAmount = 100,
             {isPending ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : `Confirm ${label}`}
           </Button>
         </form>
-      </DialogContent>
-    </Dialog>
+      </ResponsiveModalContent>
+    </ResponsiveModal>
   );
 }

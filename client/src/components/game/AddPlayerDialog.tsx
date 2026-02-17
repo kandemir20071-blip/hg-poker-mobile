@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { ResponsiveModal, ResponsiveModalContent, ResponsiveModalHeader, ResponsiveModalTitle, ResponsiveModalTrigger } from "@/components/ui/responsive-modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -123,18 +123,18 @@ export function AddPlayerDialog({ sessionId, leagueId, existingPlayerNames = [],
   const hasRoster = rosterLoaded && allAvailablePlayers.length > 0;
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetState(); }}>
-      <DialogTrigger asChild>
+    <ResponsiveModal open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetState(); }}>
+      <ResponsiveModalTrigger asChild>
         {trigger || (
           <Button variant="outline" size="sm" className="gap-2" data-testid="button-add-player">
             <UserPlus className="w-4 h-4" /> Add Player
           </Button>
         )}
-      </DialogTrigger>
-      <DialogContent className="glass-card sm:max-w-md max-h-[90vh] flex flex-col overflow-hidden">
-        <DialogHeader>
-          <DialogTitle className="text-xl">Add Player</DialogTitle>
-        </DialogHeader>
+      </ResponsiveModalTrigger>
+      <ResponsiveModalContent className="glass-card sm:max-w-md max-h-[90vh] flex flex-col overflow-hidden">
+        <ResponsiveModalHeader>
+          <ResponsiveModalTitle className="text-xl">Add Player</ResponsiveModalTitle>
+        </ResponsiveModalHeader>
 
         <div className="flex flex-col gap-3 mt-2 min-h-0 flex-1">
           {leagueId && isLoadingRoster && (
@@ -325,7 +325,7 @@ export function AddPlayerDialog({ sessionId, leagueId, existingPlayerNames = [],
             </form>
           )}
         </div>
-      </DialogContent>
-    </Dialog>
+      </ResponsiveModalContent>
+    </ResponsiveModal>
   );
 }

@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { ResponsiveModal, ResponsiveModalContent, ResponsiveModalHeader, ResponsiveModalTitle, ResponsiveModalTrigger } from "@/components/ui/responsive-modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -87,18 +87,18 @@ export function ManagePlayerDialog({ sessionId, playerId, playerName, transactio
   };
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
-      <DialogTrigger asChild>
+    <ResponsiveModal open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
+      <ResponsiveModalTrigger asChild>
         {trigger || (
           <Button variant="outline" size="icon" data-testid={`button-manage-player-${playerId}`}>
             <Settings className="w-4 h-4" />
           </Button>
         )}
-      </DialogTrigger>
-      <DialogContent className="glass-card sm:max-w-lg max-h-[90vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle className="text-xl">Manage {playerName}</DialogTitle>
-        </DialogHeader>
+      </ResponsiveModalTrigger>
+      <ResponsiveModalContent className="glass-card sm:max-w-lg max-h-[90vh] flex flex-col">
+        <ResponsiveModalHeader>
+          <ResponsiveModalTitle className="text-xl">Manage {playerName}</ResponsiveModalTitle>
+        </ResponsiveModalHeader>
 
         <div className="flex items-center justify-between gap-4 px-1 py-2 border-b border-white/[0.06]">
           <div className="flex items-center gap-4 text-sm">
@@ -261,7 +261,7 @@ export function ManagePlayerDialog({ sessionId, playerId, playerName, transactio
             </Button>
           </div>
         )}
-      </DialogContent>
-    </Dialog>
+      </ResponsiveModalContent>
+    </ResponsiveModal>
   );
 }

@@ -1,0 +1,41 @@
+Mobile-First Visual Polish & UX Overhaul
+
+Objective: We are preparing this application to be packaged as a mobile app (PWA / Capacitor / React Native wrapper). I need you to overhaul the visual layout and UX to feel like a native mobile application, utilizing our existing dark theme and pixel art mascot aesthetic.
+
+Step 1: Implement a Bottom Tab Navigation
+
+Action: Remove the desktop-style top navigation bar or sidebar.
+
+Replace with: A fixed Bottom Navigation Bar (sticky at the bottom of the screen).
+
+Items: Use Lucide icons for tabs like Dashboard (Home), Sessions (Cards/Play), and Leagues/Settings (Settings).
+
+Styling: Add a glassmorphism effect (backdrop-blur) to the bottom nav so content scrolls smoothly underneath it. Ensure it sits above the mobile "safe area" (use padding-bottom: env(safe-area-inset-bottom)).
+
+Step 2: Convert Modals to Bottom Sheets (Drawers)
+
+Action: Standard centered Modals/Dialogs feel clunky on mobile.
+
+Replace with: Convert the "Add Player", "Manage Players", and "Filter/Sort" menus into Bottom Sheets (if using Shadcn UI, use the <Drawer> component).
+
+UX: These should slide up from the bottom of the screen, making them easily reachable with a thumb.
+
+Step 3: Optimize Touch Targets & Lists
+
+Action: Increase the size of all interactive elements. Mobile users use thumbs, not mice.
+
+Buttons/Inputs: Ensure every <Button>, <Input>, and list row has a minimum height of 48px (standard mobile touch target size).
+
+Player Lists: In the "Manage Players" and "Game Selection" screens, ensure the rows are generously padded (py-4). Add an active/press state (e.g., active:bg-gray-800) so users get immediate visual feedback when they tap a player's name.
+
+Step 4: Viewport & Native Scrolling
+
+index.html: Ensure the meta viewport tag includes viewport-fit=cover, maximum-scale=1.0, and user-scalable=no to prevent accidental zooming when tapping inputs.
+
+CSS: Apply overflow-y-auto and -webkit-overflow-scrolling: touch to main content areas for native momentum scrolling. Hide default scrollbars using ::-webkit-scrollbar { display: none; } on mobile layouts for a cleaner look.
+
+Step 5: Card & Mascot Polish
+
+Ensure the Dashboard Stat Cards span w-full on mobile rather than shrinking into tiny columns.
+
+Verify that the pixel art frog mascots are absolutely positioned or flexed so they don't break the layout or get cut off on smaller iPhone screens (e.g., iPhone SE size).

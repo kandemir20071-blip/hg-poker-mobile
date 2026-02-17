@@ -1,11 +1,11 @@
 import { useState } from "react";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+  ResponsiveModal,
+  ResponsiveModalContent,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+  ResponsiveModalDescription,
+} from "@/components/ui/responsive-modal";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -126,16 +126,16 @@ export function LeagueAdminDialog({ open, onOpenChange, leagueId, players, creat
   if (mergeSource) {
     const targetPlayer = players.find(p => p.id === Number(mergeTarget));
     return (
-      <Dialog open={open} onOpenChange={(v) => { if (!v) { setMergeSource(null); setMergeTarget(""); setMergeConfirmText(""); } onOpenChange(v); }}>
-        <DialogContent className="glass-card sm:max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+      <ResponsiveModal open={open} onOpenChange={(v) => { if (!v) { setMergeSource(null); setMergeTarget(""); setMergeConfirmText(""); } onOpenChange(v); }}>
+        <ResponsiveModalContent className="glass-card sm:max-w-lg max-h-[90vh] overflow-y-auto">
+          <ResponsiveModalHeader>
+            <ResponsiveModalTitle className="flex items-center gap-2">
               <GitMerge className="h-5 w-5 text-amber-400" /> Merge Player
-            </DialogTitle>
-            <DialogDescription className="text-muted-foreground">
+            </ResponsiveModalTitle>
+            <ResponsiveModalDescription className="text-muted-foreground">
               All game history from <span className="text-white font-medium">{mergeSource.name}</span> will be moved to the target player. The name "{mergeSource.name}" will be removed.
-            </DialogDescription>
-          </DialogHeader>
+            </ResponsiveModalDescription>
+          </ResponsiveModalHeader>
 
           <div className="space-y-4 mt-2">
             <div>
@@ -197,20 +197,20 @@ export function LeagueAdminDialog({ open, onOpenChange, leagueId, players, creat
               </Button>
             </div>
           </div>
-        </DialogContent>
-      </Dialog>
+        </ResponsiveModalContent>
+      </ResponsiveModal>
     );
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="glass-card sm:max-w-lg max-h-[90vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle>Manage Players</DialogTitle>
-          <DialogDescription className="text-muted-foreground">
+    <ResponsiveModal open={open} onOpenChange={onOpenChange}>
+      <ResponsiveModalContent className="glass-card sm:max-w-lg max-h-[90vh] flex flex-col">
+        <ResponsiveModalHeader>
+          <ResponsiveModalTitle>Manage Players</ResponsiveModalTitle>
+          <ResponsiveModalDescription className="text-muted-foreground">
             Edit names, unclaim, or merge duplicate players. Only the league creator can use these tools.
-          </DialogDescription>
-        </DialogHeader>
+          </ResponsiveModalDescription>
+        </ResponsiveModalHeader>
 
         <div className="flex items-center gap-2 mt-1">
           <div className="relative flex-1">
@@ -358,7 +358,7 @@ export function LeagueAdminDialog({ open, onOpenChange, leagueId, players, creat
             ))
           )}
         </div>
-      </DialogContent>
+      </ResponsiveModalContent>
 
       <AlertDialog open={!!kickTarget} onOpenChange={(open) => { if (!open) setKickTarget(null); }}>
         <AlertDialogContent className="glass-card">
@@ -415,6 +415,6 @@ export function LeagueAdminDialog({ open, onOpenChange, leagueId, players, creat
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </Dialog>
+    </ResponsiveModal>
   );
 }

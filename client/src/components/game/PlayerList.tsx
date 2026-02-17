@@ -2,7 +2,8 @@ import { SessionPlayer, Transaction } from "@shared/schema";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { ResponsiveModal, ResponsiveModalContent, ResponsiveModalHeader, ResponsiveModalTitle, ResponsiveModalTrigger } from "@/components/ui/responsive-modal";
+import { DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
@@ -43,16 +44,16 @@ function CashOutDialog({ sessionId, player }: { sessionId: number; player: Exten
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
+    <ResponsiveModal open={open} onOpenChange={setOpen}>
+      <ResponsiveModalTrigger asChild>
         <Button variant="outline" size="sm" className="gap-1 text-xs border-amber-500/30 text-amber-400 min-h-[44px]" data-testid={`button-cashout-player-${player.id}`}>
           <LogOut className="w-3 h-3" /> Cash Out
         </Button>
-      </DialogTrigger>
-      <DialogContent className="glass-card sm:max-w-sm max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Cash Out {player.name}</DialogTitle>
-        </DialogHeader>
+      </ResponsiveModalTrigger>
+      <ResponsiveModalContent className="glass-card sm:max-w-sm max-h-[90vh] overflow-y-auto">
+        <ResponsiveModalHeader>
+          <ResponsiveModalTitle>Cash Out {player.name}</ResponsiveModalTitle>
+        </ResponsiveModalHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="text-sm text-muted-foreground">
             Total Buy-in: <span className="text-white font-mono font-bold">${player.totalBuyIn}</span>
@@ -90,8 +91,8 @@ function CashOutDialog({ sessionId, player }: { sessionId: number; player: Exten
             </Button>
           </DialogFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+      </ResponsiveModalContent>
+    </ResponsiveModal>
   );
 }
 

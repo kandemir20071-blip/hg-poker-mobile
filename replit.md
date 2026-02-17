@@ -18,6 +18,8 @@ Preferred communication style: Simple, everyday language.
 - **Charts:** Recharts for data visualization.
 - **QR Codes:** qrcode.react for session join codes.
 - **Fonts:** Cinzel (headings) and Inter (body).
+- **Mobile UX:** ResponsiveModal pattern (Drawer on mobile <768px, Dialog on desktop), bottom navigation with safe-area padding, native scrolling, 48px touch targets.
+- **Responsive Components:** `ResponsiveModal` (`@/components/ui/responsive-modal`), `useMediaQuery` (`@/hooks/use-media-query`).
 - **Build Tool:** Vite.
 
 ### Backend

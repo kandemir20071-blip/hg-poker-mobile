@@ -5,7 +5,8 @@ import { useUpdateTransactionStatus, useUpdateTransaction, useDeleteTransaction,
 import { PlayerList } from "@/components/game/PlayerList";
 import { AddPlayerDialog } from "@/components/game/AddPlayerDialog";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { ResponsiveModal, ResponsiveModalContent, ResponsiveModalHeader, ResponsiveModalTitle, ResponsiveModalTrigger } from "@/components/ui/responsive-modal";
+import { DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
 import { QRCodeSVG } from "qrcode.react";
 import { Input } from "@/components/ui/input";
@@ -46,6 +47,7 @@ export default function SessionView() {
   const [editingLedgerId, setEditingLedgerId] = useState<number | null>(null);
   const [editLedgerAmount, setEditLedgerAmount] = useState("");
   const [customChopOpen, setCustomChopOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const [customPayouts, setCustomPayouts] = useState<Record<number, string>>({});
 
   const players = data?.players ?? [];
@@ -309,40 +311,40 @@ export default function SessionView() {
           )}
 
           {!showSummary && (
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-2 min-h-[44px]" data-testid="button-share">
-                  <Share2 className="w-4 h-4" /> Share
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="glass-card text-center max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>Join Code</DialogTitle>
-                </DialogHeader>
-                <div className="flex flex-col items-center gap-6 py-4">
-                  <div className="bg-white p-4 rounded-xl">
-                    <QRCodeSVG value={session.code} size={180} />
+            <>
+              <Button variant="outline" size="sm" className="gap-2 min-h-[44px]" onClick={() => setShareOpen(true)} data-testid="button-share">
+                <Share2 className="w-4 h-4" /> Share
+              </Button>
+              <ResponsiveModal open={shareOpen} onOpenChange={setShareOpen}>
+                <ResponsiveModalContent className="glass-card text-center max-h-[90vh] overflow-y-auto">
+                  <ResponsiveModalHeader>
+                    <ResponsiveModalTitle>Join Code</ResponsiveModalTitle>
+                  </ResponsiveModalHeader>
+                  <div className="flex flex-col items-center gap-6 py-4">
+                    <div className="bg-white p-4 rounded-xl">
+                      <QRCodeSVG value={session.code} size={180} />
+                    </div>
+                    <div className="text-center space-y-2">
+                      <p className="text-muted-foreground text-sm">Scan or enter code to join</p>
+                      <div className="text-4xl font-mono font-bold text-primary tracking-widest" data-testid="text-session-code">{session.code}</div>
+                    </div>
                   </div>
-                  <div className="text-center space-y-2">
-                    <p className="text-muted-foreground text-sm">Scan or enter code to join</p>
-                    <div className="text-4xl font-mono font-bold text-primary tracking-widest" data-testid="text-session-code">{session.code}</div>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
+                </ResponsiveModalContent>
+              </ResponsiveModal>
+            </>
           )}
 
           {isHost && isActive && session.type === 'cash' && (
-            <Dialog open={endDialogOpen} onOpenChange={setEndDialogOpen}>
-              <DialogTrigger asChild>
+            <ResponsiveModal open={endDialogOpen} onOpenChange={setEndDialogOpen}>
+              <ResponsiveModalTrigger asChild>
                 <Button variant="destructive" size="sm" className="gap-2 min-h-[44px]" data-testid="button-end-session">
                   <LogOut className="w-4 h-4" /> End Session
                 </Button>
-              </DialogTrigger>
-              <DialogContent className="glass-card max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>End Session?</DialogTitle>
-                </DialogHeader>
+              </ResponsiveModalTrigger>
+              <ResponsiveModalContent className="glass-card max-h-[90vh] overflow-y-auto">
+                <ResponsiveModalHeader>
+                  <ResponsiveModalTitle>End Session?</ResponsiveModalTitle>
+                </ResponsiveModalHeader>
                 <div className="py-4 space-y-4">
                   <div className="flex items-center gap-4 p-4 bg-destructive/10 rounded-lg border border-destructive/20 text-destructive">
                     <AlertTriangle className="h-6 w-6 shrink-0" />
@@ -359,18 +361,18 @@ export default function SessionView() {
                     {isEnding ? <Loader2 className="animate-spin mr-2" /> : "Confirm End"}
                   </Button>
                 </DialogFooter>
-              </DialogContent>
-            </Dialog>
+              </ResponsiveModalContent>
+            </ResponsiveModal>
           )}
 
-          <Dialog open={mismatchWarningOpen} onOpenChange={setMismatchWarningOpen}>
-            <DialogContent className="glass-card sm:max-w-lg max-h-[90vh] overflow-y-auto" data-testid="dialog-ledger-mismatch">
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2 text-amber-400 text-lg">
+          <ResponsiveModal open={mismatchWarningOpen} onOpenChange={setMismatchWarningOpen}>
+            <ResponsiveModalContent className="glass-card sm:max-w-lg max-h-[90vh] overflow-y-auto" data-testid="dialog-ledger-mismatch">
+              <ResponsiveModalHeader>
+                <ResponsiveModalTitle className="flex items-center gap-2 text-amber-400 text-lg">
                   <AlertTriangle className="w-5 h-5" />
                   Ledger Mismatch Detected
-                </DialogTitle>
-              </DialogHeader>
+                </ResponsiveModalTitle>
+              </ResponsiveModalHeader>
 
               <div className="space-y-4">
                 <div className="rounded-lg bg-muted/50 p-4 space-y-2 font-mono text-sm">
@@ -574,8 +576,8 @@ export default function SessionView() {
                   </div>
                 )}
               </div>
-            </DialogContent>
-          </Dialog>
+            </ResponsiveModalContent>
+          </ResponsiveModal>
         </div>
       </div>
 
@@ -673,16 +675,16 @@ export default function SessionView() {
                 <LogOut className="w-4 h-4" /> Back to Dashboard
               </Button>
               {isHost && (
-                <Dialog open={customChopOpen} onOpenChange={setCustomChopOpen}>
-                  <DialogTrigger asChild>
+                <ResponsiveModal open={customChopOpen} onOpenChange={setCustomChopOpen}>
+                  <ResponsiveModalTrigger asChild>
                     <Button variant="outline" className="gap-2 min-h-[44px]" onClick={initCustomPayouts} data-testid="button-custom-chop">
                       <RefreshCw className="w-4 h-4" /> Adjust Payouts
                     </Button>
-                  </DialogTrigger>
-                  <DialogContent className="glass-card sm:max-w-md max-h-[90vh] overflow-y-auto">
-                    <DialogHeader>
-                      <DialogTitle className="text-xl text-center">Custom Chop</DialogTitle>
-                    </DialogHeader>
+                  </ResponsiveModalTrigger>
+                  <ResponsiveModalContent className="glass-card sm:max-w-md max-h-[90vh] overflow-y-auto">
+                    <ResponsiveModalHeader>
+                      <ResponsiveModalTitle className="text-xl text-center">Custom Chop</ResponsiveModalTitle>
+                    </ResponsiveModalHeader>
                     <p className="text-xs text-muted-foreground text-center">Override the automatic payouts. The total must equal the prize pool (${totalWagered}).</p>
                     <div className="space-y-3 mt-2">
                       {tournamentResultPlayers.map((player) => {
@@ -732,8 +734,8 @@ export default function SessionView() {
                         {isApplyingChop ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Apply Chop'}
                       </Button>
                     </DialogFooter>
-                  </DialogContent>
-                </Dialog>
+                  </ResponsiveModalContent>
+                </ResponsiveModal>
               )}
             </div>
           </div>
@@ -1218,13 +1220,13 @@ export default function SessionView() {
         )
       )}
 
-      <Dialog open={finishTournamentOpen} onOpenChange={setFinishTournamentOpen}>
-        <DialogContent className="glass-card sm:max-w-md max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-xl text-center flex items-center justify-center gap-2">
+      <ResponsiveModal open={finishTournamentOpen} onOpenChange={setFinishTournamentOpen}>
+        <ResponsiveModalContent className="glass-card sm:max-w-md max-h-[90vh] overflow-y-auto">
+          <ResponsiveModalHeader>
+            <ResponsiveModalTitle className="text-xl text-center flex items-center justify-center gap-2">
               <Trophy className="w-5 h-5 text-primary" /> Payout Settlement
-            </DialogTitle>
-          </DialogHeader>
+            </ResponsiveModalTitle>
+          </ResponsiveModalHeader>
           <div className="space-y-4">
             <div className="text-center">
               <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Total Prize Pool</p>
@@ -1276,8 +1278,8 @@ export default function SessionView() {
               {(isApplyingChop || isEnding) ? <Loader2 className="h-4 w-4 animate-spin" /> : <><CheckCircle className="w-4 h-4" /> Confirm Payouts & Conclude</>}
             </Button>
           </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        </ResponsiveModalContent>
+      </ResponsiveModal>
     </div>
   );
 }
