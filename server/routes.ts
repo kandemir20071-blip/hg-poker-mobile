@@ -1231,7 +1231,7 @@ export async function registerRoutes(
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
         rows = mapSpreadsheetData(XLSX.utils.sheet_to_json<any>(sheet));
       } else if (ext === '.pdf') {
-        const pdfParse = (await import('pdf-parse')).default;
+        const pdfParse = (await import('pdf-parse/lib/pdf-parse.js')).default;
         const pdfData = await pdfParse(file.buffer);
         rawText = pdfData.text || '';
         rows = parsePokerPdfText(rawText!);
