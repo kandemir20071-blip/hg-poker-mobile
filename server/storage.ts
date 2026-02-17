@@ -440,18 +440,12 @@ export class DatabaseStorage implements IStorage {
   async getPlayerSessionCounts(leagueId: number): Promise<Map<string, number>> {
     const rows = await db
       .select({
-        name: sql<string>`lower(trim(${sessionPlayers.name}))`,
-        count: sql<number>`count(distinct ${sessionPlayers.sessionId})`,
+        name: sql<string>`lower(trim(${gameResults.playerName}))`,
+        count: sql<number>`count(*)`,
       })
-      .from(sessionPlayers)
-      .innerJoin(pokerSessions, eq(sessionPlayers.sessionId, pokerSessions.id))
-      .where(
-        and(
-          eq(pokerSessions.leagueId, leagueId),
-          eq(pokerSessions.status, 'completed')
-        )
-      )
-      .groupBy(sql`lower(trim(${sessionPlayers.name}))`);
+      .from(gameResults)
+      .where(eq(gameResults.leagueId, leagueId))
+      .groupBy(sql`lower(trim(${gameResults.playerName}))`);
 
     const map = new Map<string, number>();
     for (const row of rows) {
