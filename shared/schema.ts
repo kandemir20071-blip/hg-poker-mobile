@@ -1,6 +1,6 @@
 export * from "./models/auth";
-import { pgTable, text, serial, integer, boolean, timestamp, jsonb, pgEnum, date } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
+import { pgTable, text, serial, integer, boolean, timestamp, jsonb, pgEnum, date, uniqueIndex } from "drizzle-orm/pg-core";
+import { relations, sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { users } from "./models/auth";
@@ -25,14 +25,19 @@ export const leagueMembers = pgTable("league_members", {
   leagueId: integer("league_id").references(() => leagues.id).notNull(),
   userId: text("user_id").references(() => users.id).notNull(),
   joinedAt: timestamp("joined_at").defaultNow().notNull(),
-});
+}, (table) => [
+  uniqueIndex("league_members_league_user_idx").on(table.leagueId, table.userId),
+]);
 
 export const leaguePlayers = pgTable("league_players", {
   id: serial("id").primaryKey(),
   leagueId: integer("league_id").references(() => leagues.id).notNull(),
   name: text("name").notNull(),
   claimedByUserId: text("claimed_by_user_id").references(() => users.id),
-});
+}, (table) => [
+  uniqueIndex("league_players_league_name_idx").on(table.leagueId, table.name),
+  uniqueIndex("league_players_league_name_ci_idx").on(table.leagueId, sql`lower(trim(${table.name}))`),
+]);
 
 export const pokerSessions = pgTable("poker_sessions", {
   id: serial("id").primaryKey(),

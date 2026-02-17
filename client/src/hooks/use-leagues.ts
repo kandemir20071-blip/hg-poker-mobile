@@ -39,15 +39,18 @@ export function useCreateLeague() {
         body: JSON.stringify(data),
         credentials: "include",
       });
-      if (!res.ok) throw new Error("Failed to create league");
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.message || "Failed to create league");
+      }
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [api.leagues.list.path] });
       toast({ title: "League Created", description: "Your league is ready. Share the invite code with your group." });
     },
-    onError: () => {
-      toast({ title: "Error", description: "Could not create league", variant: "destructive" });
+    onError: (err: Error) => {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
     },
   });
 }
@@ -315,7 +318,10 @@ export function useMigrateToLeague() {
         body: JSON.stringify({ leagueId }),
         credentials: "include",
       });
-      if (!res.ok) throw new Error("Migration failed");
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.message || "Migration failed");
+      }
       return res.json();
     },
     onSuccess: (data) => {
@@ -329,8 +335,8 @@ export function useMigrateToLeague() {
         description: `Moved ${data.migrated} records, created ${data.playersCreated} new players.`,
       });
     },
-    onError: () => {
-      toast({ title: "Error", description: "Could not migrate data", variant: "destructive" });
+    onError: (err: Error) => {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
     },
   });
 }

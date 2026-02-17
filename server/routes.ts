@@ -8,6 +8,15 @@ import { randomBytes } from "crypto";
 import multer from "multer";
 import path from "path";
 
+function isUniqueViolation(err: unknown): boolean {
+  return (
+    typeof err === "object" &&
+    err !== null &&
+    "code" in err &&
+    (err as any).code === "23505"
+  );
+}
+
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 },
@@ -55,6 +64,7 @@ export async function registerRoutes(
       res.status(201).json(league);
     } catch (err) {
       if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
+      if (isUniqueViolation(err)) return res.status(400).json({ message: "You are already a member of this league." });
       res.status(500).json({ message: "Internal Server Error" });
     }
   });
@@ -104,6 +114,7 @@ export async function registerRoutes(
       res.json({ league, unclaimedPlayers });
     } catch (err) {
       if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
+      if (isUniqueViolation(err)) return res.status(400).json({ message: "You are already a member of this league." });
       res.status(500).json({ message: "Internal Server Error" });
     }
   });
@@ -256,6 +267,7 @@ export async function registerRoutes(
       res.json(updated);
     } catch (err) {
       if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
+      if (isUniqueViolation(err)) return res.status(400).json({ message: "A player with that name already exists in this league." });
       console.error("Rename player error:", err);
       res.status(500).json({ message: "Internal Server Error" });
     }
@@ -503,11 +515,15 @@ export async function registerRoutes(
             const normalizedName = player.name.toLowerCase().trim();
             const exists = existingPlayers.some(p => p.name.toLowerCase().trim() === normalizedName);
             if (!exists) {
-              await storage.addLeaguePlayer({
-                leagueId: session.leagueId,
-                name: player.name,
-                claimedByUserId: player.userId,
-              });
+              try {
+                await storage.addLeaguePlayer({
+                  leagueId: session.leagueId,
+                  name: player.name,
+                  claimedByUserId: player.userId,
+                });
+              } catch (innerErr) {
+                if (!isUniqueViolation(innerErr)) throw innerErr;
+              }
             }
           }
         }
@@ -562,6 +578,7 @@ export async function registerRoutes(
       res.status(201).json(player);
     } catch (err) {
       if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
+      if (isUniqueViolation(err)) return res.status(400).json({ message: "Player is already in this session." });
       res.status(500).json({ message: "Internal Server Error" });
     }
   });
@@ -689,11 +706,15 @@ export async function registerRoutes(
                 const normalizedName = fp.name.toLowerCase().trim();
                 const exists = existingPlayers.some(p => p.name.toLowerCase().trim() === normalizedName);
                 if (!exists) {
-                  await storage.addLeaguePlayer({
-                    leagueId: freshSession.leagueId,
-                    name: fp.name,
-                    claimedByUserId: fp.userId,
-                  });
+                  try {
+                    await storage.addLeaguePlayer({
+                      leagueId: freshSession.leagueId,
+                      name: fp.name,
+                      claimedByUserId: fp.userId,
+                    });
+                  } catch (innerErr) {
+                    if (!isUniqueViolation(innerErr)) throw innerErr;
+                  }
                 }
               }
             }
@@ -1017,9 +1038,14 @@ export async function registerRoutes(
       const uniqueNames = Array.from(new Set(unassigned.map(r => r.playerName.trim())));
       for (const name of uniqueNames) {
         if (!playerNameSet.has(name.toLowerCase())) {
-          await storage.addLeaguePlayer({ leagueId, name, claimedByUserId: null });
-          playerNameSet.add(name.toLowerCase());
-          playersCreated++;
+          try {
+            await storage.addLeaguePlayer({ leagueId, name, claimedByUserId: null });
+            playerNameSet.add(name.toLowerCase());
+            playersCreated++;
+          } catch (innerErr) {
+            if (!isUniqueViolation(innerErr)) throw innerErr;
+            playerNameSet.add(name.toLowerCase());
+          }
         }
       }
 
@@ -1178,8 +1204,13 @@ export async function registerRoutes(
         }
 
         if (!playerNameSet.has(normalizedName.toLowerCase())) {
-          await storage.addLeaguePlayer({ leagueId, name: normalizedName, claimedByUserId: null });
-          playerNameSet.add(normalizedName.toLowerCase());
+          try {
+            await storage.addLeaguePlayer({ leagueId, name: normalizedName, claimedByUserId: null });
+            playerNameSet.add(normalizedName.toLowerCase());
+          } catch (innerErr) {
+            if (!isUniqueViolation(innerErr)) throw innerErr;
+            playerNameSet.add(normalizedName.toLowerCase());
+          }
         }
 
         playerNames.add(normalizedName);
