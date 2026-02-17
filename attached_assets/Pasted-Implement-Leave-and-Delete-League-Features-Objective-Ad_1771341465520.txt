@@ -1,0 +1,27 @@
+Implement "Leave" and "Delete" League Features
+
+Objective: Add functionality for users to "Leave" a league they joined, and for League Creators to completely "Delete" a league and all its associated data.
+
+Step 1: "Leave League" (Member Action)
+
+Backend: Create a route (e.g., DELETE /api/leagues/:id/leave). This should delete the user's record from the league_members table. Crucial: Do not delete their historical game_results or transactions—the league needs to keep that data for accounting. Also, add a check: if userId === league.creatorId, return a 400 error saying "The creator cannot leave the league; you must delete it or transfer ownership."
+
+Frontend UI: In the League Settings or Dashboard area, add a "Leave League" button (styled subtly or as a secondary/destructive button). Wrap it in a confirmation Modal: "Are you sure you want to leave this league? You will lose access to the dashboard."
+
+UX: On success, redirect the user back to the main /dashboard (where their list of active leagues is displayed).
+
+Step 2: "Delete League" (Creator/Admin Action)
+
+Backend: Create a route (e.g., DELETE /api/leagues/:id).
+
+Security Check: Strictly verify that the requesting user is the creatorId of the league.
+
+Cascading Cleanup: Deleting a league is a massive operation. Ensure the database explicitly deletes (or relies on schema onDelete: Cascade to remove) all associated league_members, league_players, poker_sessions, session_players, transactions, and game_results where leagueId matches.
+
+Step 3: "Delete League" Frontend UI & Safety Guardrails
+
+Frontend UI: In the League Settings, add a "Delete League" button (styled prominently in red/destructive variant). This button should only render if currentUser.id === league.creatorId.
+
+Confirmation Modal (High Friction): Because this action is unrecoverable, the confirmation modal must require the user to manually type the exact name of the league into a text input to enable the final "Delete Forever" button.
+
+UX: On successful deletion, trigger a success toast ("League deleted permanently") and redirect the user back to /dashboard.

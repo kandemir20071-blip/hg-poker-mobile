@@ -295,6 +295,49 @@ export async function registerRoutes(
     }
   });
 
+  app.delete(api.leagues.leave.path, requireAuth, async (req, res) => {
+    try {
+      const leagueId = Number(req.params.id);
+      const userId = (req.user as any).claims.sub;
+
+      const league = await storage.getLeague(leagueId);
+      if (!league) return res.status(404).json({ message: "League not found" });
+
+      if (league.creatorId === userId) {
+        return res.status(400).json({ message: "The creator cannot leave the league. You must delete it or transfer ownership." });
+      }
+
+      const isMember = await storage.isLeagueMember(leagueId, userId);
+      if (!isMember) return res.status(400).json({ message: "You are not a member of this league" });
+
+      await storage.removeLeagueMember(leagueId, userId);
+      res.json({ success: true });
+    } catch (err) {
+      console.error("Leave league error:", err);
+      res.status(500).json({ message: "Internal Server Error" });
+    }
+  });
+
+  app.delete(api.leagues.delete.path, requireAuth, async (req, res) => {
+    try {
+      const leagueId = Number(req.params.id);
+      const userId = (req.user as any).claims.sub;
+
+      const league = await storage.getLeague(leagueId);
+      if (!league) return res.status(404).json({ message: "League not found" });
+
+      if (league.creatorId !== userId) {
+        return res.status(401).json({ message: "Only the league creator can delete the league" });
+      }
+
+      await storage.deleteLeague(leagueId);
+      res.json({ success: true });
+    } catch (err) {
+      console.error("Delete league error:", err);
+      res.status(500).json({ message: "Internal Server Error" });
+    }
+  });
+
   // League sessions endpoint
   app.get('/api/leagues/:id/sessions', requireAuth, async (req, res) => {
     const leagueId = Number(req.params.id);

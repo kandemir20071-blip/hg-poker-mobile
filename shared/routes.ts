@@ -354,6 +354,24 @@ export const api = {
         401: errorSchemas.unauthorized,
       },
     },
+    leave: {
+      method: 'DELETE' as const,
+      path: '/api/leagues/:id/leave' as const,
+      responses: {
+        200: z.object({ success: z.boolean() }),
+        400: errorSchemas.validation,
+        401: errorSchemas.unauthorized,
+      },
+    },
+    delete: {
+      method: 'DELETE' as const,
+      path: '/api/leagues/:id' as const,
+      responses: {
+        200: z.object({ success: z.boolean() }),
+        401: errorSchemas.unauthorized,
+        404: errorSchemas.notFound,
+      },
+    },
   },
   import: {
     upload: {

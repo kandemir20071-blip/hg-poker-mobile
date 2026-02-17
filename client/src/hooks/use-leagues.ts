@@ -306,6 +306,64 @@ export function useDeletePlayer() {
   });
 }
 
+export function useLeaveLeague() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (leagueId: number) => {
+      const url = buildUrl(api.leagues.leave.path, { id: leagueId });
+      const res = await fetch(url, {
+        method: 'DELETE',
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        throw new Error(err?.message || "Failed to leave league");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.leagues.list.path], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: [api.stats.personal.path], refetchType: 'all' });
+      toast({ title: "Left League", description: "You have left the league." });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    },
+  });
+}
+
+export function useDeleteLeague() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (leagueId: number) => {
+      const url = buildUrl(api.leagues.delete.path, { id: leagueId });
+      const res = await fetch(url, {
+        method: 'DELETE',
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        throw new Error(err?.message || "Failed to delete league");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.leagues.list.path], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: [api.stats.personal.path], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: [api.stats.league.path], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: [api.stats.get.path], refetchType: 'all' });
+      toast({ title: "League Deleted", description: "The league has been permanently deleted." });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    },
+  });
+}
+
 export function useMigrateToLeague() {
   const queryClient = useQueryClient();
   const { toast } = useToast();

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useStats } from "@/hooks/use-stats";
 import { useCreateSession, useDeleteSession } from "@/hooks/use-sessions";
-import { useLeagues, useLeague, useLeagueStats, useLeagueSessions, usePersonalStats, useCreateLeague, useJoinLeague, useClaimPlayer, useMigrateToLeague } from "@/hooks/use-leagues";
+import { useLeagues, useLeague, useLeagueStats, useLeagueSessions, usePersonalStats, useCreateLeague, useJoinLeague, useClaimPlayer, useMigrateToLeague, useLeaveLeague, useDeleteLeague } from "@/hooks/use-leagues";
 import { StatCard } from "@/components/ui/StatCard";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -215,6 +215,8 @@ function LeaguesTab({
   const { mutate: migrateData, isPending: isMigrating } = useMigrateToLeague();
   const { mutate: createSession, isPending: isCreatingSession } = useCreateSession();
   const { mutate: deleteSession, isPending: isDeleting } = useDeleteSession();
+  const { mutate: leaveLeague, isPending: isLeaving } = useLeaveLeague();
+  const { mutate: deleteLeague, isPending: isDeletingLeague } = useDeleteLeague();
 
   const { data: leagueStats } = useLeagueStats(selectedLeagueId);
   const { data: legacyStats } = useStats();
@@ -232,6 +234,9 @@ function LeaguesTab({
 
   const [deleteTarget, setDeleteTarget] = useState<{ id: number; type: string; date: string } | null>(null);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [showLeaveDialog, setShowLeaveDialog] = useState(false);
+  const [showDeleteLeagueDialog, setShowDeleteLeagueDialog] = useState(false);
+  const [deleteLeagueConfirmText, setDeleteLeagueConfirmText] = useState("");
   const [newSessionOpen, setNewSessionOpen] = useState(false);
   const [newSessionType, setNewSessionType] = useState<"cash" | "tournament" | null>(null);
   const [defaultBuyIn, setDefaultBuyIn] = useState<number | null>(null);
@@ -838,6 +843,16 @@ function LeaguesTab({
                     <Shield className="mr-2 h-3.5 w-3.5" /> Manage Players
                   </Button>
                 )}
+                {!isCreator && (
+                  <Button variant="ghost" size="sm" className="w-full mt-2 text-muted-foreground" onClick={() => setShowLeaveDialog(true)} data-testid="button-leave-league">
+                    <LogIn className="mr-2 h-3.5 w-3.5 rotate-180" /> Leave League
+                  </Button>
+                )}
+                {isCreator && (
+                  <Button variant="ghost" size="sm" className="w-full mt-2 text-red-400/70 hover:text-red-400" onClick={() => { setShowDeleteLeagueDialog(true); setDeleteLeagueConfirmText(""); }} data-testid="button-delete-league">
+                    <Trash2 className="mr-2 h-3.5 w-3.5" /> Delete League
+                  </Button>
+                )}
               </div>
             );
           })()}
@@ -856,6 +871,83 @@ function LeaguesTab({
           players={leagueWithPlayers.players}
         />
       )}
+
+      <Dialog open={showLeaveDialog} onOpenChange={setShowLeaveDialog}>
+        <DialogContent className="glass-card sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <LogIn className="h-5 w-5 rotate-180" /> Leave League
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Are you sure you want to leave <span className="text-white font-medium">{currentLeague?.name}</span>? You will lose access to the dashboard and can only rejoin with a new invite code.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2 mt-2">
+            <Button variant="ghost" onClick={() => setShowLeaveDialog(false)} data-testid="button-cancel-leave">Cancel</Button>
+            <Button variant="destructive" disabled={isLeaving} onClick={() => {
+              if (selectedLeagueId) {
+                leaveLeague(selectedLeagueId, {
+                  onSuccess: () => {
+                    setShowLeaveDialog(false);
+                    onSelectLeague(leagues.filter((l: any) => l.id !== selectedLeagueId)[0]?.id || 0);
+                  },
+                });
+              }
+            }} data-testid="button-confirm-leave">
+              {isLeaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Leave League
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showDeleteLeagueDialog} onOpenChange={(v) => { setShowDeleteLeagueDialog(v); if (!v) setDeleteLeagueConfirmText(""); }}>
+        <DialogContent className="glass-card sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-400">
+              <AlertTriangle className="h-5 w-5" /> Delete League
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              This will permanently delete <span className="text-white font-medium">{currentLeague?.name}</span> and all its data including sessions, transactions, player records, and game results. This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 mt-2">
+            <div>
+              <p className="text-sm text-muted-foreground mb-2">Type <span className="text-white font-bold">{currentLeague?.name}</span> to confirm:</p>
+              <Input
+                value={deleteLeagueConfirmText}
+                onChange={(e) => setDeleteLeagueConfirmText(e.target.value)}
+                placeholder="Type league name to confirm"
+                className="bg-background/50 border-white/[0.08] min-h-[44px] text-base"
+                data-testid="input-delete-league-confirm"
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" onClick={() => { setShowDeleteLeagueDialog(false); setDeleteLeagueConfirmText(""); }} data-testid="button-cancel-delete-league">Cancel</Button>
+              <Button
+                variant="destructive"
+                disabled={deleteLeagueConfirmText !== currentLeague?.name || isDeletingLeague}
+                onClick={() => {
+                  if (selectedLeagueId) {
+                    deleteLeague(selectedLeagueId, {
+                      onSuccess: () => {
+                        setShowDeleteLeagueDialog(false);
+                        setDeleteLeagueConfirmText("");
+                        const remaining = leagues.filter((l: any) => l.id !== selectedLeagueId);
+                        onSelectLeague(remaining.length > 0 ? remaining[0].id : 0);
+                      },
+                    });
+                  }
+                }}
+                data-testid="button-confirm-delete-league"
+              >
+                {isDeletingLeague ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
+                Delete Forever
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) { setDeleteTarget(null); setDeleteConfirmText(""); } }}>
         <DialogContent className="glass-card sm:max-w-md max-h-[90vh] overflow-y-auto">

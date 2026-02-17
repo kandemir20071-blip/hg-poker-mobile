@@ -64,6 +64,8 @@ export interface IStorage {
   deleteLeaguePlayer(playerId: number): Promise<void>;
   getPlayerSessionCounts(leagueId: number): Promise<Map<string, number>>;
   flagSessionUnbalanced(id: number, isUnbalanced: boolean): Promise<void>;
+  removeLeagueMember(leagueId: number, userId: string): Promise<void>;
+  deleteLeague(leagueId: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -452,6 +454,29 @@ export class DatabaseStorage implements IStorage {
       map.set(row.name, Number(row.count));
     }
     return map;
+  }
+
+  async removeLeagueMember(leagueId: number, userId: string): Promise<void> {
+    await db.delete(leagueMembers)
+      .where(and(eq(leagueMembers.leagueId, leagueId), eq(leagueMembers.userId, userId)));
+  }
+
+  async deleteLeague(leagueId: number): Promise<void> {
+    const sessions = await db.select({ id: pokerSessions.id })
+      .from(pokerSessions)
+      .where(eq(pokerSessions.leagueId, leagueId));
+
+    for (const session of sessions) {
+      await db.delete(gameResults).where(eq(gameResults.sessionId, session.id));
+      await db.delete(transactions).where(eq(transactions.sessionId, session.id));
+      await db.delete(sessionPlayers).where(eq(sessionPlayers.sessionId, session.id));
+    }
+
+    await db.delete(pokerSessions).where(eq(pokerSessions.leagueId, leagueId));
+    await db.delete(gameResults).where(eq(gameResults.leagueId, leagueId));
+    await db.delete(leaguePlayers).where(eq(leaguePlayers.leagueId, leagueId));
+    await db.delete(leagueMembers).where(eq(leagueMembers.leagueId, leagueId));
+    await db.delete(leagues).where(eq(leagues.id, leagueId));
   }
 }
 
