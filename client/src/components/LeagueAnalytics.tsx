@@ -22,7 +22,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { HelpCircle, X } from "lucide-react";
+import { HelpCircle, X, Search, ChevronsUpDown, Check } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { PlayerProfitChart, type FilterMode } from "./PlayerProfitChart";
 
 type PlayerSeries = {
@@ -96,6 +98,110 @@ function HelpBubble({ text }: { text: string }) {
   );
 }
 
+function PlayerSearchCombobox({
+  players,
+  value,
+  onChange,
+}: {
+  players: { playerName: string }[];
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const [comboOpen, setComboOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!comboOpen) return;
+    function handleClick(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setComboOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [comboOpen]);
+
+  const filtered = useMemo(() => {
+    return players
+      .slice()
+      .sort((a, b) => a.playerName.localeCompare(b.playerName))
+      .filter(p => !query || p.playerName.toLowerCase().includes(query.toLowerCase()));
+  }, [players, query]);
+
+  return (
+    <div className="relative" ref={containerRef}>
+      <Button
+        variant="outline"
+        className="w-[200px] justify-between bg-background/50 border-white/[0.08] gap-2"
+        onClick={() => { setComboOpen(!comboOpen); setQuery(""); }}
+        data-testid="button-player-picker"
+      >
+        <span className="truncate text-sm">
+          {value || "Select a player..."}
+        </span>
+        {value ? (
+          <span
+            role="button"
+            className="shrink-0 rounded-full p-0.5"
+            onClick={(e) => { e.stopPropagation(); e.preventDefault(); onChange(""); setComboOpen(false); }}
+            onMouseDown={(e) => e.stopPropagation()}
+            data-testid="button-clear-player"
+          >
+            <X className="h-3.5 w-3.5 text-muted-foreground" />
+          </span>
+        ) : (
+          <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+        )}
+      </Button>
+
+      {comboOpen && (
+        <div
+          className="absolute top-full left-0 mt-1 w-[240px] rounded-md border border-white/[0.08] bg-card shadow-lg z-50 overflow-hidden"
+          data-testid="player-picker-dropdown"
+        >
+          <div className="p-2 border-b border-white/[0.06]">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+              <Input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                className="pl-8 h-8 text-sm bg-background/50 border-white/[0.08]"
+                placeholder="Search players..."
+                autoFocus
+                data-testid="input-player-search"
+              />
+            </div>
+          </div>
+          <div className="overflow-y-auto max-h-60">
+            {filtered.length === 0 && (
+              <div className="py-4 px-3 text-sm text-muted-foreground text-center" data-testid="text-no-player-results">
+                No players found
+              </div>
+            )}
+            {filtered.map(p => (
+              <button
+                key={p.playerName}
+                type="button"
+                onClick={() => { onChange(p.playerName); setComboOpen(false); setQuery(""); }}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover-elevate transition-colors"
+                data-testid={`option-player-${p.playerName}`}
+              >
+                <div className={`flex items-center justify-center w-4 h-4 rounded-sm shrink-0 ${
+                  value === p.playerName ? "text-emerald-400" : "text-transparent"
+                }`}>
+                  <Check className="w-3.5 h-3.5" />
+                </div>
+                <span className="truncate">{p.playerName}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 const VIEW_HELP: Record<AnalyticsView, string> = {
   performance: "Tracks the cumulative profit/loss for players over time. Shows who is consistently winning vs. losing.",
   skill_map: "Scatter plot comparing Games Played (Experience) vs. ROI % (Efficiency). Top-Right = Sharks; Bottom-Right = Donators.",
@@ -140,21 +246,11 @@ export function LeagueAnalytics({ playerProfitHistory, playerAnalytics, sessionH
             </SelectContent>
           </Select>
           {perfFilterMode === "select" && (
-            <Select value={perfSearchQuery} onValueChange={setPerfSearchQuery}>
-              <SelectTrigger className="w-[180px] bg-background/50 border-white/[0.08]" data-testid="select-player-picker">
-                <SelectValue placeholder="Pick a player..." />
-              </SelectTrigger>
-              <SelectContent>
-                {playerProfitHistory
-                  .slice()
-                  .sort((a, b) => a.playerName.localeCompare(b.playerName))
-                  .map((p) => (
-                    <SelectItem key={p.playerName} value={p.playerName} data-testid={`option-player-${p.playerName}`}>
-                      {p.playerName}
-                    </SelectItem>
-                  ))}
-              </SelectContent>
-            </Select>
+            <PlayerSearchCombobox
+              players={playerProfitHistory}
+              value={perfSearchQuery}
+              onChange={setPerfSearchQuery}
+            />
           )}
         </>
       );
