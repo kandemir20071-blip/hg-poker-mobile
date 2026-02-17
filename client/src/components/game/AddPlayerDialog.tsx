@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAddPlayerManually } from "@/hooks/use-sessions";
 import { useLeaguePlayers } from "@/hooks/use-leagues";
-import { UserPlus, Loader2, Plus, AlertCircle, ArrowDownAZ, Activity } from "lucide-react";
+import { UserPlus, Loader2, Plus, AlertCircle, ArrowDownAZ, Activity, Search } from "lucide-react";
 
 interface AddPlayerDialogProps {
   sessionId: number;
@@ -23,6 +23,7 @@ export function AddPlayerDialog({ sessionId, leagueId, existingPlayerNames = [],
   const [newName, setNewName] = useState("");
   const [nameError, setNameError] = useState("");
   const [sortBy, setSortBy] = useState<"alphabetical" | "most_active">("most_active");
+  const [searchQuery, setSearchQuery] = useState("");
   const { mutate, isPending } = useAddPlayerManually();
   const { data: leaguePlayersRaw, isLoading: isLoadingRoster } = useLeaguePlayers(leagueId ?? null);
 
@@ -35,6 +36,7 @@ export function AddPlayerDialog({ sessionId, leagueId, existingPlayerNames = [],
     if (!leaguePlayersRaw) return [];
     return (leaguePlayersRaw as { id: number; name: string; sessionCount?: number; claimedByUserId?: string | null }[])
       .filter(p => !existingNamesLower.includes(p.name.toLowerCase().trim()))
+      .filter(p => !searchQuery || p.name.toLowerCase().includes(searchQuery.toLowerCase()))
       .sort((a, b) => {
         if (sortBy === "most_active") {
           const diff = (b.sessionCount ?? 0) - (a.sessionCount ?? 0);
@@ -42,7 +44,13 @@ export function AddPlayerDialog({ sessionId, leagueId, existingPlayerNames = [],
         }
         return a.name.localeCompare(b.name);
       });
-  }, [leaguePlayersRaw, existingNamesLower, sortBy]);
+  }, [leaguePlayersRaw, existingNamesLower, sortBy, searchQuery]);
+
+  const allAvailablePlayers = useMemo(() => {
+    if (!leaguePlayersRaw) return [];
+    return (leaguePlayersRaw as { id: number; name: string }[])
+      .filter(p => !existingNamesLower.includes(p.name.toLowerCase().trim()));
+  }, [leaguePlayersRaw, existingNamesLower]);
 
   const allLeagueNames = useMemo(() => {
     if (!leaguePlayersRaw) return [];
@@ -54,6 +62,7 @@ export function AddPlayerDialog({ sessionId, leagueId, existingPlayerNames = [],
     setShowCreateNew(false);
     setNewName("");
     setNameError("");
+    setSearchQuery("");
   };
 
   const handleAddFromRoster = () => {
@@ -95,7 +104,7 @@ export function AddPlayerDialog({ sessionId, leagueId, existingPlayerNames = [],
   };
 
   const rosterLoaded = leagueId && !isLoadingRoster;
-  const hasRoster = rosterLoaded && availablePlayers.length > 0;
+  const hasRoster = rosterLoaded && allAvailablePlayers.length > 0;
 
   return (
     <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetState(); }}>
@@ -138,11 +147,34 @@ export function AddPlayerDialog({ sessionId, leagueId, existingPlayerNames = [],
                     </SelectContent>
                   </Select>
                 </div>
+
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  <Input
+                    value={searchQuery}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      if (selectedPlayer && !e.target.value.toLowerCase().includes("")) {
+                        const stillVisible = availablePlayers.some(p => p.name === selectedPlayer);
+                        if (!stillVisible) setSelectedPlayer("");
+                      }
+                    }}
+                    className="pl-9 bg-background/50 border-white/[0.08] min-h-[44px] text-base"
+                    placeholder="Search players..."
+                    data-testid="input-search-players"
+                  />
+                </div>
+
                 <Select value={selectedPlayer} onValueChange={setSelectedPlayer}>
                   <SelectTrigger className="bg-background/50 border-white/[0.08] min-h-[44px] text-base" data-testid="select-roster-player">
                     <SelectValue placeholder="Choose a player..." />
                   </SelectTrigger>
                   <SelectContent>
+                    {availablePlayers.length === 0 && searchQuery && (
+                      <div className="py-3 px-2 text-sm text-muted-foreground text-center" data-testid="text-no-results">
+                        No players match "{searchQuery}"
+                      </div>
+                    )}
                     {availablePlayers.map(p => (
                       <SelectItem key={p.id} value={p.name} data-testid={`option-player-${p.id}`}>
                         <span className="flex items-center gap-2">
