@@ -5,13 +5,13 @@ import { useCreateSession, useDeleteSession } from "@/hooks/use-sessions";
 import { useLeagues, useLeague, useLeagueStats, useLeagueSessions, usePersonalStats, useCreateLeague, useJoinLeague, useClaimPlayer, useMigrateToLeague, useLeaveLeague, useDeleteLeague } from "@/hooks/use-leagues";
 import { StatCard } from "@/components/ui/StatCard";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+
 import { ResponsiveModal, ResponsiveModalContent, ResponsiveModalHeader, ResponsiveModalTitle, ResponsiveModalTrigger, ResponsiveModalDescription } from "@/components/ui/responsive-modal";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Coins, Trophy, TrendingUp, History, Play, Loader2, ArrowRight, Upload, Pencil, Trash2, AlertTriangle, Users, Plus, LogIn, User, Shield, Copy, Check, ArrowDownLeft, ArrowUpRight, DollarSign, Info, Clock, Percent, X, ChevronRight } from "lucide-react";
+import { Coins, Trophy, TrendingUp, History, Play, Loader2, ArrowRight, Pencil, Trash2, AlertTriangle, Users, Plus, LogIn, User, Shield, Copy, Check, ArrowDownLeft, ArrowUpRight, DollarSign, Info, Clock, Percent, X, ChevronRight } from "lucide-react";
 import frogClockSrc from "@assets/image-removebg-preview-2_1771174670390.png";
 import frogBankerSrc from "@assets/image-removebg-preview-3_1771176202817.png";
 import frogBalanceSrc from "@assets/image-removebg-preview-4_1771176899418.png";
@@ -663,24 +663,6 @@ function LeaguesTab({
         </div>
       </div>
 
-      {hasUnmigratedData && isCreator && (
-        <Card className="p-4 border-amber-500/30 bg-amber-500/5">
-          <div className="flex items-center justify-between gap-4 flex-wrap">
-            <div className="flex items-center gap-3">
-              <Upload className="h-5 w-5 text-amber-400" />
-              <div>
-                <p className="text-sm font-medium text-white">Import existing data to this league</p>
-                <p className="text-xs text-muted-foreground">Move your previously imported game history into this league.</p>
-              </div>
-            </div>
-            <Button variant="outline" size="sm" onClick={() => migrateData(selectedLeagueId!)} disabled={isMigrating} data-testid="button-migrate-data">
-              {isMigrating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <ArrowRight className="h-4 w-4 mr-2" />}
-              Migrate Data
-            </Button>
-          </div>
-        </Card>
-      )}
-
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
         <StatCard title="Games Played" value={leagueStats?.totalGames || 0} icon={History} customIconSrc={frogClockSrc} />
         {(() => {
@@ -769,13 +751,6 @@ function LeaguesTab({
           <div className="glass-card rounded-xl p-5">
             <div className="flex items-center justify-between mb-4 gap-2">
               <h3 className="font-bold text-base text-white">Recent Games</h3>
-              {selectedLeagueId && (
-                <Link href={`/import?leagueId=${selectedLeagueId}`}>
-                  <Button variant="outline" size="sm" data-testid="button-import-data">
-                    <Upload className="mr-2 h-3.5 w-3.5" /> Import
-                  </Button>
-                </Link>
-              )}
             </div>
             <div className="space-y-2 h-[400px] overflow-y-auto pr-1">
               {recentSessions.length > 0 ? recentSessions.map((session: any) => (
@@ -841,6 +816,12 @@ function LeaguesTab({
                 {isCreator && (
                   <Button variant="outline" size="sm" className="w-full mt-2" onClick={() => setShowAdminDialog(true)} data-testid="button-admin-tools">
                     <Shield className="mr-2 h-3.5 w-3.5" /> Manage Players
+                  </Button>
+                )}
+                {hasUnmigratedData && isCreator && (
+                  <Button variant="ghost" size="sm" className="w-full mt-2 text-amber-400/70" onClick={() => migrateData(selectedLeagueId!)} disabled={isMigrating} data-testid="button-migrate-data">
+                    {isMigrating ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" /> : <ArrowRight className="h-3.5 w-3.5 mr-2" />}
+                    Migrate Legacy Data
                   </Button>
                 )}
                 {!isCreator && (
