@@ -226,6 +226,7 @@ function LeaguesTab({
   const currentLeague = leagues.find((l: any) => l.id === selectedLeagueId);
   const leagueWithPlayers = leagueDetail || currentLeague;
   const isCreator = currentLeague?.creatorId === user?.id;
+  const canHost = isCreator || leagueWithPlayers?.canHost || false;
 
   const activeSessions = (leagueSessions || []).filter((s: any) => s.status === 'active');
   const recentSessions = (leagueSessions || []).filter((s: any) => s.status === 'completed');
@@ -389,11 +390,13 @@ function LeaguesTab({
           )}
 
           <ResponsiveModal open={newSessionOpen} onOpenChange={(v) => { setNewSessionOpen(v); if (!v) resetNewSession(); }}>
-            <ResponsiveModalTrigger asChild>
-              <Button size="default" className="rounded-full font-semibold glow-emerald" data-testid="button-new-session">
-                <Play className="mr-2 h-4 w-4" /> New Session
-              </Button>
-            </ResponsiveModalTrigger>
+            {canHost && (
+              <ResponsiveModalTrigger asChild>
+                <Button size="default" className="rounded-full font-semibold glow-emerald" data-testid="button-new-session">
+                  <Play className="mr-2 h-4 w-4" /> New Session
+                </Button>
+              </ResponsiveModalTrigger>
+            )}
             <ResponsiveModalContent className="glass-card sm:max-w-lg max-h-[90vh] overflow-y-auto">
               {!newSessionType ? (
                 <>
@@ -851,6 +854,7 @@ function LeaguesTab({
           leagueId={selectedLeagueId}
           players={leagueWithPlayers.players}
           creatorId={currentLeague?.creatorId}
+          members={leagueWithPlayers?.members}
         />
       )}
 

@@ -1,0 +1,37 @@
+Implement Session Hosting Permissions
+
+Objective: Restrict the ability to create new sessions (Cash Games or Tournaments) to the League Admin and explicitly authorized members. Regular members should not be able to start games.
+
+Step 1: Database Schema Update
+
+Update the league_members table schema. Add a new boolean column called canHostSessions (default: false), OR a role string column (e.g., default: 'MEMBER', allowed: 'HOST', 'ADMIN').
+
+Generate and apply the database migration (e.g., npx prisma db push or the Drizzle equivalent).
+
+Note: The user whose ID matches league.creatorId inherently has all admin permissions and should automatically bypass these checks.
+
+Step 2: Backend API Authorization
+
+Locate the endpoint responsible for creating a new session (e.g., POST /api/sessions).
+
+Add a Guard: Before creating the session, query the database to check the requesting user's status in the league. If user.id !== league.creatorId AND their league_members record does not have canHostSessions === true (or the equivalent 'HOST' role), return a 403 Forbidden error: "You do not have permission to start sessions in this league."
+
+New Endpoint: Create a new route (e.g., PATCH /api/leagues/:leagueId/members/:userId/permissions) that allows the League Admin to update the canHostSessions status of a specific member. Ensure only the creatorId can call this endpoint.
+
+Step 3: Frontend UI (Granting Permissions)
+
+Open the ManagePlayers (or League Members) bottom sheet/component.
+
+For users who have a claimed/linked account, add a UI Toggle Switch or Checkbox labeled "Can Start Games" (or "Host").
+
+Conditional Rendering: Only render this toggle if the current logged-in user is the League Admin (creatorId).
+
+Wire this toggle to the new PATCH endpoint to grant/revoke the permission instantly.
+
+Step 4: Frontend UX (Hiding the Start Button)
+
+Locate the "Start New Session" (Cash Game / Tournament) buttons on the League Dashboard.
+
+Check the current user's permissions from the fetched league data.
+
+If the user is a standard member without hosting rights, completely hide these buttons so they don't even see the option to start a game.

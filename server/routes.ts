@@ -92,7 +92,15 @@ export async function registerRoutes(
       sessionCount: sessionCountMap.get(p.name.toLowerCase().trim()) || 0,
     }));
 
-    res.json({ ...league, memberCount: members.length, players: playersWithCounts });
+    const membersWithPermissions = members.map(m => ({
+      userId: m.userId,
+      canHostSessions: m.canHostSessions,
+    }));
+
+    const currentMember = members.find(m => m.userId === userId);
+    const canHost = league.creatorId === userId || currentMember?.canHostSessions || false;
+
+    res.json({ ...league, memberCount: members.length, players: playersWithCounts, members: membersWithPermissions, canHost });
   });
 
   app.post(api.leagues.join.path, requireAuth, async (req, res) => {
@@ -323,6 +331,35 @@ export async function registerRoutes(
     }
   });
 
+  app.patch('/api/leagues/:leagueId/members/:userId/permissions', requireAuth, async (req, res) => {
+    try {
+      const leagueId = Number(req.params.leagueId);
+      const targetUserId = req.params.userId;
+      const requesterId = (req.user as any).claims.sub;
+      const { canHostSessions } = req.body;
+
+      if (typeof canHostSessions !== 'boolean') {
+        return res.status(400).json({ message: "canHostSessions must be a boolean" });
+      }
+
+      const league = await storage.getLeague(leagueId);
+      if (!league) return res.status(404).json({ message: "League not found" });
+
+      if (league.creatorId !== requesterId) {
+        return res.status(403).json({ message: "Only the league creator can update member permissions" });
+      }
+
+      const isMember = await storage.isLeagueMember(leagueId, targetUserId);
+      if (!isMember) return res.status(404).json({ message: "User is not a member of this league" });
+
+      const updated = await storage.updateMemberHostPermission(leagueId, targetUserId, canHostSessions);
+      res.json(updated);
+    } catch (err) {
+      console.error("Update permissions error:", err);
+      res.status(500).json({ message: "Internal Server Error" });
+    }
+  });
+
   app.delete(api.leagues.leave.path, requireAuth, async (req, res) => {
     try {
       const leagueId = Number(req.params.id);
@@ -382,6 +419,17 @@ export async function registerRoutes(
     try {
       const input = api.sessions.create.input.parse(req.body);
       const hostId = (req.user as any).claims.sub;
+
+      if (input.leagueId) {
+        const league = await storage.getLeague(input.leagueId);
+        if (league && league.creatorId !== hostId) {
+          const member = await storage.getLeagueMember(input.leagueId, hostId);
+          if (!member || !member.canHostSessions) {
+            return res.status(403).json({ message: "You do not have permission to start sessions in this league." });
+          }
+        }
+      }
+
       const code = randomBytes(3).toString('hex').toUpperCase();
 
       const session = await storage.createSession({

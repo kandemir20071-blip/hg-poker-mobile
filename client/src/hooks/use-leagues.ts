@@ -393,6 +393,34 @@ export function useKickMember() {
   });
 }
 
+export function useUpdateMemberPermission() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ leagueId, userId, canHostSessions }: { leagueId: number; userId: string; canHostSessions: boolean }) => {
+      const res = await fetch(`/api/leagues/${leagueId}/members/${userId}/permissions`, {
+        method: 'PATCH',
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ canHostSessions }),
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        throw new Error(err?.message || "Failed to update permissions");
+      }
+      return res.json();
+    },
+    onSuccess: (_, { leagueId }) => {
+      queryClient.invalidateQueries({ queryKey: [api.leagues.get.path, leagueId], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: [api.leagues.list.path], refetchType: 'all' });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    },
+  });
+}
+
 export function useMigrateToLeague() {
   const queryClient = useQueryClient();
   const { toast } = useToast();

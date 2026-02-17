@@ -26,8 +26,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useUnclaimPlayer, useMergePlayers, useRenamePlayer, useDeletePlayer, useKickMember } from "@/hooks/use-leagues";
-import { UserX, UserMinus, GitMerge, Search, AlertTriangle, Loader2, Pencil, Check, X, ArrowDownAZ, Activity, Trash2 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { useUnclaimPlayer, useMergePlayers, useRenamePlayer, useDeletePlayer, useKickMember, useUpdateMemberPermission } from "@/hooks/use-leagues";
+import { UserX, UserMinus, GitMerge, Search, AlertTriangle, Loader2, Pencil, Check, X, ArrowDownAZ, Activity, Trash2, Play } from "lucide-react";
 
 type LeaguePlayer = {
   id: number;
@@ -37,15 +38,21 @@ type LeaguePlayer = {
   sessionCount?: number;
 };
 
+type MemberPermission = {
+  userId: string;
+  canHostSessions: boolean;
+};
+
 interface LeagueAdminDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   leagueId: number;
   players: LeaguePlayer[];
   creatorId?: string;
+  members?: MemberPermission[];
 }
 
-export function LeagueAdminDialog({ open, onOpenChange, leagueId, players, creatorId }: LeagueAdminDialogProps) {
+export function LeagueAdminDialog({ open, onOpenChange, leagueId, players, creatorId, members = [] }: LeagueAdminDialogProps) {
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<"alphabetical" | "most_active">("alphabetical");
   const [mergeSource, setMergeSource] = useState<LeaguePlayer | null>(null);
@@ -61,6 +68,7 @@ export function LeagueAdminDialog({ open, onOpenChange, leagueId, players, creat
   const { mutate: rename, isPending: isRenaming } = useRenamePlayer();
   const { mutate: deletePlayer, isPending: isDeleting } = useDeletePlayer();
   const { mutate: kickMember, isPending: isKicking } = useKickMember();
+  const { mutate: updatePermission } = useUpdateMemberPermission();
 
   const sorted = [...players].sort((a, b) => {
     if (sortBy === "most_active") {
@@ -295,6 +303,23 @@ export function LeagueAdminDialog({ open, onOpenChange, leagueId, players, creat
                           Guest
                         </Badge>
                       )}
+                      {player.claimedByUserId && player.claimedByUserId !== creatorId && (() => {
+                        const memberPerm = members.find(m => m.userId === player.claimedByUserId);
+                        const isHost = memberPerm?.canHostSessions || false;
+                        return (
+                          <div className="flex items-center gap-1.5 shrink-0" data-testid={`toggle-host-${player.id}`}>
+                            <Play className="h-3 w-3 text-muted-foreground" />
+                            <Switch
+                              checked={isHost}
+                              onCheckedChange={(checked) => {
+                                updatePermission({ leagueId, userId: player.claimedByUserId!, canHostSessions: checked });
+                              }}
+                              className="scale-75"
+                              data-testid={`switch-host-${player.id}`}
+                            />
+                          </div>
+                        );
+                      })()}
                       {sortBy === "most_active" && player.sessionCount !== undefined && (
                         <Badge variant="outline" className="text-xs shrink-0 text-emerald-400 border-emerald-400/30" data-testid={`badge-sessions-${player.id}`}>
                           {player.sessionCount} {player.sessionCount === 1 ? "game" : "games"}

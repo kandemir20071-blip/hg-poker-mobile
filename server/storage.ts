@@ -50,7 +50,9 @@ export interface IStorage {
 
   addLeagueMember(member: InsertLeagueMember): Promise<LeagueMember>;
   getLeagueMembers(leagueId: number): Promise<LeagueMember[]>;
+  getLeagueMember(leagueId: number, userId: string): Promise<LeagueMember | undefined>;
   isLeagueMember(leagueId: number, userId: string): Promise<boolean>;
+  updateMemberHostPermission(leagueId: number, userId: string, canHost: boolean): Promise<LeagueMember>;
 
   addLeaguePlayer(player: InsertLeaguePlayer): Promise<LeaguePlayer>;
   getLeaguePlayers(leagueId: number): Promise<LeaguePlayer[]>;
@@ -285,10 +287,23 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(leagueMembers).where(eq(leagueMembers.leagueId, leagueId));
   }
 
-  async isLeagueMember(leagueId: number, userId: string): Promise<boolean> {
+  async getLeagueMember(leagueId: number, userId: string): Promise<LeagueMember | undefined> {
     const [member] = await db.select().from(leagueMembers)
       .where(and(eq(leagueMembers.leagueId, leagueId), eq(leagueMembers.userId, userId)));
+    return member;
+  }
+
+  async isLeagueMember(leagueId: number, userId: string): Promise<boolean> {
+    const member = await this.getLeagueMember(leagueId, userId);
     return !!member;
+  }
+
+  async updateMemberHostPermission(leagueId: number, userId: string, canHost: boolean): Promise<LeagueMember> {
+    const [updated] = await db.update(leagueMembers)
+      .set({ canHostSessions: canHost })
+      .where(and(eq(leagueMembers.leagueId, leagueId), eq(leagueMembers.userId, userId)))
+      .returning();
+    return updated;
   }
 
   async addLeaguePlayer(player: InsertLeaguePlayer): Promise<LeaguePlayer> {

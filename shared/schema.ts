@@ -25,6 +25,7 @@ export const leagueMembers = pgTable("league_members", {
   leagueId: integer("league_id").references(() => leagues.id).notNull(),
   userId: text("user_id").references(() => users.id).notNull(),
   joinedAt: timestamp("joined_at").defaultNow().notNull(),
+  canHostSessions: boolean("can_host_sessions").default(false).notNull(),
 }, (table) => [
   uniqueIndex("league_members_league_user_idx").on(table.leagueId, table.userId),
 ]);
