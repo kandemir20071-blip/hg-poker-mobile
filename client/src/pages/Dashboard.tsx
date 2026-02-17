@@ -11,7 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Coins, Trophy, TrendingUp, History, Play, Loader2, ArrowRight, Pencil, Trash2, AlertTriangle, Users, Plus, LogIn, User, Shield, Copy, Check, ArrowDownLeft, ArrowUpRight, DollarSign, Info, Clock, Percent, X, ChevronRight } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Coins, Trophy, TrendingUp, History, Play, Loader2, ArrowRight, Pencil, Trash2, AlertTriangle, Users, Plus, LogIn, User, Shield, Copy, Check, ArrowDownLeft, ArrowUpRight, DollarSign, Info, Clock, Percent, X, ChevronRight, Search, Activity, ArrowDownAZ } from "lucide-react";
 import frogClockSrc from "@assets/image-removebg-preview-2_1771174670390.png";
 import frogBankerSrc from "@assets/image-removebg-preview-3_1771176202817.png";
 import frogBalanceSrc from "@assets/image-removebg-preview-4_1771176899418.png";
@@ -1005,22 +1006,74 @@ function JoinLeagueDialog({ open, onOpenChange, code, onCodeChange, onJoin, isJo
 }
 
 function ClaimNameDialog({ open, onOpenChange, league, onClaim }: any) {
+  const [claimSearch, setClaimSearch] = useState("");
+  const [claimSort, setClaimSort] = useState<"active" | "az">("active");
+
   const unclaimedPlayers = league?.players?.filter((p: any) => !p.claimedByUserId) || [];
 
+  const filtered = unclaimedPlayers
+    .filter((p: any) => p.name.toLowerCase().includes(claimSearch.toLowerCase()))
+    .sort((a: any, b: any) => {
+      if (claimSort === "az") return a.name.localeCompare(b.name);
+      const diff = (b.sessionCount ?? 0) - (a.sessionCount ?? 0);
+      return diff !== 0 ? diff : a.name.localeCompare(b.name);
+    });
+
   return (
-    <ResponsiveModal open={open} onOpenChange={onOpenChange}>
-      <ResponsiveModalContent className="glass-card sm:max-w-md max-h-[90vh] overflow-y-auto">
+    <ResponsiveModal open={open} onOpenChange={(v) => { if (!v) { setClaimSearch(""); } onOpenChange(v); }}>
+      <ResponsiveModalContent className="glass-card sm:max-w-md max-h-[90vh] flex flex-col">
         <ResponsiveModalHeader>
           <ResponsiveModalTitle>Claim Your Name</ResponsiveModalTitle>
           <ResponsiveModalDescription>Select your player name to link it to your account. This lets the app track your personal stats.</ResponsiveModalDescription>
         </ResponsiveModalHeader>
-        <div className="space-y-2 mt-2 max-h-[300px] overflow-y-auto">
-          {unclaimedPlayers.length > 0 ? unclaimedPlayers.map((player: any) => (
-            <button key={player.id} onClick={() => onClaim(player.id)} className="w-full flex items-center justify-between p-3 rounded-lg bg-background/40 border border-white/[0.06] hover:border-primary/40 transition-colors text-left" data-testid={`button-claim-${player.id}`}>
-              <span className="text-white font-medium">{player.name}</span>
-              <span className="text-xs text-muted-foreground">Claim</span>
+        {unclaimedPlayers.length > 0 && (
+          <div className="flex items-center gap-2 mt-1">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                value={claimSearch}
+                onChange={(e) => setClaimSearch(e.target.value)}
+                placeholder="Search your name..."
+                className="pl-9 bg-background/50 border-white/[0.08] min-h-[44px] text-base"
+                data-testid="input-claim-search"
+              />
+            </div>
+            <Select value={claimSort} onValueChange={(v) => setClaimSort(v as "active" | "az")}>
+              <SelectTrigger className="w-[150px] bg-background/50 border-white/[0.08]" data-testid="select-claim-sort">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="active">
+                  <span className="flex items-center gap-2"><Activity className="h-3.5 w-3.5" /> Most Active</span>
+                </SelectItem>
+                <SelectItem value="az">
+                  <span className="flex items-center gap-2"><ArrowDownAZ className="h-3.5 w-3.5" /> A-Z</span>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+        <div className="flex-1 overflow-y-auto mt-2 min-h-0 max-h-[50vh] space-y-1.5">
+          {filtered.length > 0 ? filtered.map((player: any) => (
+            <button
+              key={player.id}
+              onClick={() => onClaim(player.id)}
+              className="w-full flex items-center justify-between gap-3 p-3 rounded-lg bg-background/40 border border-white/[0.06] hover:border-primary/40 transition-colors text-left min-h-[48px]"
+              data-testid={`button-claim-${player.id}`}
+            >
+              <span className="font-medium truncate" data-testid={`text-claim-name-${player.id}`}>{player.name}</span>
+              <div className="flex items-center gap-2 shrink-0">
+                {(player.sessionCount ?? 0) > 0 && (
+                  <Badge variant="outline" className="text-xs text-emerald-400 border-emerald-400/30" data-testid={`badge-claim-games-${player.id}`}>
+                    {player.sessionCount} {player.sessionCount === 1 ? "game" : "games"}
+                  </Badge>
+                )}
+                <span className="text-xs text-muted-foreground">Claim</span>
+              </div>
             </button>
-          )) : (
+          )) : unclaimedPlayers.length > 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">No names match your search.</p>
+          ) : (
             <p className="text-sm text-muted-foreground text-center py-4">No unclaimed names available. All player names have been claimed.</p>
           )}
         </div>
