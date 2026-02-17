@@ -66,13 +66,17 @@ export function AddPlayerDialog({ sessionId, leagueId, existingPlayerNames = [],
     });
   };
 
+  const isDuplicateInSession = useMemo(() => {
+    const trimmed = newName.trim().toLowerCase();
+    return trimmed.length > 0 && existingNamesLower.includes(trimmed);
+  }, [newName, existingNamesLower]);
+
   const handleCreateNew = (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = newName.trim();
     if (!trimmed) return;
 
-    if (existingNamesLower.includes(trimmed.toLowerCase())) {
-      setNameError("This player is already in the session.");
+    if (isDuplicateInSession) {
       return;
     }
 
@@ -206,7 +210,13 @@ export function AddPlayerDialog({ sessionId, leagueId, existingPlayerNames = [],
                   autoFocus
                   data-testid="input-player-name"
                 />
-                {nameError && (
+                {isDuplicateInSession && (
+                  <p className="text-sm text-red-400 flex items-center gap-1.5" data-testid="text-duplicate-warning">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                    Player already in game.
+                  </p>
+                )}
+                {nameError && !isDuplicateInSession && (
                   <p className="text-sm text-red-400 flex items-center gap-1.5" data-testid="text-name-error">
                     <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                     {nameError}
@@ -217,7 +227,7 @@ export function AddPlayerDialog({ sessionId, leagueId, existingPlayerNames = [],
               <Button
                 type="submit"
                 className="w-full rounded-full font-semibold min-h-[44px]"
-                disabled={isPending || !newName.trim()}
+                disabled={isPending || !newName.trim() || isDuplicateInSession}
                 data-testid="button-confirm-create-player"
               >
                 {isPending ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "Create & Add to Session"}

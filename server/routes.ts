@@ -378,6 +378,12 @@ export async function registerRoutes(
       let isNewPlayer = false;
       if (userId) player = await storage.getPlayerBySessionAndUser(session.id, userId);
       if (!player) {
+        const existingPlayers = await storage.getSessionPlayers(session.id);
+        const nameExists = existingPlayers.some(
+          p => p.name.toLowerCase().trim() === name.toLowerCase().trim()
+        );
+        if (nameExists) return res.status(400).json({ message: "Player is already in this session." });
+
         player = await storage.addPlayer({ sessionId: session.id, name, userId });
         isNewPlayer = true;
       }
@@ -533,6 +539,12 @@ export async function registerRoutes(
       const session = await storage.getSession(sessionId);
       if (!session) return res.status(404).json({ message: "Session not found" });
       if (session.hostId !== (req.user as any).claims.sub) return res.status(401).json({ message: "Only the host can add players manually" });
+
+      const existingPlayers = await storage.getSessionPlayers(sessionId);
+      const nameExists = existingPlayers.some(
+        p => p.name.toLowerCase().trim() === input.name.toLowerCase().trim()
+      );
+      if (nameExists) return res.status(400).json({ message: "Player is already in this session." });
 
       const player = await storage.addPlayer({ sessionId, name: input.name, userId: null });
 

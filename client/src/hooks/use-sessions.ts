@@ -213,15 +213,18 @@ export function useAddPlayerManually() {
         body: JSON.stringify({ name }),
         credentials: "include",
       });
-      if (!res.ok) throw new Error("Failed to add player");
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.message || "Failed to add player");
+      }
       return res.json();
     },
     onSuccess: (_, { sessionId }) => {
       queryClient.invalidateQueries({ queryKey: [api.sessions.get.path, sessionId] });
       toast({ title: "Player Added", description: "Player has been added to the session." });
     },
-    onError: () => {
-      toast({ title: "Error", description: "Could not add player", variant: "destructive" });
+    onError: (err: Error) => {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
     },
   });
 }
