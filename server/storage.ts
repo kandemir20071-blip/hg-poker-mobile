@@ -395,6 +395,41 @@ export class DatabaseStorage implements IStorage {
     await db.delete(leaguePlayers).where(eq(leaguePlayers.id, playerId));
   }
 
+  async deleteLeaguePlayerWithData(playerId: number, leagueId: number): Promise<void> {
+    const player = await this.getLeaguePlayer(playerId);
+    if (!player) throw new Error("Player not found");
+
+    await db.transaction(async (tx) => {
+      const leagueSessions = await tx.select({ id: pokerSessions.id })
+        .from(pokerSessions)
+        .where(eq(pokerSessions.leagueId, leagueId));
+
+      const sessionIds = leagueSessions.map(s => s.id);
+
+      if (sessionIds.length > 0) {
+        const matchingSessionPlayers = await tx.select({ id: sessionPlayers.id })
+          .from(sessionPlayers)
+          .where(and(
+            inArray(sessionPlayers.sessionId, sessionIds),
+            sql`lower(trim(${sessionPlayers.name})) = lower(trim(${player.name}))`,
+          ));
+
+        const spIds = matchingSessionPlayers.map(sp => sp.id);
+        if (spIds.length > 0) {
+          await tx.delete(transactions).where(inArray(transactions.playerId, spIds));
+          await tx.delete(sessionPlayers).where(inArray(sessionPlayers.id, spIds));
+        }
+      }
+
+      await tx.delete(gameResults).where(and(
+        eq(gameResults.leagueId, leagueId),
+        sql`lower(trim(${gameResults.playerName})) = lower(trim(${player.name}))`,
+      ));
+
+      await tx.delete(leaguePlayers).where(eq(leaguePlayers.id, playerId));
+    });
+  }
+
   async getPlayerSessionCounts(leagueId: number): Promise<Map<string, number>> {
     const rows = await db
       .select({

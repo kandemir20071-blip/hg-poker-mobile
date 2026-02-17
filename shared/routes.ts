@@ -342,6 +342,18 @@ export const api = {
         401: errorSchemas.unauthorized,
       },
     },
+    deletePlayer: {
+      method: 'POST' as const,
+      path: '/api/leagues/:id/delete-player' as const,
+      input: z.object({
+        playerId: z.number(),
+      }),
+      responses: {
+        200: z.any(),
+        400: errorSchemas.validation,
+        401: errorSchemas.unauthorized,
+      },
+    },
   },
   import: {
     upload: {

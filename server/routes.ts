@@ -261,6 +261,28 @@ export async function registerRoutes(
     }
   });
 
+  app.post(api.leagues.deletePlayer.path, requireAuth, async (req, res) => {
+    try {
+      const leagueId = Number(req.params.id);
+      const { playerId } = api.leagues.deletePlayer.input.parse(req.body);
+      const userId = (req.user as any).claims.sub;
+
+      const league = await storage.getLeague(leagueId);
+      if (!league) return res.status(404).json({ message: "League not found" });
+      if (league.creatorId !== userId) return res.status(401).json({ message: "Only the league creator can delete players" });
+
+      const player = await storage.getLeaguePlayer(playerId);
+      if (!player || player.leagueId !== leagueId) return res.status(404).json({ message: "Player not found in this league" });
+
+      await storage.deleteLeaguePlayerWithData(playerId, leagueId);
+      res.json({ success: true });
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
+      console.error("Delete player error:", err);
+      res.status(500).json({ message: "Internal Server Error" });
+    }
+  });
+
   // League sessions endpoint
   app.get('/api/leagues/:id/sessions', requireAuth, async (req, res) => {
     const leagueId = Number(req.params.id);

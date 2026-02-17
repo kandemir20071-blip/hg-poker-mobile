@@ -16,8 +16,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { useUnclaimPlayer, useMergePlayers, useRenamePlayer } from "@/hooks/use-leagues";
-import { UserX, GitMerge, Search, AlertTriangle, Loader2, Pencil, Check, X, ArrowDownAZ, Activity } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useUnclaimPlayer, useMergePlayers, useRenamePlayer, useDeletePlayer } from "@/hooks/use-leagues";
+import { UserX, GitMerge, Search, AlertTriangle, Loader2, Pencil, Check, X, ArrowDownAZ, Activity, Trash2 } from "lucide-react";
 
 type LeaguePlayer = {
   id: number;
@@ -42,10 +52,12 @@ export function LeagueAdminDialog({ open, onOpenChange, leagueId, players }: Lea
   const [mergeConfirmText, setMergeConfirmText] = useState("");
   const [editingPlayerId, setEditingPlayerId] = useState<number | null>(null);
   const [editName, setEditName] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<LeaguePlayer | null>(null);
 
   const { mutate: unclaim, isPending: isUnclaiming } = useUnclaimPlayer();
   const { mutate: merge, isPending: isMerging } = useMergePlayers();
   const { mutate: rename, isPending: isRenaming } = useRenamePlayer();
+  const { mutate: deletePlayer, isPending: isDeleting } = useDeletePlayer();
 
   const sorted = [...players].sort((a, b) => {
     if (sortBy === "most_active") {
@@ -93,6 +105,15 @@ export function LeagueAdminDialog({ open, onOpenChange, leagueId, players }: Lea
       onSuccess: () => {
         setEditingPlayerId(null);
         setEditName("");
+      },
+    });
+  };
+
+  const handleConfirmDelete = () => {
+    if (!deleteTarget) return;
+    deletePlayer({ leagueId, playerId: deleteTarget.id }, {
+      onSuccess: () => {
+        setDeleteTarget(null);
       },
     });
   };
@@ -307,6 +328,15 @@ export function LeagueAdminDialog({ open, onOpenChange, leagueId, players }: Lea
                         <GitMerge className="h-3.5 w-3.5 mr-1" />
                         Merge
                       </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => setDeleteTarget(player)}
+                        className="text-red-400"
+                        data-testid={`button-delete-${player.id}`}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
                     </div>
                   </>
                 )}
@@ -315,6 +345,31 @@ export function LeagueAdminDialog({ open, onOpenChange, leagueId, players }: Lea
           )}
         </div>
       </DialogContent>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
+        <AlertDialogContent className="glass-card">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-400" /> Delete Player
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
+              Are you sure you want to delete <span className="text-white font-medium">{deleteTarget?.name}</span>? All associated data (game history, transactions, and session records) will be permanently removed. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting} data-testid="button-cancel-delete">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700 text-white"
+              data-testid="button-confirm-delete"
+            >
+              {isDeleting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
+              Delete Permanently
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }
