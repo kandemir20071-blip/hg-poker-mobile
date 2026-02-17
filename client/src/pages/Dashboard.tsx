@@ -228,6 +228,8 @@ function LeaguesTab({
   const leagueWithPlayers = leagueDetail || currentLeague;
   const isCreator = currentLeague?.creatorId === user?.id;
   const canHost = isCreator || leagueWithPlayers?.canHost || false;
+  const hasClaimedProfile = leagueWithPlayers?.players?.some((p: any) => p.claimedByUserId === user?.id) ?? false;
+  const hasUnclaimedNames = (leagueWithPlayers?.players?.filter((p: any) => !p.claimedByUserId)?.length ?? 0) > 0;
 
   const activeSessions = (leagueSessions || []).filter((s: any) => s.status === 'active');
   const recentSessions = (leagueSessions || []).filter((s: any) => s.status === 'completed');
@@ -666,6 +668,34 @@ function LeaguesTab({
           </ResponsiveModal>
         </div>
       </div>
+
+      {selectedLeagueId && !hasClaimedProfile && hasUnclaimedNames && (
+        <div
+          className="relative overflow-hidden rounded-xl border border-primary/30 bg-gradient-to-br from-emerald-500/15 via-emerald-600/10 to-transparent p-5 mb-1"
+          data-testid="card-claim-onboarding"
+        >
+          <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full -translate-y-8 translate-x-8 blur-2xl" />
+          <div className="flex items-start gap-3 mb-3">
+            <div className="rounded-full bg-primary/20 p-2.5 shrink-0">
+              <User className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <h3 className="font-bold text-base text-white">Welcome to the League!</h3>
+              <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+                To track your stats, view your profit history, and join games, link your account to your player name.
+              </p>
+            </div>
+          </div>
+          <Button
+            className="w-full font-semibold glow-emerald min-h-[48px] text-base"
+            onClick={() => setShowClaimDialog(true)}
+            data-testid="button-claim-hero"
+          >
+            <User className="mr-2 h-4 w-4" />
+            Claim Your Player Profile
+          </Button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
         <StatCard title="Games Played" value={leagueStats?.totalGames || 0} icon={History} customIconSrc={frogClockSrc} />
