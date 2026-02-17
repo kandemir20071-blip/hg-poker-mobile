@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+
 import { useToast } from "@/hooks/use-toast";
 import { useLeagues } from "@/hooks/use-leagues";
 import { api } from "@shared/routes";
@@ -365,46 +365,21 @@ export default function ImportWizard() {
                 Paste Text / Notes
               </Button>
 
-              <Button
-                variant="ghost"
-                className="w-full"
-                onClick={() => {
-                  fetchExistingNames();
-                  setRows([{ date: "", playerName: "", buyIn: 0, cashOut: 0 }]);
-                  setStep("review");
-                }}
-                data-testid="button-manual-entry"
-              >
-                <Table2 className="mr-2 h-5 w-5" />
-                Enter Data Manually
-              </Button>
-
-              <div className="flex items-center gap-2">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" data-testid="button-template-info">
-                      <Info className="h-4 w-4 text-muted-foreground" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="max-w-sm p-4" data-testid="tooltip-template">
-                    <p className="font-semibold text-sm mb-2">Perfect PDF Format</p>
-                    <div className="space-y-1 text-xs text-muted-foreground font-mono leading-relaxed">
-                      <p className="text-primary font-semibold">15.11.2023</p>
-                      <p>Marvin 20€ Endstand: 38€</p>
-                      <p>Alex 10€ Endstand: 0€</p>
-                      <p>Jonas 15€ Endstand: 22€</p>
-                      <p className="text-primary font-semibold mt-2">22.11.2023</p>
-                      <p>Marvin 30€ Endstand: 45€</p>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-3">
-                      Dates group entries into sessions. Each line: Name Buy-in Endstand: Cash-out
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-                <span className="text-xs text-muted-foreground">
-                  View the perfect PDF format template
-                </span>
-              </div>
+              <Card className="bg-white/[0.03] border-white/[0.06] p-4 space-y-3" data-testid="card-format-guide">
+                <div className="flex items-center gap-2">
+                  <Info className="h-4 w-4 text-primary shrink-0" />
+                  <p className="text-sm font-medium">How to format your text</p>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Include the Date, Player Name, Buy-in amount, and Cash-out amount. Separate with commas, tabs, or spaces.
+                </p>
+                <pre className="bg-black/30 rounded-md p-3 text-xs font-mono text-muted-foreground leading-relaxed overflow-x-auto" data-testid="pre-format-example">
+{`Date, Player, Buy-in, Cash-out
+2026-02-15, PokerPete, 50, 120
+2026-02-15, CardShark, 50, 0
+2026-02-15, LuckyLarry, 100, 80`}
+                </pre>
+              </Card>
             </>
           ) : (
             <div className="space-y-4">
@@ -422,27 +397,26 @@ export default function ImportWizard() {
                 </Button>
               </div>
               <p className="text-sm text-muted-foreground">
-                Paste your game history below. The app will try to detect dates,
-                names, and amounts.
+                Paste your game history below. Include dates, names, buy-ins, and cash-outs in any format.
               </p>
-              <Card className="bg-white/5 border-white/10 p-3">
-                <code className="text-xs text-muted-foreground leading-relaxed block font-mono">
-                  <span className="text-primary">15.11.2023</span>
-                  <br />
-                  Marvin 20€ Endstand: 38€
-                  <br />
-                  Alex 10€ Endstand: 0€
-                  <br />
-                  <span className="text-primary">22.11.2023</span>
-                  <br />
-                  Marvin 30€ Endstand: 45€
-                </code>
+              <Card className="bg-white/[0.03] border-white/[0.06] p-3">
+                <p className="text-xs text-muted-foreground mb-2 font-medium">Example formats:</p>
+                <pre className="text-xs text-muted-foreground font-mono leading-relaxed whitespace-pre-wrap">
+{`Date, Player, Buy-in, Cash-out
+2026-02-15, PokerPete, 50, 120
+2026-02-15, CardShark, 50, 0
+
+or date headers:
+15.02.2026
+PokerPete 50 Endstand: 120
+CardShark 50 Endstand: 0`}
+                </pre>
               </Card>
               <textarea
                 value={pasteText}
                 onChange={(e) => setPasteText(e.target.value)}
                 placeholder="Paste your game notes here..."
-                className="w-full h-48 bg-card border border-white/10 rounded-lg p-4 text-sm text-white resize-y focus:outline-none focus:ring-2 focus:ring-primary/50"
+                className="w-full min-h-[240px] bg-card border border-white/10 rounded-lg p-4 text-sm text-white resize-y focus:outline-none focus:ring-2 focus:ring-primary/50"
                 data-testid="textarea-paste"
               />
               <Button
