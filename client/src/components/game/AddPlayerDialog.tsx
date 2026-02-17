@@ -33,7 +33,7 @@ export function AddPlayerDialog({ sessionId, leagueId, existingPlayerNames = [],
 
   const availablePlayers = useMemo(() => {
     if (!leaguePlayersRaw) return [];
-    return (leaguePlayersRaw as { id: number; name: string; sessionCount?: number }[])
+    return (leaguePlayersRaw as { id: number; name: string; sessionCount?: number; claimedByUserId?: string | null }[])
       .filter(p => !existingNamesLower.includes(p.name.toLowerCase().trim()))
       .sort((a, b) => {
         if (sortBy === "most_active") {
@@ -147,9 +147,9 @@ export function AddPlayerDialog({ sessionId, leagueId, existingPlayerNames = [],
                       <SelectItem key={p.id} value={p.name} data-testid={`option-player-${p.id}`}>
                         <span className="flex items-center gap-2">
                           {p.name}
-                          {sortBy === "most_active" && (p as any).sessionCount !== undefined && (
+                          {sortBy === "most_active" && p.sessionCount !== undefined && (
                             <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0 text-emerald-400 border-emerald-400/30 no-default-hover-elevate no-default-active-elevate">
-                              {(p as any).sessionCount}
+                              {p.sessionCount}
                             </Badge>
                           )}
                         </span>

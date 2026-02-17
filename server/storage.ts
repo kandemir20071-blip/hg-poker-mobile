@@ -445,7 +445,12 @@ export class DatabaseStorage implements IStorage {
       })
       .from(sessionPlayers)
       .innerJoin(pokerSessions, eq(sessionPlayers.sessionId, pokerSessions.id))
-      .where(eq(pokerSessions.leagueId, leagueId))
+      .where(
+        and(
+          eq(pokerSessions.leagueId, leagueId),
+          eq(pokerSessions.status, 'completed')
+        )
+      )
       .groupBy(sql`lower(trim(${sessionPlayers.name}))`);
 
     const map = new Map<string, number>();
