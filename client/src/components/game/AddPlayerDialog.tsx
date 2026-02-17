@@ -3,10 +3,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAddPlayerManually } from "@/hooks/use-sessions";
 import { useLeaguePlayers } from "@/hooks/use-leagues";
-import { UserPlus, Loader2, Plus, AlertCircle } from "lucide-react";
+import { UserPlus, Loader2, Plus, AlertCircle, ArrowDownAZ, Activity } from "lucide-react";
 
 interface AddPlayerDialogProps {
   sessionId: number;
@@ -21,6 +22,7 @@ export function AddPlayerDialog({ sessionId, leagueId, existingPlayerNames = [],
   const [showCreateNew, setShowCreateNew] = useState(false);
   const [newName, setNewName] = useState("");
   const [nameError, setNameError] = useState("");
+  const [sortBy, setSortBy] = useState<"alphabetical" | "most_active">("most_active");
   const { mutate, isPending } = useAddPlayerManually();
   const { data: leaguePlayersRaw, isLoading: isLoadingRoster } = useLeaguePlayers(leagueId ?? null);
 
@@ -31,10 +33,16 @@ export function AddPlayerDialog({ sessionId, leagueId, existingPlayerNames = [],
 
   const availablePlayers = useMemo(() => {
     if (!leaguePlayersRaw) return [];
-    return (leaguePlayersRaw as { id: number; name: string }[])
+    return (leaguePlayersRaw as { id: number; name: string; sessionCount?: number }[])
       .filter(p => !existingNamesLower.includes(p.name.toLowerCase().trim()))
-      .sort((a, b) => a.name.localeCompare(b.name));
-  }, [leaguePlayersRaw, existingNamesLower]);
+      .sort((a, b) => {
+        if (sortBy === "most_active") {
+          const diff = (b.sessionCount ?? 0) - (a.sessionCount ?? 0);
+          return diff !== 0 ? diff : a.name.localeCompare(b.name);
+        }
+        return a.name.localeCompare(b.name);
+      });
+  }, [leaguePlayersRaw, existingNamesLower, sortBy]);
 
   const allLeagueNames = useMemo(() => {
     if (!leaguePlayersRaw) return [];
@@ -110,7 +118,22 @@ export function AddPlayerDialog({ sessionId, leagueId, existingPlayerNames = [],
           {hasRoster && !showCreateNew && (
             <>
               <div className="grid gap-2">
-                <Label className="text-muted-foreground">Select from Roster</Label>
+                <div className="flex items-center justify-between gap-2">
+                  <Label className="text-muted-foreground">Select from Roster</Label>
+                  <Select value={sortBy} onValueChange={(v) => setSortBy(v as "alphabetical" | "most_active")}>
+                    <SelectTrigger className="w-[140px] h-8 text-xs bg-background/50 border-white/[0.08]" data-testid="select-sort-roster">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="most_active">
+                        <span className="flex items-center gap-1.5"><Activity className="h-3 w-3" /> Most Active</span>
+                      </SelectItem>
+                      <SelectItem value="alphabetical">
+                        <span className="flex items-center gap-1.5"><ArrowDownAZ className="h-3 w-3" /> A-Z</span>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 <Select value={selectedPlayer} onValueChange={setSelectedPlayer}>
                   <SelectTrigger className="bg-background/50 border-white/[0.08] min-h-[44px] text-base" data-testid="select-roster-player">
                     <SelectValue placeholder="Choose a player..." />
@@ -118,7 +141,14 @@ export function AddPlayerDialog({ sessionId, leagueId, existingPlayerNames = [],
                   <SelectContent>
                     {availablePlayers.map(p => (
                       <SelectItem key={p.id} value={p.name} data-testid={`option-player-${p.id}`}>
-                        {p.name}
+                        <span className="flex items-center gap-2">
+                          {p.name}
+                          {sortBy === "most_active" && (p as any).sessionCount !== undefined && (
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0 text-emerald-400 border-emerald-400/30 no-default-hover-elevate no-default-active-elevate">
+                              {(p as any).sessionCount}
+                            </Badge>
+                          )}
+                        </span>
                       </SelectItem>
                     ))}
                   </SelectContent>
