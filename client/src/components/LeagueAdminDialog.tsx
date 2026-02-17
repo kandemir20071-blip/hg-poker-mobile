@@ -26,8 +26,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useUnclaimPlayer, useMergePlayers, useRenamePlayer, useDeletePlayer } from "@/hooks/use-leagues";
-import { UserX, GitMerge, Search, AlertTriangle, Loader2, Pencil, Check, X, ArrowDownAZ, Activity, Trash2 } from "lucide-react";
+import { useUnclaimPlayer, useMergePlayers, useRenamePlayer, useDeletePlayer, useKickMember } from "@/hooks/use-leagues";
+import { UserX, UserMinus, GitMerge, Search, AlertTriangle, Loader2, Pencil, Check, X, ArrowDownAZ, Activity, Trash2 } from "lucide-react";
 
 type LeaguePlayer = {
   id: number;
@@ -42,9 +42,10 @@ interface LeagueAdminDialogProps {
   onOpenChange: (open: boolean) => void;
   leagueId: number;
   players: LeaguePlayer[];
+  creatorId?: string;
 }
 
-export function LeagueAdminDialog({ open, onOpenChange, leagueId, players }: LeagueAdminDialogProps) {
+export function LeagueAdminDialog({ open, onOpenChange, leagueId, players, creatorId }: LeagueAdminDialogProps) {
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<"alphabetical" | "most_active">("alphabetical");
   const [mergeSource, setMergeSource] = useState<LeaguePlayer | null>(null);
@@ -53,11 +54,13 @@ export function LeagueAdminDialog({ open, onOpenChange, leagueId, players }: Lea
   const [editingPlayerId, setEditingPlayerId] = useState<number | null>(null);
   const [editName, setEditName] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<LeaguePlayer | null>(null);
+  const [kickTarget, setKickTarget] = useState<LeaguePlayer | null>(null);
 
   const { mutate: unclaim, isPending: isUnclaiming } = useUnclaimPlayer();
   const { mutate: merge, isPending: isMerging } = useMergePlayers();
   const { mutate: rename, isPending: isRenaming } = useRenamePlayer();
   const { mutate: deletePlayer, isPending: isDeleting } = useDeletePlayer();
+  const { mutate: kickMember, isPending: isKicking } = useKickMember();
 
   const sorted = [...players].sort((a, b) => {
     if (sortBy === "most_active") {
@@ -319,6 +322,17 @@ export function LeagueAdminDialog({ open, onOpenChange, leagueId, players }: Lea
                           Unclaim
                         </Button>
                       )}
+                      {player.claimedByUserId && player.claimedByUserId !== creatorId && (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => setKickTarget(player)}
+                          className="text-red-400"
+                          data-testid={`button-kick-${player.id}`}
+                        >
+                          <UserMinus className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
                       <Button
                         size="sm"
                         variant="ghost"
@@ -345,6 +359,37 @@ export function LeagueAdminDialog({ open, onOpenChange, leagueId, players }: Lea
           )}
         </div>
       </DialogContent>
+
+      <AlertDialog open={!!kickTarget} onOpenChange={(open) => { if (!open) setKickTarget(null); }}>
+        <AlertDialogContent className="glass-card">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <UserMinus className="h-5 w-5 text-red-400" /> Remove Member
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
+              Are you sure you want to remove <span className="text-white font-medium">{kickTarget?.name}</span> from the league? They will lose access to this dashboard, but their past game history will remain on the leaderboard.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isKicking} data-testid="button-cancel-kick">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (kickTarget?.claimedByUserId) {
+                  kickMember({ leagueId, userId: kickTarget.claimedByUserId }, {
+                    onSuccess: () => setKickTarget(null),
+                  });
+                }
+              }}
+              disabled={isKicking}
+              className="bg-red-600 hover:bg-red-700 text-white"
+              data-testid="button-confirm-kick"
+            >
+              {isKicking ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <UserMinus className="h-4 w-4 mr-2" />}
+              Remove Member
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
         <AlertDialogContent className="glass-card">

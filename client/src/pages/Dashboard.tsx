@@ -869,6 +869,7 @@ function LeaguesTab({
           onOpenChange={setShowAdminDialog}
           leagueId={selectedLeagueId}
           players={leagueWithPlayers.players}
+          creatorId={currentLeague?.creatorId}
         />
       )}
 

@@ -65,6 +65,7 @@ export interface IStorage {
   getPlayerSessionCounts(leagueId: number): Promise<Map<string, number>>;
   flagSessionUnbalanced(id: number, isUnbalanced: boolean): Promise<void>;
   removeLeagueMember(leagueId: number, userId: string): Promise<void>;
+  kickLeagueMember(leagueId: number, userId: string): Promise<void>;
   deleteLeague(leagueId: number): Promise<void>;
 }
 
@@ -459,6 +460,15 @@ export class DatabaseStorage implements IStorage {
   async removeLeagueMember(leagueId: number, userId: string): Promise<void> {
     await db.delete(leagueMembers)
       .where(and(eq(leagueMembers.leagueId, leagueId), eq(leagueMembers.userId, userId)));
+  }
+
+  async kickLeagueMember(leagueId: number, userId: string): Promise<void> {
+    await db.delete(leagueMembers)
+      .where(and(eq(leagueMembers.leagueId, leagueId), eq(leagueMembers.userId, userId)));
+
+    await db.update(leaguePlayers)
+      .set({ claimedByUserId: null })
+      .where(and(eq(leaguePlayers.leagueId, leagueId), eq(leaguePlayers.claimedByUserId, userId)));
   }
 
   async deleteLeague(leagueId: number): Promise<void> {

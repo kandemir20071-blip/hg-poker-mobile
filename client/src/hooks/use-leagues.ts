@@ -364,6 +364,35 @@ export function useDeleteLeague() {
   });
 }
 
+export function useKickMember() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ leagueId, userId }: { leagueId: number; userId: string }) => {
+      const url = buildUrl(api.leagues.kickMember.path, { leagueId, userId });
+      const res = await fetch(url, {
+        method: 'DELETE',
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        throw new Error(err?.message || "Failed to remove member");
+      }
+      return res.json();
+    },
+    onSuccess: (_, { leagueId }) => {
+      queryClient.invalidateQueries({ queryKey: [api.leagues.list.path], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ['/api/leagues', leagueId], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: [api.stats.league.path], refetchType: 'all' });
+      toast({ title: "Member Removed", description: "User has been removed from the league.", variant: "destructive" });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    },
+  });
+}
+
 export function useMigrateToLeague() {
   const queryClient = useQueryClient();
   const { toast } = useToast();

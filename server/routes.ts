@@ -295,6 +295,34 @@ export async function registerRoutes(
     }
   });
 
+  app.delete(api.leagues.kickMember.path, requireAuth, async (req, res) => {
+    try {
+      const leagueId = Number(req.params.leagueId);
+      const targetUserId = req.params.userId;
+      const requesterId = (req.user as any).claims.sub;
+
+      const league = await storage.getLeague(leagueId);
+      if (!league) return res.status(404).json({ message: "League not found" });
+
+      if (league.creatorId !== requesterId) {
+        return res.status(401).json({ message: "Only the league creator can remove members" });
+      }
+
+      if (targetUserId === requesterId) {
+        return res.status(400).json({ message: "You cannot kick yourself from the league" });
+      }
+
+      const isMember = await storage.isLeagueMember(leagueId, targetUserId);
+      if (!isMember) return res.status(404).json({ message: "User is not a member of this league" });
+
+      await storage.kickLeagueMember(leagueId, targetUserId);
+      res.json({ success: true });
+    } catch (err) {
+      console.error("Kick member error:", err);
+      res.status(500).json({ message: "Internal Server Error" });
+    }
+  });
+
   app.delete(api.leagues.leave.path, requireAuth, async (req, res) => {
     try {
       const leagueId = Number(req.params.id);

@@ -354,6 +354,16 @@ export const api = {
         401: errorSchemas.unauthorized,
       },
     },
+    kickMember: {
+      method: 'DELETE' as const,
+      path: '/api/leagues/:leagueId/members/:userId' as const,
+      responses: {
+        200: z.object({ success: z.boolean() }),
+        400: errorSchemas.validation,
+        401: errorSchemas.unauthorized,
+        404: errorSchemas.notFound,
+      },
+    },
     leave: {
       method: 'DELETE' as const,
       path: '/api/leagues/:id/leave' as const,
