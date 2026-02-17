@@ -27,8 +27,15 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Switch } from "@/components/ui/switch";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useUnclaimPlayer, useMergePlayers, useRenamePlayer, useDeletePlayer, useKickMember, useUpdateMemberPermission } from "@/hooks/use-leagues";
-import { UserX, UserMinus, GitMerge, Search, AlertTriangle, Loader2, Pencil, Check, X, ArrowDownAZ, Activity, Trash2, Play } from "lucide-react";
+import { UserX, UserMinus, GitMerge, Search, AlertTriangle, Loader2, Pencil, Check, X, ArrowDownAZ, Activity, Trash2, Crown, MoreHorizontal } from "lucide-react";
 
 type LeaguePlayer = {
   id: number;
@@ -246,14 +253,14 @@ export function LeagueAdminDialog({ open, onOpenChange, leagueId, players, creat
           </Select>
         </div>
 
-        <div className="flex-1 overflow-y-auto space-y-1 mt-2 min-h-0 max-h-[50vh]">
+        <div className="flex-1 overflow-y-auto mt-2 min-h-0 max-h-[50vh]">
           {filtered.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-6">No players found</p>
           ) : (
             filtered.map(player => (
               <div
                 key={player.id}
-                className="flex items-center justify-between gap-2 p-3 rounded-lg hover-elevate"
+                className="flex items-center justify-between gap-3 py-3 px-2 border-b border-border/30 last:border-b-0"
                 data-testid={`row-player-${player.id}`}
               >
                 {editingPlayerId === player.id ? (
@@ -290,8 +297,8 @@ export function LeagueAdminDialog({ open, onOpenChange, leagueId, players, creat
                   </div>
                 ) : (
                   <>
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-sm text-white font-medium truncate" data-testid={`text-player-name-${player.id}`}>
+                    <div className="flex items-center gap-2 min-w-0 flex-1 shrink">
+                      <span className="text-sm font-medium truncate min-w-[60px]" data-testid={`text-player-name-${player.id}`}>
                         {player.name}
                       </span>
                       {player.claimedByUserId ? (
@@ -303,79 +310,63 @@ export function LeagueAdminDialog({ open, onOpenChange, leagueId, players, creat
                           Guest
                         </Badge>
                       )}
-                      {player.claimedByUserId && player.claimedByUserId !== creatorId && (() => {
-                        const memberPerm = members.find(m => m.userId === player.claimedByUserId);
-                        const isHost = memberPerm?.canHostSessions || false;
-                        return (
-                          <div className="flex items-center gap-1.5 shrink-0" data-testid={`toggle-host-${player.id}`}>
-                            <Play className="h-3 w-3 text-muted-foreground" />
-                            <Switch
-                              checked={isHost}
-                              onCheckedChange={(checked) => {
-                                updatePermission({ leagueId, userId: player.claimedByUserId!, canHostSessions: checked });
-                              }}
-                              className="scale-75"
-                              data-testid={`switch-host-${player.id}`}
-                            />
-                          </div>
-                        );
-                      })()}
                       {sortBy === "most_active" && player.sessionCount !== undefined && (
                         <Badge variant="outline" className="text-xs shrink-0 text-emerald-400 border-emerald-400/30" data-testid={`badge-sessions-${player.id}`}>
                           {player.sessionCount} {player.sessionCount === 1 ? "game" : "games"}
                         </Badge>
                       )}
                     </div>
-                    <div className="flex items-center gap-1 shrink-0">
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => handleStartEdit(player)}
-                        data-testid={`button-edit-${player.id}`}
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                      {player.claimedByUserId && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleUnclaim(player.id)}
-                          disabled={isUnclaiming}
-                          data-testid={`button-unclaim-${player.id}`}
-                        >
-                          <UserX className="h-3.5 w-3.5 mr-1" />
-                          Unclaim
-                        </Button>
-                      )}
-                      {player.claimedByUserId && player.claimedByUserId !== creatorId && (
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => setKickTarget(player)}
-                          className="text-red-400"
-                          data-testid={`button-kick-${player.id}`}
-                        >
-                          <UserMinus className="h-3.5 w-3.5" />
-                        </Button>
-                      )}
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => setMergeSource(player)}
-                        data-testid={`button-merge-${player.id}`}
-                      >
-                        <GitMerge className="h-3.5 w-3.5 mr-1" />
-                        Merge
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => setDeleteTarget(player)}
-                        className="text-red-400"
-                        data-testid={`button-delete-${player.id}`}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {player.claimedByUserId && player.claimedByUserId !== creatorId && (() => {
+                        const memberPerm = members.find(m => m.userId === player.claimedByUserId);
+                        const isHost = memberPerm?.canHostSessions || false;
+                        return (
+                          <div className="flex items-center gap-1.5" data-testid={`toggle-host-${player.id}`} title="Can host sessions">
+                            <Crown className="h-3.5 w-3.5 text-amber-400 shrink-0" />
+                            <Switch
+                              checked={isHost}
+                              onCheckedChange={(checked) => {
+                                updatePermission({ leagueId, userId: player.claimedByUserId!, canHostSessions: checked });
+                              }}
+                              data-testid={`switch-host-${player.id}`}
+                            />
+                          </div>
+                        );
+                      })()}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button size="icon" variant="ghost" data-testid={`button-more-${player.id}`}>
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleStartEdit(player)} data-testid={`button-edit-${player.id}`}>
+                            <Pencil className="h-3.5 w-3.5 mr-2" />
+                            Rename
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setMergeSource(player)} data-testid={`button-merge-${player.id}`}>
+                            <GitMerge className="h-3.5 w-3.5 mr-2" />
+                            Merge
+                          </DropdownMenuItem>
+                          {player.claimedByUserId && (
+                            <DropdownMenuItem onClick={() => handleUnclaim(player.id)} disabled={isUnclaiming} data-testid={`button-unclaim-${player.id}`}>
+                              <UserX className="h-3.5 w-3.5 mr-2" />
+                              Unclaim
+                            </DropdownMenuItem>
+                          )}
+                          {player.claimedByUserId && player.claimedByUserId !== creatorId && (
+                            <DropdownMenuItem onClick={() => setKickTarget(player)} className="text-red-400 focus:text-red-400" data-testid={`button-kick-${player.id}`}>
+                              <UserMinus className="h-3.5 w-3.5 mr-2" />
+                              Remove Member
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => setDeleteTarget(player)} className="text-red-400 focus:text-red-400" data-testid={`button-delete-${player.id}`}>
+                            <Trash2 className="h-3.5 w-3.5 mr-2" />
+                            Delete Player
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </>
                 )}
