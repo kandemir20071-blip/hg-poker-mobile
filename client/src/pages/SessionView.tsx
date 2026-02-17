@@ -6,6 +6,7 @@ import { PlayerList } from "@/components/game/PlayerList";
 import { AddPlayerDialog } from "@/components/game/AddPlayerDialog";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
 import { QRCodeSVG } from "qrcode.react";
 import { Input } from "@/components/ui/input";
 import { Loader2, Share2, Copy, AlertTriangle, CheckCircle, XCircle, LogOut, Shield, Pencil, Trash2, Trophy, Calendar, Clock, Skull, RefreshCw, DollarSign } from "lucide-react";
@@ -36,6 +37,7 @@ export default function SessionView() {
   const { mutate: applyCustomChop, isPending: isApplyingChop } = useCustomChop();
 
   const [endDialogOpen, setEndDialogOpen] = useState(false);
+  const [mismatchWarningOpen, setMismatchWarningOpen] = useState(false);
   const [finishTournamentOpen, setFinishTournamentOpen] = useState(false);
   const [adminMode, setAdminMode] = useState(forceAdmin);
   const [editingLedgerId, setEditingLedgerId] = useState<number | null>(null);
@@ -98,10 +100,23 @@ export default function SessionView() {
     toast({ title: "Copied!", description: "Session code copied to clipboard." });
   };
 
-  const handleEndSession = () => {
-    endSession({ id: sessionId, data: {} }, {
+  const ledgerDifference = totalWagered - totalCashedOut;
+  const isLedgerBalanced = ledgerDifference === 0;
+
+  const handleEndSessionClick = () => {
+    if (session?.type === 'cash' && !isLedgerBalanced) {
+      setEndDialogOpen(false);
+      setMismatchWarningOpen(true);
+    } else {
+      confirmEndSession();
+    }
+  };
+
+  const confirmEndSession = (forceUnbalanced = false) => {
+    endSession({ id: sessionId, data: {}, forceUnbalanced }, {
       onSuccess: () => {
         setEndDialogOpen(false);
+        setMismatchWarningOpen(false);
       }
     });
   };
@@ -290,13 +305,66 @@ export default function SessionView() {
                 </div>
                 <DialogFooter>
                   <Button variant="ghost" className="min-h-[44px]" onClick={() => setEndDialogOpen(false)}>Cancel</Button>
-                  <Button variant="destructive" className="min-h-[44px]" onClick={handleEndSession} disabled={isEnding}>
+                  <Button variant="destructive" className="min-h-[44px]" onClick={handleEndSessionClick} disabled={isEnding} data-testid="button-confirm-end-session">
                     {isEnding ? <Loader2 className="animate-spin mr-2" /> : "Confirm End"}
                   </Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
           )}
+
+          <AlertDialog open={mismatchWarningOpen} onOpenChange={setMismatchWarningOpen}>
+            <AlertDialogContent className="glass-card" data-testid="dialog-ledger-mismatch">
+              <AlertDialogHeader>
+                <AlertDialogTitle className="flex items-center gap-2 text-amber-400">
+                  <AlertTriangle className="w-5 h-5" />
+                  Ledger Mismatch Detected
+                </AlertDialogTitle>
+                <AlertDialogDescription asChild>
+                  <div className="space-y-3 pt-2">
+                    <p className="text-sm text-muted-foreground">
+                      Total Buy-ins do not match Total Cash-outs. The books are not balanced.
+                    </p>
+                    <div className="rounded-lg bg-muted/50 p-4 space-y-2 font-mono text-sm">
+                      <div className="flex items-center justify-between gap-4 flex-wrap">
+                        <span className="text-muted-foreground">Total Buy-ins</span>
+                        <span className="text-white font-bold" data-testid="text-mismatch-buyins">${totalWagered}</span>
+                      </div>
+                      <div className="flex items-center justify-between gap-4 flex-wrap">
+                        <span className="text-muted-foreground">Total Cash-outs</span>
+                        <span className="text-white font-bold" data-testid="text-mismatch-cashouts">${totalCashedOut}</span>
+                      </div>
+                      <div className="border-t border-white/10 pt-2 flex items-center justify-between gap-4 flex-wrap">
+                        <span className="text-muted-foreground">Difference</span>
+                        <span className={`font-bold ${ledgerDifference > 0 ? 'text-amber-400' : 'text-red-400'}`} data-testid="text-mismatch-difference">
+                          {ledgerDifference > 0 ? '+' : '-'}${Math.abs(ledgerDifference)}
+                        </span>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {ledgerDifference > 0
+                        ? "More chips were bought in than cashed out. Some players may still need to cash out."
+                        : "More was cashed out than bought in. Some transactions may need correction."}
+                    </p>
+                  </div>
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel className="min-h-[44px]" data-testid="button-mismatch-cancel">
+                  Go Back & Fix
+                </AlertDialogCancel>
+                <AlertDialogAction
+                  className="min-h-[44px] bg-destructive text-destructive-foreground"
+                  onClick={() => confirmEndSession(true)}
+                  disabled={isEnding}
+                  data-testid="button-mismatch-force-end"
+                >
+                  {isEnding ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : null}
+                  End Session Anyway
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
 

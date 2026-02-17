@@ -82,15 +82,18 @@ export function useEndSession() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ id, data }: { id: number; data: EndSessionRequest }) => {
+    mutationFn: async ({ id, data, forceUnbalanced }: { id: number; data: EndSessionRequest; forceUnbalanced?: boolean }) => {
       const url = buildUrl(api.sessions.end.path, { id });
       const res = await fetch(url, {
         method: api.sessions.end.method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ ...data, forceUnbalanced }),
         credentials: "include",
       });
-      if (!res.ok) throw new Error("Failed to end session");
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.message || "Failed to end session");
+      }
       return api.sessions.end.responses[200].parse(await res.json());
     },
     onSuccess: (_data, { id }) => {

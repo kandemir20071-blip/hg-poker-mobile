@@ -50,6 +50,7 @@ export const pokerSessions = pgTable("poker_sessions", {
   code: text("code").unique().notNull(),
   config: jsonb("config"),
   defaultBuyIn: integer("default_buy_in"),
+  isUnbalanced: boolean("is_unbalanced").default(false),
 });
 
 export const sessionPlayers = pgTable("session_players", {

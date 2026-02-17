@@ -425,11 +425,28 @@ export async function registerRoutes(
     const hostId = (req.user as any).claims.sub;
     if (session.hostId !== hostId) return res.status(401).json({ message: "Only host can end session" });
 
+    const forceUnbalanced = req.body.forceUnbalanced === true;
+
     if (req.body.cashOuts) {
       for (const cashOut of req.body.cashOuts) {
         await storage.addTransaction({
           sessionId, playerId: cashOut.playerId, type: 'cash_out',
           amount: cashOut.amount, paymentMethod: 'cash', status: 'approved',
+        });
+      }
+    }
+
+    if (session.type === 'cash' && !forceUnbalanced) {
+      const preTx = await storage.getSessionTransactions(sessionId);
+      const approvedPre = preTx.filter(t => t.status === 'approved');
+      const preBuyIns = approvedPre.filter(t => t.type === 'buy_in').reduce((s, t) => s + t.amount, 0);
+      const preCashOuts = approvedPre.filter(t => t.type === 'cash_out').reduce((s, t) => s + t.amount, 0);
+      if (preBuyIns !== preCashOuts) {
+        return res.status(400).json({
+          message: "Ledger mismatch",
+          totalBuyIns: preBuyIns,
+          totalCashOuts: preCashOuts,
+          difference: preBuyIns - preCashOuts,
         });
       }
     }
@@ -487,6 +504,16 @@ export async function registerRoutes(
     }
 
     const updated = await storage.updateSessionStatus(sessionId, 'completed', new Date());
+
+    if (session.type === 'cash') {
+      const allTxForBalance = await storage.getSessionTransactions(sessionId);
+      const approvedForBalance = allTxForBalance.filter(t => t.status === 'approved');
+      const totalBuyIns = approvedForBalance.filter(t => t.type === 'buy_in').reduce((s, t) => s + t.amount, 0);
+      const totalCashOuts = approvedForBalance.filter(t => t.type === 'cash_out').reduce((s, t) => s + t.amount, 0);
+      if (totalBuyIns !== totalCashOuts) {
+        await storage.flagSessionUnbalanced(sessionId, true);
+      }
+    }
 
     try {
       const players = await storage.getSessionPlayers(sessionId);

@@ -63,6 +63,7 @@ export interface IStorage {
   renameLeaguePlayer(playerId: number, newName: string, leagueId: number): Promise<LeaguePlayer>;
   deleteLeaguePlayer(playerId: number): Promise<void>;
   getPlayerSessionCounts(leagueId: number): Promise<Map<string, number>>;
+  flagSessionUnbalanced(id: number, isUnbalanced: boolean): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -101,6 +102,12 @@ export class DatabaseStorage implements IStorage {
       .where(eq(pokerSessions.id, id))
       .returning();
     return updated;
+  }
+
+  async flagSessionUnbalanced(id: number, isUnbalanced: boolean): Promise<void> {
+    await db.update(pokerSessions)
+      .set({ isUnbalanced })
+      .where(eq(pokerSessions.id, id));
   }
 
   async updateSessionConfig(id: number, config: Record<string, unknown>): Promise<PokerSession> {
