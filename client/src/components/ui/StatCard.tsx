@@ -20,11 +20,12 @@ export function StatCard({ title, value, icon: Icon, customIconSrc, customIconBg
     <div className={cn(
       "glass-card rounded-xl relative overflow-hidden group hover:border-primary/20 transition-all duration-300",
       prominent ? "p-4 sm:p-6 border-primary/10" : "p-3 sm:p-5",
+      customIconSrc && "pr-24 sm:pr-5",
       className
     )} data-testid={`stat-card-${title.toLowerCase().replace(/\s+/g, '-')}`}>
       {customIconSrc ? (
-        <div className={cn("absolute -bottom-2 -right-2 transition-opacity hidden sm:block", "opacity-[0.35] group-hover:opacity-[0.5]")}>
-          <img src={customIconSrc} alt="" className={cn("object-contain", prominent ? "w-40 h-40" : "w-36 h-36")} style={{ imageRendering: 'pixelated' }} />
+        <div className="absolute bottom-0 right-0 transition-opacity opacity-[0.45] group-hover:opacity-[0.6] sm:opacity-[0.35] sm:group-hover:opacity-[0.5]">
+          <img src={customIconSrc} alt="" className={cn("object-contain w-24 h-24 sm:w-36 sm:h-36")} style={{ imageRendering: 'pixelated' }} />
         </div>
       ) : (
         <div className="absolute top-0 right-0 p-4 opacity-[0.04] group-hover:opacity-[0.08] transition-opacity hidden sm:block">
@@ -32,20 +33,17 @@ export function StatCard({ title, value, icon: Icon, customIconSrc, customIconBg
         </div>
       )}
 
-      <div className="relative z-10 flex sm:flex-col h-full sm:justify-between items-center sm:items-start gap-3 sm:gap-0">
-        <div className="flex items-center gap-2 sm:gap-3 sm:mb-3 shrink-0">
-          {customIconSrc ? (
-            <img src={customIconSrc} alt="" className={cn("object-contain drop-shadow-md shrink-0 w-10 h-10 sm:w-12 sm:h-12", prominent && "sm:w-14 sm:h-14")} style={{ imageRendering: 'pixelated' }} />
-          ) : (
+      <div className="relative z-10">
+        <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-3">
+          {!customIconSrc && (
             <div className={cn("bg-primary/10 rounded-lg text-primary p-2", prominent && "sm:p-2.5")}>
               <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
           )}
-          <h3 className="font-medium text-muted-foreground uppercase tracking-wider text-[10px] sm:text-xs sm:block hidden">{title}</h3>
+          <h3 className="font-medium text-muted-foreground uppercase tracking-wider text-[10px] sm:text-xs">{title}</h3>
         </div>
-        
-        <div className="space-y-0.5 sm:space-y-1 min-w-0 flex-1 sm:flex-none">
-          <h3 className="font-medium text-muted-foreground uppercase tracking-wider text-[10px] sm:hidden">{title}</h3>
+
+        <div className="space-y-0.5 sm:space-y-1">
           <div className={cn(
             "font-bold tracking-tight text-xl sm:text-2xl md:text-3xl",
             prominent && "sm:text-3xl md:text-4xl",
@@ -59,7 +57,7 @@ export function StatCard({ title, value, icon: Icon, customIconSrc, customIconBg
             </div>
           )}
           {trend && (
-            <div className={cn("text-xs font-medium flex items-center gap-1", 
+            <div className={cn("text-xs font-medium flex items-center gap-1",
               trendUp ? "text-emerald-400" : "text-destructive"
             )}>
               <span>{trend}</span>
