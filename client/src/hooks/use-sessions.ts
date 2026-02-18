@@ -112,6 +112,34 @@ export function useEndSession() {
   });
 }
 
+export function useToggleAutoApprove() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ id, enabled }: { id: number; enabled: boolean }) => {
+      const url = buildUrl(api.sessions.toggleAutoApprove.path, { id });
+      const res = await fetch(url, {
+        method: api.sessions.toggleAutoApprove.method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled }),
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.message || "Failed to update setting");
+      }
+      return res.json();
+    },
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: [api.sessions.get.path, id] });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    },
+  });
+}
+
 export function useDeleteSession() {
   const queryClient = useQueryClient();
   const { toast } = useToast();

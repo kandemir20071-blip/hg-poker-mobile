@@ -20,6 +20,7 @@ export interface IStorage {
   getLeagueSessions(leagueId: number): Promise<PokerSession[]>;
   updateSessionStatus(id: number, status: 'active' | 'completed', endTime?: Date): Promise<PokerSession>;
   updateSessionConfig(id: number, config: Record<string, unknown>): Promise<PokerSession>;
+  updateSessionAutoApprove(id: number, autoApprove: boolean): Promise<PokerSession>;
 
   addPlayer(player: InsertSessionPlayer): Promise<SessionPlayer>;
   getSessionPlayers(sessionId: number): Promise<SessionPlayer[]>;
@@ -118,6 +119,14 @@ export class DatabaseStorage implements IStorage {
   async updateSessionConfig(id: number, config: Record<string, unknown>): Promise<PokerSession> {
     const [updated] = await db.update(pokerSessions)
       .set({ config })
+      .where(eq(pokerSessions.id, id))
+      .returning();
+    return updated;
+  }
+
+  async updateSessionAutoApprove(id: number, autoApprove: boolean): Promise<PokerSession> {
+    const [updated] = await db.update(pokerSessions)
+      .set({ autoApproveTransactions: autoApprove })
       .where(eq(pokerSessions.id, id))
       .returning();
     return updated;

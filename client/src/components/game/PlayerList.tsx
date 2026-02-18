@@ -7,7 +7,7 @@ import { DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
-import { Crown, TrendingUp, DollarSign, LogOut, Loader2 } from "lucide-react";
+import { Crown, TrendingUp, DollarSign, LogOut, Loader2, Unlock } from "lucide-react";
 import { BuyInDialog } from "./BuyInDialog";
 import { ManagePlayerDialog } from "./ManagePlayerDialog";
 import { useCashOutPlayer } from "@/hooks/use-transactions";
@@ -27,6 +27,7 @@ interface PlayerListProps {
   adminMode?: boolean;
   transactions?: Transaction[];
   isActive?: boolean;
+  autoApproveTransactions?: boolean;
 }
 
 function CashOutDialog({ sessionId, player }: { sessionId: number; player: ExtendedPlayer }) {
@@ -96,7 +97,7 @@ function CashOutDialog({ sessionId, player }: { sessionId: number; player: Exten
   );
 }
 
-function PlayerCard({ player, isHost, isCurrentUser, adminMode, sessionId, transactions, isActive }: {
+function PlayerCard({ player, isHost, isCurrentUser, adminMode, sessionId, transactions, isActive, autoApproveTransactions }: {
   player: ExtendedPlayer;
   isHost: boolean;
   isCurrentUser: boolean;
@@ -104,6 +105,7 @@ function PlayerCard({ player, isHost, isCurrentUser, adminMode, sessionId, trans
   sessionId: number;
   transactions: Transaction[];
   isActive?: boolean;
+  autoApproveTransactions?: boolean;
 }) {
   const profit = player.netProfit;
   const isWinning = profit > 0;
@@ -175,8 +177,9 @@ function PlayerCard({ player, isHost, isCurrentUser, adminMode, sessionId, trans
               playerId={player.id}
               isReBuy={hasBuyIn}
               trigger={
-                <Button size="sm" variant="outline" className="text-xs border-primary/30 text-primary min-h-[44px]" data-testid={`button-rebuy-${player.id}`}>
-                  {hasBuyIn ? 'Re-Buy' : 'Add Chips'}
+                <Button size="sm" variant="outline" className={`text-xs min-h-[44px] gap-1 ${autoApproveTransactions ? 'border-emerald-500/30 text-emerald-400' : 'border-primary/30 text-primary'}`} data-testid={`button-rebuy-${player.id}`}>
+                  {autoApproveTransactions && <Unlock className="w-3 h-3" />}
+                  {hasBuyIn ? (autoApproveTransactions ? 'Instant Re-Buy' : 'Re-Buy') : (autoApproveTransactions ? 'Instant Buy-In' : 'Add Chips')}
                 </Button>
               }
             />
@@ -192,7 +195,7 @@ function PlayerCard({ player, isHost, isCurrentUser, adminMode, sessionId, trans
   );
 }
 
-export function PlayerList({ players, hostId, sessionId, currentUserId, adminMode, transactions = [], isActive = true }: PlayerListProps) {
+export function PlayerList({ players, hostId, sessionId, currentUserId, adminMode, transactions = [], isActive = true, autoApproveTransactions = false }: PlayerListProps) {
   const activePlayers = players.filter(p => p.status !== 'cashed_out');
   const finishedPlayers = players.filter(p => p.status === 'cashed_out');
 
@@ -201,6 +204,12 @@ export function PlayerList({ players, hostId, sessionId, currentUserId, adminMod
 
   return (
     <div className="space-y-6">
+      {autoApproveTransactions && isActive && (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs" data-testid="banner-self-serve">
+          <Unlock className="w-3.5 h-3.5 shrink-0" />
+          <span>Self-Serve is active — rebuys and cashouts are processed instantly.</span>
+        </div>
+      )}
       <div className="space-y-4">
         {sortedActive.map((player) => (
           <PlayerCard
@@ -212,6 +221,7 @@ export function PlayerList({ players, hostId, sessionId, currentUserId, adminMod
             sessionId={sessionId}
             transactions={transactions}
             isActive={isActive}
+            autoApproveTransactions={autoApproveTransactions}
           />
         ))}
 
@@ -236,6 +246,7 @@ export function PlayerList({ players, hostId, sessionId, currentUserId, adminMod
                 sessionId={sessionId}
                 transactions={transactions}
                 isActive={isActive}
+                autoApproveTransactions={autoApproveTransactions}
               />
             ))}
           </div>

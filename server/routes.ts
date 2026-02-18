@@ -956,6 +956,26 @@ export async function registerRoutes(
     }
   });
 
+  // ==================== AUTO-APPROVE TOGGLE ====================
+
+  app.patch(api.sessions.toggleAutoApprove.path, requireAuth, async (req, res) => {
+    try {
+      const sessionId = Number(req.params.id);
+      const input = api.sessions.toggleAutoApprove.input.parse(req.body);
+      const session = await storage.getSession(sessionId);
+      if (!session) return res.status(404).json({ message: "Session not found" });
+      const userId = (req.user as any).claims.sub;
+      if (session.hostId !== userId) return res.status(401).json({ message: "Only the host can toggle self-serve transactions." });
+      if (session.status !== 'active') return res.status(400).json({ message: "Cannot modify a completed session." });
+
+      const updated = await storage.updateSessionAutoApprove(sessionId, input.enabled);
+      res.json(updated);
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
+      res.status(500).json({ message: "Internal Server Error" });
+    }
+  });
+
   // ==================== TRANSACTIONS ====================
 
   app.post(api.transactions.create.path, async (req, res) => {
@@ -967,7 +987,7 @@ export async function registerRoutes(
 
       const userId = req.isAuthenticated() ? (req.user as any).claims.sub : null;
       const isHost = userId && userId === session.hostId;
-      const status = isHost ? 'approved' : 'pending';
+      const status = isHost || session.autoApproveTransactions ? 'approved' : 'pending';
 
       const transaction = await storage.addTransaction({ sessionId, ...input, paymentMethod: 'cash', status });
       res.status(201).json(transaction);

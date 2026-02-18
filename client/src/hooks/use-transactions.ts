@@ -22,10 +22,15 @@ export function useAddTransaction() {
     },
     onMutate: async ({ sessionId, data }) => {
       await queryClient.cancelQueries({ queryKey: [api.sessions.get.path, sessionId] });
-      const previousData = queryClient.getQueryData([api.sessions.get.path, sessionId]);
+      const previousData = queryClient.getQueryData([api.sessions.get.path, sessionId]) as any;
+
+      const currentUser = queryClient.getQueryData(["/api/auth/user"]) as any;
+      const isHost = currentUser?.id && currentUser.id === previousData?.session?.hostId;
+      const willAutoApprove = isHost || previousData?.session?.autoApproveTransactions === true;
 
       queryClient.setQueryData([api.sessions.get.path, sessionId], (old: any) => {
         if (!old) return old;
+        const optimisticStatus = willAutoApprove ? 'approved' : 'pending';
         const optimisticTx = {
           id: -Date.now(),
           sessionId,
@@ -33,7 +38,7 @@ export function useAddTransaction() {
           type: data.type,
           amount: data.amount,
           paymentMethod: 'cash',
-          status: 'approved',
+          status: optimisticStatus,
           timestamp: new Date().toISOString(),
         };
 
@@ -58,8 +63,9 @@ export function useAddTransaction() {
       }
       toast({ title: "Error", description: "Could not process transaction", variant: "destructive" });
     },
-    onSuccess: (_, { sessionId }) => {
-      toast({ title: "Transaction Added", description: "Update sent to host." });
+    onSuccess: (data, { sessionId }) => {
+      const isInstant = data.status === 'approved';
+      toast({ title: isInstant ? "Transaction Processed" : "Transaction Added", description: isInstant ? "Processed instantly." : "Sent to host for approval." });
     },
     onSettled: (_, __, { sessionId }) => {
       queryClient.invalidateQueries({ queryKey: [api.sessions.get.path, sessionId] });

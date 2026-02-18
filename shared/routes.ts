@@ -107,6 +107,18 @@ export const api = {
         404: errorSchemas.notFound,
       },
     },
+    toggleAutoApprove: {
+      method: 'PATCH' as const,
+      path: '/api/sessions/:id/auto-approve' as const,
+      input: z.object({
+        enabled: z.boolean(),
+      }),
+      responses: {
+        200: z.custom<typeof pokerSessions.$inferSelect>(),
+        401: errorSchemas.unauthorized,
+        404: errorSchemas.notFound,
+      },
+    },
   },
   transactions: {
     create: {

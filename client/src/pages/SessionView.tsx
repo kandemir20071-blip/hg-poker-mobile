@@ -1,5 +1,5 @@
 import { useParams, useLocation } from "wouter";
-import { useSession, useEndSession, useBustPlayer, useCustomChop } from "@/hooks/use-sessions";
+import { useSession, useEndSession, useBustPlayer, useCustomChop, useToggleAutoApprove } from "@/hooks/use-sessions";
 import { useAuth } from "@/hooks/use-auth";
 import { useUpdateTransactionStatus, useUpdateTransaction, useDeleteTransaction, useAddTransaction } from "@/hooks/use-transactions";
 import { PlayerList } from "@/components/game/PlayerList";
@@ -10,7 +10,8 @@ import { DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
 import { QRCodeSVG } from "qrcode.react";
 import { Input } from "@/components/ui/input";
-import { Loader2, Share2, Copy, AlertTriangle, CheckCircle, XCircle, LogOut, Shield, Pencil, Trash2, Trophy, Calendar, Clock, Skull, RefreshCw, DollarSign, Search, Check } from "lucide-react";
+import { Loader2, Share2, Copy, AlertTriangle, CheckCircle, XCircle, LogOut, Shield, Pencil, Trash2, Trophy, Calendar, Clock, Skull, RefreshCw, DollarSign, Search, Check, Unlock, Lock } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { SuitsLoader, SuitAccent } from "@/components/ui/Suits";
 import { BlindClock } from "@/components/game/BlindClock";
 import { format } from "date-fns";
@@ -36,6 +37,7 @@ export default function SessionView() {
   const { mutate: bustPlayer, isPending: isBusting } = useBustPlayer();
   const { mutate: addTransaction, isPending: isAddingTx } = useAddTransaction();
   const { mutate: applyCustomChop, isPending: isApplyingChop } = useCustomChop();
+  const { mutate: toggleAutoApprove } = useToggleAutoApprove();
 
   const [endDialogOpen, setEndDialogOpen] = useState(false);
   const [mismatchWarningOpen, setMismatchWarningOpen] = useState(false);
@@ -299,15 +301,26 @@ export default function SessionView() {
 
         <div className="flex items-center gap-3 flex-wrap">
           {isHost && !isImported && isActive && (
-            <Button
-              variant={adminMode ? "default" : "outline"}
-              size="sm"
-              className="gap-2 min-h-[44px]"
-              onClick={() => setAdminMode(!adminMode)}
-              data-testid="button-toggle-admin"
-            >
-              <Shield className="w-4 h-4" /> {adminMode ? "Admin On" : "Admin Mode"}
-            </Button>
+            <div className="flex items-center gap-3 flex-wrap">
+              <Button
+                variant={adminMode ? "default" : "outline"}
+                size="sm"
+                className="gap-2 min-h-[44px]"
+                onClick={() => setAdminMode(!adminMode)}
+                data-testid="button-toggle-admin"
+              >
+                <Shield className="w-4 h-4" /> {adminMode ? "Admin On" : "Admin Mode"}
+              </Button>
+              <div className="flex items-center gap-2 glass-card px-3 py-2 rounded-lg">
+                {session.autoApproveTransactions ? <Unlock className="w-3.5 h-3.5 text-emerald-400" /> : <Lock className="w-3.5 h-3.5 text-muted-foreground" />}
+                <span className="text-xs text-muted-foreground whitespace-nowrap">Self-Serve</span>
+                <Switch
+                  checked={session.autoApproveTransactions}
+                  onCheckedChange={(checked) => toggleAutoApprove({ id: sessionId, enabled: checked })}
+                  data-testid="switch-auto-approve"
+                />
+              </div>
+            </div>
           )}
 
           {!showSummary && (
@@ -1082,6 +1095,7 @@ export default function SessionView() {
                 adminMode={adminMode}
                 transactions={transactions}
                 isActive={isActive}
+                autoApproveTransactions={session.autoApproveTransactions}
               />
             </div>
 
