@@ -1106,7 +1106,7 @@ function ClaimNameDialog({ open, onOpenChange, league, leagueId, onClaim, onClos
 
   return (
     <ResponsiveModal open={open} onOpenChange={(v) => { if (!v) resetState(); onOpenChange(v); }}>
-      <ResponsiveModalContent className="glass-card sm:max-w-md max-h-[90vh] flex flex-col">
+      <ResponsiveModalContent className="glass-card sm:max-w-md max-h-[90dvh] flex flex-col">
         <ResponsiveModalHeader>
           <ResponsiveModalTitle>{showCreateNew ? "Create New Profile" : "Claim Your Name"}</ResponsiveModalTitle>
           <ResponsiveModalDescription>
@@ -1117,8 +1117,8 @@ function ClaimNameDialog({ open, onOpenChange, league, leagueId, onClaim, onClos
         </ResponsiveModalHeader>
 
         {showCreateNew ? (
-          <div className="space-y-4 mt-2">
-            <div className="relative">
+          <div className="flex flex-col gap-3 mt-2">
+            <div className="relative shrink-0">
               <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 value={newName}
@@ -1126,20 +1126,23 @@ function ClaimNameDialog({ open, onOpenChange, league, leagueId, onClaim, onClos
                 placeholder="Your display name..."
                 className="pl-9 bg-background/50 border-white/[0.08] min-h-[44px] text-base"
                 autoFocus
+                onFocus={(e) => { setTimeout(() => e.target.scrollIntoView({ behavior: "smooth", block: "center" }), 300); }}
                 data-testid="input-create-name"
               />
             </div>
-            {nameExists && (
-              <p className="text-xs text-emerald-400" data-testid="text-name-taken">
-                This name is already taken in this league.
-              </p>
-            )}
-            {newName.trim().length > 0 && !nameExists && (
-              <p className="text-xs text-emerald-600" data-testid="text-name-available">
-                Name available
-              </p>
-            )}
-            <div className="flex items-center gap-2">
+            <div className="shrink-0 min-h-[20px]">
+              {nameExists && (
+                <p className="text-xs text-emerald-400" data-testid="text-name-taken">
+                  This name is already taken in this league.
+                </p>
+              )}
+              {newName.trim().length > 0 && !nameExists && (
+                <p className="text-xs text-emerald-600" data-testid="text-name-available">
+                  Name available
+                </p>
+              )}
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
               <Button variant="ghost" className="flex-1" onClick={() => setShowCreateNew(false)} data-testid="button-back-to-claim">
                 Back
               </Button>
@@ -1165,6 +1168,7 @@ function ClaimNameDialog({ open, onOpenChange, league, leagueId, onClaim, onClos
                     onChange={(e) => setClaimSearch(e.target.value)}
                     placeholder="Search your name..."
                     className="pl-9 bg-background/50 border-white/[0.08] min-h-[44px] text-base"
+                    onFocus={(e) => { setTimeout(() => e.target.scrollIntoView({ behavior: "smooth", block: "center" }), 300); }}
                     data-testid="input-claim-search"
                   />
                 </div>
@@ -1183,7 +1187,7 @@ function ClaimNameDialog({ open, onOpenChange, league, leagueId, onClaim, onClos
                 </Select>
               </div>
             )}
-            <div className="flex-1 overflow-y-auto mt-2 min-h-0 max-h-[50vh] space-y-1.5">
+            <div className="flex-1 overflow-y-auto mt-2 min-h-0 max-h-[50dvh] space-y-1.5">
               {filtered.length > 0 ? filtered.map((player: any) => (
                 <Button
                   key={player.id}

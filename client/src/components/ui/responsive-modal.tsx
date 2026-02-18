@@ -61,8 +61,8 @@ function ResponsiveModalContent({ children, className }: ResponsiveModalContentP
   }
 
   return (
-    <DrawerContent className={cn("glass-card border-t border-white/[0.08] max-h-[85vh]", className)}>
-      <div className="overflow-y-auto px-4 pb-8 pt-2" style={{ WebkitOverflowScrolling: "touch" }}>
+    <DrawerContent className={cn("glass-card border-t border-white/[0.08] max-h-[85dvh]", className)}>
+      <div className="overflow-y-auto px-4 pb-safe pt-2" style={{ WebkitOverflowScrolling: "touch", paddingBottom: "max(2rem, env(safe-area-inset-bottom))" }}>
         {children}
       </div>
     </DrawerContent>
