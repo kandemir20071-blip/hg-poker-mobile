@@ -19,6 +19,7 @@ import frogBalanceSrc from "@assets/image-removebg-preview-4_1771176899418.png";
 import frogMoneyBagSrc from "@assets/image-removebg-preview-5_1771177431227.png";
 import frogGladiatorSrc from "@assets/image-removebg-preview-6_1771182160649.png";
 import frogKingpinSrc from "@assets/image-removebg-preview-7_1771426631043.png";
+import frogGrinderSrc from "@assets/image-removebg-preview-8_1771428133336.png";
 import { Tooltip as UITooltip, TooltipContent as UITooltipContent, TooltipTrigger as UITooltipTrigger } from "@/components/ui/tooltip";
 import { SuitAccent, SuitsLoader, SuitsRow } from "@/components/ui/Suits";
 import { Link, useLocation } from "wouter";
@@ -729,8 +730,10 @@ function LeaguesTab({
           const userRankIndex = claimedName ? ranked.findIndex((p: any) => p.playerName === claimedName) : -1;
           const userRank = userRankIndex >= 0 ? userRankIndex + 1 : null;
 
-          const isTopTier = userRank !== null && userRank <= 3;
-          const rankMascot = isTopTier ? frogKingpinSrc : frogBankerSrc;
+          const rankMascot = !userRank ? frogBankerSrc
+            : userRank <= 3 ? frogKingpinSrc
+            : userRank <= 10 ? frogGrinderSrc
+            : frogBankerSrc;
           const rankSubtitle = !userRank ? "No games yet"
             : userRank <= 3 ? "High Roller"
             : userRank <= 10 ? "The Grinder"
