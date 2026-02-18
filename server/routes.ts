@@ -497,17 +497,27 @@ export async function registerRoutes(
     res.json({ session, players: playersWithStats, transactions: txns });
   });
 
-  app.post(api.sessions.join.path, async (req, res) => {
+  app.post(api.sessions.join.path, requireAuth, async (req, res) => {
     try {
-      const { code, name } = api.sessions.join.input.parse(req.body);
+      const { code } = api.sessions.join.input.parse(req.body);
       const session = await storage.getSessionByCode(code.toUpperCase());
       if (!session) return res.status(404).json({ message: "Session not found" });
       if (session.status === 'completed') return res.status(400).json({ message: "Session completed" });
 
-      const userId = req.isAuthenticated() ? (req.user as any).claims.sub : undefined;
-      let player;
+      const userId = (req.user as any).claims.sub;
+
+      if (!session.leagueId) return res.status(400).json({ message: "This session is not linked to a league." });
+
+      const isMember = await storage.isLeagueMember(session.leagueId, userId);
+      if (!isMember) return res.status(403).json({ message: "You must be a member of this league to join this game." });
+
+      const claimedPlayer = await storage.getLeaguePlayerByUserId(session.leagueId, userId);
+      if (!claimedPlayer) return res.status(403).json({ message: "You must claim a player name in this league before joining a game." });
+
+      const name = claimedPlayer.name;
+
+      let player = await storage.getPlayerBySessionAndUser(session.id, userId);
       let isNewPlayer = false;
-      if (userId) player = await storage.getPlayerBySessionAndUser(session.id, userId);
       if (!player) {
         const existingPlayers = await storage.getSessionPlayers(session.id);
         const nameExists = existingPlayers.some(

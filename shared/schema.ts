@@ -156,8 +156,6 @@ export type CreateSessionRequest = {
 
 export type JoinSessionRequest = {
   code: string;
-  name: string;
-  userId?: string;
 };
 
 export type AddTransactionRequest = {

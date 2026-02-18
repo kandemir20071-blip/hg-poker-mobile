@@ -13,11 +13,10 @@ export default function JoinSession() {
   const { mutate: joinSession, isPending } = useJoinSession();
 
   const [code, setCode] = useState("");
-  const [name, setName] = useState(user?.firstName || "");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    joinSession({ code, name }, {
+    joinSession({ code }, {
       onSuccess: (data) => {
         setLocation(`/session/${data.session.id}`);
       }
@@ -28,7 +27,7 @@ export default function JoinSession() {
     <div className="max-w-md mx-auto mt-10 md:mt-20">
       <div className="glass-card rounded-2xl p-8" data-testid="card-join">
         <h1 className="text-3xl font-bold text-center mb-2 text-white">Join Table</h1>
-        <p className="text-center text-muted-foreground mb-8">Enter the session code to take your seat.</p>
+        <p className="text-center text-muted-foreground mb-8">Enter the session code to take your seat. Your league name will be used automatically.</p>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
@@ -42,19 +41,6 @@ export default function JoinSession() {
               maxLength={6}
               required
               data-testid="input-session-code"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="name" className="text-muted-foreground">Display Name</Label>
-            <Input 
-              id="name"
-              value={name}
-              onChange={e => setName(e.target.value)}
-              placeholder="Your Name"
-              className="h-12 bg-background border-white/[0.08]"
-              required
-              data-testid="input-display-name"
             />
           </div>
 

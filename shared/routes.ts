@@ -63,7 +63,6 @@ export const api = {
       path: '/api/sessions/join' as const,
       input: z.object({
         code: z.string(),
-        name: z.string(),
       }),
       responses: {
         200: z.object({

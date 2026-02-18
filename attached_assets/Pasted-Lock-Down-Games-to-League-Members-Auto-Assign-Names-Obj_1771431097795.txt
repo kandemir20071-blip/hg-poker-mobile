@@ -1,0 +1,39 @@
+Lock Down Games to League Members & Auto-Assign Names
+
+Objective: Secure the game-joining process. Games must be strictly tied to the league they were created in. Only authenticated members of that specific league can join via the game code, and their display name in the game must automatically be pulled from their claimed league profile, preventing users from typing in custom names.
+
+Step 1: Tie Games to the League (Schema/Creation Update)
+
+Review the Game database schema. Ensure there is a leagueId field that references the League model.
+
+When a new game is created (presumably from the League Dashboard), ensure the leagueId is passed and saved to the new game record.
+
+Step 2: Backend Security (The Join Endpoint)
+
+Locate the API route responsible for joining a game via a code (e.g., POST /api/games/join).
+
+Update the logic to perform the following checks before allowing a user to join:
+
+Find the game by the provided code. If it doesn't exist, return a 404.
+
+Get the leagueId from that game.
+
+Check if the currently authenticated user (userId) is a verified member of that leagueId in the database.
+
+If they are NOT a member, reject the request with a 403 Forbidden error and a message: "You must be a member of this league to join this game."
+
+Step 3: Auto-Assign the Player's Name
+
+In that same join endpoint, stop accepting a custom playerName string from the frontend request body.
+
+Instead, query the user's claimed profile/membership record for that league and extract their official display name.
+
+Insert the user into the GamePlayers (or equivalent) table using this official database name and their userId.
+
+Step 4: Frontend UI Cleanup (Join Game Screen)
+
+Open the React/frontend component where users enter a game code to join.
+
+Completely remove the text input field where users previously typed in their custom name. The only input field should be the "Game Code".
+
+Add error handling: If the backend returns the 403 error (Not a league member), display a clear UI toast or error message to the user explaining why they were blocked.

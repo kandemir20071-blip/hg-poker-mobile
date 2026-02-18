@@ -64,15 +64,18 @@ export function useJoinSession() {
         body: JSON.stringify(data),
         credentials: "include",
       });
-      if (!res.ok) throw new Error("Failed to join session");
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.message || "Failed to join session");
+      }
       return api.sessions.join.responses[200].parse(await res.json());
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [api.sessions.list.path] });
       toast({ title: "Joined Session", description: "You are now at the table." });
     },
-    onError: () => {
-      toast({ title: "Error", description: "Invalid code or unable to join.", variant: "destructive" });
+    onError: (err: Error) => {
+      toast({ title: "Unable to Join", description: err.message, variant: "destructive" });
     },
   });
 }
