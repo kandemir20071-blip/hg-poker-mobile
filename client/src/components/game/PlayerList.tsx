@@ -30,7 +30,7 @@ interface PlayerListProps {
   autoApproveTransactions?: boolean;
 }
 
-function CashOutDialog({ sessionId, player }: { sessionId: number; player: ExtendedPlayer }) {
+function CashOutDialog({ sessionId, player, autoApproveTransactions, isSelfServe }: { sessionId: number; player: ExtendedPlayer; autoApproveTransactions?: boolean; isSelfServe?: boolean }) {
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState(player.totalBuyIn.toString());
   const { mutate: cashOut, isPending } = useCashOutPlayer();
@@ -44,11 +44,21 @@ function CashOutDialog({ sessionId, player }: { sessionId: number; player: Exten
     });
   };
 
+  const isInstant = autoApproveTransactions || !isSelfServe;
+  const submitLabel = isInstant ? "Confirm Instant Cashout" : "Request Cashout";
+
   return (
     <ResponsiveModal open={open} onOpenChange={setOpen}>
       <ResponsiveModalTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-1 text-xs border-amber-500/30 text-amber-400 min-h-[44px]" data-testid={`button-cashout-player-${player.id}`}>
-          <LogOut className="w-3 h-3" /> Cash Out
+        <Button
+          variant="outline"
+          size="sm"
+          className={`gap-1 text-xs min-h-[44px] ${autoApproveTransactions && isSelfServe ? 'border-emerald-500/30 text-emerald-400' : 'border-amber-500/30 text-amber-400'}`}
+          data-testid={`button-cashout-player-${player.id}`}
+        >
+          {autoApproveTransactions && isSelfServe && <Unlock className="w-3 h-3" />}
+          <LogOut className="w-3 h-3" />
+          {autoApproveTransactions && isSelfServe ? 'Instant Cash Out' : 'Cash Out'}
         </Button>
       </ResponsiveModalTrigger>
       <ResponsiveModalContent className="glass-card sm:max-w-sm max-h-[90vh] overflow-y-auto">
@@ -60,7 +70,7 @@ function CashOutDialog({ sessionId, player }: { sessionId: number; player: Exten
             Total Buy-in: <span className="text-white font-mono font-bold">${player.totalBuyIn}</span>
           </div>
           <div className="grid gap-2">
-            <Label className="text-muted-foreground">Final Amount</Label>
+            <Label className="text-muted-foreground">Enter Final Stack Amount</Label>
             <div className="flex gap-2 flex-wrap">
               <Button type="button" variant="outline" size="sm" onClick={() => setAmount("0")} className={`min-h-[44px] ${amount === "0" ? "border-primary text-primary" : ""}`} data-testid={`button-busto-${player.id}`}>
                 Busto ($0)
@@ -83,12 +93,25 @@ function CashOutDialog({ sessionId, player }: { sessionId: number; player: Exten
                 data-testid={`input-cashout-amount-${player.id}`}
               />
             </div>
+            {amount && Number(amount) >= 0 && (
+              <div className="text-sm text-muted-foreground">
+                Net Profit: <span className={`font-mono font-bold ${Number(amount) - player.totalBuyIn >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                  {Number(amount) - player.totalBuyIn >= 0 ? '+' : ''}${Number(amount) - player.totalBuyIn}
+                </span>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button type="button" variant="ghost" className="min-h-[44px]" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button type="submit" className="min-h-[44px]" disabled={isPending} data-testid={`button-confirm-cashout-${player.id}`}>
+            <Button
+              type="submit"
+              className={`min-h-[44px] gap-1 ${autoApproveTransactions && isSelfServe ? 'bg-emerald-600' : ''}`}
+              disabled={isPending}
+              data-testid={`button-confirm-cashout-${player.id}`}
+            >
               {isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-              Confirm Cash Out
+              {autoApproveTransactions && isSelfServe && <Unlock className="w-3 h-3" />}
+              {submitLabel}
             </Button>
           </DialogFooter>
         </form>
@@ -136,7 +159,11 @@ function PlayerCard({ player, isHost, isCurrentUser, adminMode, sessionId, trans
               {isHost && <Crown className="h-3 w-3 text-primary fill-current shrink-0" />}
               {isCurrentUser && <Badge variant="secondary" className="text-[10px] h-5">YOU</Badge>}
               {!player.userId && adminMode && <Badge variant="outline" className="text-[10px] h-5">MANUAL</Badge>}
-              {isCashedOut && <Badge variant="outline" className="text-[10px] h-5 border-amber-500/30 text-amber-400">LEFT</Badge>}
+              {isCashedOut && (
+                <Badge variant="outline" className="text-[10px] h-5 border-amber-500/30 text-amber-400" data-testid={`badge-cashed-out-${player.id}`}>
+                  Cashed Out: ${player.totalCashOut}
+                </Badge>
+              )}
             </div>
             <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1 flex-wrap">
               <span className="flex items-center gap-1">
@@ -171,18 +198,23 @@ function PlayerCard({ player, isHost, isCurrentUser, adminMode, sessionId, trans
             />
           )}
 
-          {!adminMode && isCurrentUser && player.status === 'active' && (
-            <BuyInDialog
-              sessionId={sessionId}
-              playerId={player.id}
-              isReBuy={hasBuyIn}
-              trigger={
-                <Button size="sm" variant="outline" className={`text-xs min-h-[44px] gap-1 ${autoApproveTransactions ? 'border-emerald-500/30 text-emerald-400' : 'border-primary/30 text-primary'}`} data-testid={`button-rebuy-${player.id}`}>
-                  {autoApproveTransactions && <Unlock className="w-3 h-3" />}
-                  {hasBuyIn ? (autoApproveTransactions ? 'Instant Re-Buy' : 'Re-Buy') : (autoApproveTransactions ? 'Instant Buy-In' : 'Add Chips')}
-                </Button>
-              }
-            />
+          {!adminMode && isCurrentUser && player.status === 'active' && isActive && (
+            <>
+              <BuyInDialog
+                sessionId={sessionId}
+                playerId={player.id}
+                isReBuy={hasBuyIn}
+                trigger={
+                  <Button size="sm" variant="outline" className={`text-xs min-h-[44px] gap-1 ${autoApproveTransactions ? 'border-emerald-500/30 text-emerald-400' : 'border-primary/30 text-primary'}`} data-testid={`button-rebuy-${player.id}`}>
+                    {autoApproveTransactions && <Unlock className="w-3 h-3" />}
+                    {hasBuyIn ? (autoApproveTransactions ? 'Instant Re-Buy' : 'Re-Buy') : (autoApproveTransactions ? 'Instant Buy-In' : 'Add Chips')}
+                  </Button>
+                }
+              />
+              {hasBuyIn && (
+                <CashOutDialog sessionId={sessionId} player={player} autoApproveTransactions={autoApproveTransactions} isSelfServe={true} />
+              )}
+            </>
           )}
         </div>
       </div>

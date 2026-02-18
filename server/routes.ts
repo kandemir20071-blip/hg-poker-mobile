@@ -771,22 +771,39 @@ export async function registerRoutes(
       const sessionId = Number(req.params.id);
       const playerId = Number(req.params.playerId);
       const { amount } = z.object({ amount: z.number().min(0).lt(100000) }).parse(req.body);
+      const userId = (req.user as any).claims.sub;
 
       const session = await storage.getSession(sessionId);
       if (!session) return res.status(404).json({ message: "Session not found" });
-      if (session.hostId !== (req.user as any).claims.sub) return res.status(401).json({ message: "Only the host can cash out players" });
+      if (session.status !== 'active') return res.status(400).json({ message: "Session is not active" });
 
       const player = await storage.getPlayer(playerId);
       if (!player || player.sessionId !== sessionId) return res.status(404).json({ message: "Player not found in this session" });
+      if (player.status === 'cashed_out') return res.status(400).json({ message: "Player has already cashed out" });
 
-      const transaction = await storage.addTransaction({
-        sessionId, playerId, type: 'cash_out',
-        amount, paymentMethod: 'cash', status: 'approved',
-      });
+      const isHost = session.hostId === userId;
+      const isSelf = player.userId === userId;
 
-      const updatedPlayer = await storage.updatePlayerStatus(playerId, 'cashed_out');
+      if (!isHost && !isSelf) {
+        return res.status(403).json({ message: "You can only cash out yourself or be the host" });
+      }
 
-      res.json({ transaction, player: updatedPlayer });
+      const shouldAutoApprove = isHost || session.autoApproveTransactions;
+
+      if (shouldAutoApprove) {
+        const transaction = await storage.addTransaction({
+          sessionId, playerId, type: 'cash_out',
+          amount, paymentMethod: 'cash', status: 'approved',
+        });
+        const updatedPlayer = await storage.updatePlayerStatus(playerId, 'cashed_out');
+        res.json({ transaction, player: updatedPlayer, status: 'approved' });
+      } else {
+        const transaction = await storage.addTransaction({
+          sessionId, playerId, type: 'cash_out',
+          amount, paymentMethod: 'cash', status: 'pending',
+        });
+        res.json({ transaction, player, status: 'pending' });
+      }
     } catch (err) {
       if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
       res.status(500).json({ message: "Internal Server Error" });
@@ -1001,7 +1018,21 @@ export async function registerRoutes(
     try {
       const transactionId = Number(req.params.id);
       const input = api.transactions.updateStatus.input.parse(req.body);
+      const userId = (req.user as any).claims.sub;
+
+      const tx = await storage.getTransaction(transactionId);
+      if (!tx) return res.status(404).json({ message: "Transaction not found" });
+
+      const session = await storage.getSession(tx.sessionId);
+      if (!session) return res.status(404).json({ message: "Session not found" });
+      if (session.hostId !== userId) return res.status(403).json({ message: "Only the host can approve or reject transactions" });
+
       const updated = await storage.updateTransactionStatus(transactionId, input.status);
+
+      if (updated.type === 'cash_out' && input.status === 'approved') {
+        await storage.updatePlayerStatus(updated.playerId, 'cashed_out');
+      }
+
       res.json(updated);
     } catch (err) {
       res.status(500).json({ message: "Internal Server Error" });

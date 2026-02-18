@@ -164,9 +164,13 @@ export function useCashOutPlayer() {
       }
       return res.json();
     },
-    onSuccess: (_, { sessionId }) => {
+    onSuccess: (data, { sessionId }) => {
       queryClient.invalidateQueries({ queryKey: [api.sessions.get.path, sessionId] });
-      toast({ title: "Cashed Out", description: "Player has left the table." });
+      const isApproved = data.status === 'approved';
+      toast({
+        title: isApproved ? "Cashed Out" : "Cashout Requested",
+        description: isApproved ? "Player has left the table." : "Sent to host for approval.",
+      });
     },
     onError: (err: Error) => {
       toast({ title: "Error", description: err.message, variant: "destructive" });
