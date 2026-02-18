@@ -14,6 +14,19 @@ export function useSessions() {
   });
 }
 
+export function useActiveGames(enabled: boolean = true) {
+  return useQuery({
+    queryKey: ['/api/sessions/active-games'],
+    queryFn: async () => {
+      const res = await fetch('/api/sessions/active-games', { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch active games");
+      return res.json() as Promise<{ session: { id: number; type: string; status: string; leagueId: number }; leagueName: string }[]>;
+    },
+    enabled,
+    refetchInterval: 15000,
+  });
+}
+
 export function useSession(id: number) {
   return useQuery({
     queryKey: [api.sessions.get.path, id],

@@ -476,6 +476,16 @@ export async function registerRoutes(
     res.json(sessions);
   });
 
+  app.get('/api/sessions/active-games', requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).claims.sub;
+      const activeGames = await storage.getActiveSessionsForUserLeagues(userId);
+      res.json(activeGames);
+    } catch (err) {
+      res.status(500).json({ message: "Internal Server Error" });
+    }
+  });
+
   app.get(api.sessions.get.path, async (req, res) => {
     const sessionId = Number(req.params.id);
     const session = await storage.getSession(sessionId);

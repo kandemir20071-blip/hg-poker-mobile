@@ -1,14 +1,16 @@
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useLeagues } from "@/hooks/use-leagues";
+import { useActiveGames } from "@/hooks/use-sessions";
 import { Button } from "@/components/ui/button";
-import { LogOut, LayoutDashboard, PlusCircle, Upload, User } from "lucide-react";
+import { LogOut, LayoutDashboard, PlusCircle, Upload, Radio } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
 
 export default function Shell({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
   const [location] = useLocation();
   const { data: leagues } = useLeagues(!!user);
+  const { data: activeGames } = useActiveGames(!!user);
 
   if (!user) return <>{children}</>;
 
@@ -20,6 +22,8 @@ export default function Shell({ children }: { children: React.ReactNode }) {
     { path: "/join", icon: PlusCircle, label: "Join", testId: "nav-join" },
     ...(isAdminOfAny ? [{ path: "/import", icon: Upload, label: "Import", testId: "nav-import" }] : []),
   ];
+
+  const liveGames = activeGames ?? [];
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -44,6 +48,32 @@ export default function Shell({ children }: { children: React.ReactNode }) {
               </Button>
             </Link>
           ))}
+
+          {liveGames.length > 0 && (
+            <div className="mt-4 pt-4 border-t border-white/[0.06]">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-2 px-4">Live Games</h3>
+              {liveGames.map((game) => (
+                <Link key={game.session.id} href={`/session/${game.session.id}`}>
+                  <Button
+                    variant={isActive(`/session/${game.session.id}`) ? "secondary" : "ghost"}
+                    className="w-full justify-start gap-3 text-emerald-400"
+                    data-testid={`desktop-nav-live-game-${game.session.id}`}
+                  >
+                    <span className="relative flex h-2 w-2 shrink-0">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                    </span>
+                    <span className="truncate text-sm">
+                      <span className="font-semibold">Live</span>
+                      <span className="text-muted-foreground mx-1">·</span>
+                      <span>{game.leagueName}</span>
+                    </span>
+                  </Button>
+                </Link>
+              ))}
+            </div>
+          )}
+
           <div className="mt-8 pt-8 border-t border-white/[0.06]">
             <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-4">Account</h3>
             <div className="flex items-center gap-3 px-4 py-2 mb-4">
@@ -91,6 +121,27 @@ export default function Shell({ children }: { children: React.ReactNode }) {
                 </button>
               </Link>
             ))}
+            {liveGames.length > 0 && (
+              <Link href={`/session/${liveGames[0].session.id}`}>
+                <button
+                  className={`flex flex-col items-center justify-center min-w-[64px] min-h-[48px] rounded-xl transition-colors relative ${
+                    liveGames.some(g => isActive(`/session/${g.session.id}`))
+                      ? "text-emerald-400"
+                      : "text-emerald-400/70 active:text-emerald-300"
+                  }`}
+                  data-testid="mobile-nav-live-game"
+                >
+                  <span className="relative">
+                    <Radio className={`h-5 w-5 ${liveGames.some(g => isActive(`/session/${g.session.id}`)) ? "drop-shadow-[0_0_6px_rgba(16,185,129,0.5)]" : ""}`} />
+                    <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                    </span>
+                  </span>
+                  <span className="text-[10px] font-medium mt-1">Live</span>
+                </button>
+              </Link>
+            )}
             <button
               onClick={() => logout()}
               className="flex flex-col items-center justify-center min-w-[64px] min-h-[48px] rounded-xl text-muted-foreground active:text-destructive transition-colors"

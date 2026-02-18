@@ -17,6 +17,7 @@ export interface IStorage {
   getSession(id: number): Promise<PokerSession | undefined>;
   getSessionByCode(code: string): Promise<PokerSession | undefined>;
   getUserSessions(userId: string): Promise<PokerSession[]>;
+  getActiveSessionsForUserLeagues(userId: string): Promise<{ session: PokerSession; leagueName: string }[]>;
   getLeagueSessions(leagueId: number): Promise<PokerSession[]>;
   updateSessionStatus(id: number, status: 'active' | 'completed', endTime?: Date): Promise<PokerSession>;
   updateSessionConfig(id: number, config: Record<string, unknown>): Promise<PokerSession>;
@@ -93,6 +94,38 @@ export class DatabaseStorage implements IStorage {
       .from(pokerSessions)
       .where(eq(pokerSessions.hostId, userId))
       .orderBy(desc(pokerSessions.startTime));
+  }
+
+  async getActiveSessionsForUserLeagues(userId: string): Promise<{ session: PokerSession; leagueName: string }[]> {
+    const userLeagueRows = await db.select({ leagueId: leagueMembers.leagueId })
+      .from(leagueMembers)
+      .where(eq(leagueMembers.userId, userId));
+    const createdLeagues = await db.select({ id: leagues.id })
+      .from(leagues)
+      .where(eq(leagues.creatorId, userId));
+    const allLeagueIds = new Set([
+      ...userLeagueRows.map(r => r.leagueId),
+      ...createdLeagues.map(r => r.id),
+    ]);
+    const allLeagueIdsArr = Array.from(allLeagueIds);
+    if (allLeagueIdsArr.length === 0) return [];
+    const activeSessions = await db.select()
+      .from(pokerSessions)
+      .where(
+        and(
+          eq(pokerSessions.status, 'active'),
+          inArray(pokerSessions.leagueId, allLeagueIdsArr)
+        )
+      );
+    if (activeSessions.length === 0) return [];
+    const leagueIdsSet = new Set(activeSessions.map(s => s.leagueId!));
+    const leagueIdsArr = Array.from(leagueIdsSet);
+    const leagueRows = await db.select().from(leagues).where(inArray(leagues.id, leagueIdsArr));
+    const leagueMap = new Map(leagueRows.map(l => [l.id, l.name]));
+    return activeSessions.map(s => ({
+      session: s,
+      leagueName: leagueMap.get(s.leagueId!) ?? 'Unknown',
+    }));
   }
 
   async getLeagueSessions(leagueId: number): Promise<PokerSession[]> {
