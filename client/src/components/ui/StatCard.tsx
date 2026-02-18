@@ -18,13 +18,14 @@ interface StatCardProps {
 export function StatCard({ title, value, icon: Icon, customIconSrc, customIconBgClass, trend, trendUp, subtitle, prominent, valueColor, className }: StatCardProps) {
   return (
     <div className={cn(
-      "glass-card rounded-xl relative overflow-hidden group hover:border-primary/20 transition-all duration-300",
+      "glass-card rounded-xl relative group hover:border-primary/20 transition-all duration-300",
+      customIconBgClass ? "overflow-visible" : "overflow-hidden",
       prominent ? "p-4 sm:p-6 border-primary/10" : "p-3 sm:p-5",
       className
     )} data-testid={`stat-card-${title.toLowerCase().replace(/\s+/g, '-')}`}>
       {customIconSrc ? (
-        <div className={cn("absolute -bottom-2 -right-2 transition-opacity hidden sm:block", "opacity-[0.35] group-hover:opacity-[0.5]")}>
-          <img src={customIconSrc} alt="" className={cn("object-contain", customIconBgClass || (prominent ? "w-40 h-40" : "w-36 h-36"))} style={{ imageRendering: 'pixelated' }} />
+        <div className={cn("absolute bottom-0 right-0 transition-opacity hidden sm:block", "opacity-[0.35] group-hover:opacity-[0.5]")}>
+          <img src={customIconSrc} alt="" className={cn("object-contain max-w-none", customIconBgClass || (prominent ? "w-40 h-40" : "w-36 h-36"))} style={{ imageRendering: 'pixelated' }} />
         </div>
       ) : (
         <div className="absolute top-0 right-0 p-4 opacity-[0.04] group-hover:opacity-[0.08] transition-opacity hidden sm:block">
