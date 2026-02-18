@@ -64,6 +64,7 @@ export default function SessionView() {
 
   const session = data?.session;
   const txList = data?.transactions ?? [];
+  const leagueAdminIds: string[] = data?.leagueAdminIds ?? [];
   const tournamentConfig = session?.type === 'tournament' ? session.config as TournamentConfig | null : null;
   const appliedChop = useMemo(() => {
     if (!tournamentConfig?.customPayouts) return null;
@@ -124,7 +125,9 @@ export default function SessionView() {
   }
 
   const transactions = txList;
-  const isHost = session.hostId === user?.id;
+  const isSessionHost = session.hostId === user?.id;
+  const isLeagueAdmin = user?.id ? leagueAdminIds.includes(user.id) : false;
+  const isHost = isSessionHost || isLeagueAdmin;
   const isActive = session.status === 'active';
   const isCompleted = session.status === 'completed';
   const isImported = !!(session.config && (session.config as Record<string, unknown>).source === 'import');
@@ -1096,6 +1099,7 @@ export default function SessionView() {
                 transactions={transactions}
                 isActive={isActive}
                 autoApproveTransactions={session.autoApproveTransactions}
+                leagueAdminIds={leagueAdminIds}
               />
             </div>
 

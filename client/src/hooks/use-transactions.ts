@@ -26,7 +26,8 @@ export function useAddTransaction() {
 
       const currentUser = queryClient.getQueryData(["/api/auth/user"]) as any;
       const isHost = currentUser?.id && currentUser.id === previousData?.session?.hostId;
-      const willAutoApprove = isHost || previousData?.session?.autoApproveTransactions === true;
+      const isLeagueAdmin = currentUser?.id && (previousData?.leagueAdminIds ?? []).includes(currentUser.id);
+      const willAutoApprove = isHost || isLeagueAdmin || previousData?.session?.autoApproveTransactions === true;
 
       queryClient.setQueryData([api.sessions.get.path, sessionId], (old: any) => {
         if (!old) return old;

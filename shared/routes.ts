@@ -54,6 +54,7 @@ export const api = {
             netProfit: number;
           }>()),
           transactions: z.array(z.custom<typeof transactions.$inferSelect>()),
+          leagueAdminIds: z.array(z.string()).optional(),
         }),
         404: errorSchemas.notFound,
       },

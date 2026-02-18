@@ -17,6 +17,13 @@ function isUniqueViolation(err: unknown): boolean {
   );
 }
 
+async function isHostOrLeagueAdmin(session: { hostId: string; leagueId: number | null }, userId: string): Promise<boolean> {
+  if (session.hostId === userId) return true;
+  if (!session.leagueId) return false;
+  const league = await storage.getLeague(session.leagueId);
+  return league?.creatorId === userId;
+}
+
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 },
@@ -459,6 +466,14 @@ export async function registerRoutes(
     const players = await storage.getSessionPlayers(sessionId);
     const txns = await storage.getSessionTransactions(sessionId);
 
+    let leagueAdminIds: string[] = [];
+    if (session.leagueId) {
+      const league = await storage.getLeague(session.leagueId);
+      if (league) {
+        leagueAdminIds = [league.creatorId];
+      }
+    }
+
     const isImported = session.config && (session.config as any).source === 'import';
 
     if (isImported && players.length === 0 && session.leagueId) {
@@ -484,7 +499,7 @@ export async function registerRoutes(
         netProfit: r.netProfit,
       }));
 
-      return res.json({ session, players: importedPlayers, transactions: [] });
+      return res.json({ session, players: importedPlayers, transactions: [], leagueAdminIds });
     }
 
     const playersWithStats = players.map(p => {
@@ -494,7 +509,7 @@ export async function registerRoutes(
       return { ...p, totalBuyIn, totalCashOut, netProfit: totalCashOut - totalBuyIn };
     });
 
-    res.json({ session, players: playersWithStats, transactions: txns });
+    res.json({ session, players: playersWithStats, transactions: txns, leagueAdminIds });
   });
 
   app.post(api.sessions.join.path, requireAuth, async (req, res) => {
@@ -552,7 +567,7 @@ export async function registerRoutes(
     const session = await storage.getSession(sessionId);
     if (!session) return res.status(404).json({ message: "Session not found" });
     const hostId = (req.user as any).claims.sub;
-    if (session.hostId !== hostId) return res.status(401).json({ message: "Only host can end session" });
+    if (!await isHostOrLeagueAdmin(session, hostId)) return res.status(401).json({ message: "Only host or league admin can end session" });
 
     const forceUnbalanced = req.body.forceUnbalanced === true;
     const adjustments: { playerId: number; amount: number }[] = req.body.adjustments ?? [];
@@ -723,7 +738,7 @@ export async function registerRoutes(
       const sessionId = Number(req.params.id);
       const session = await storage.getSession(sessionId);
       if (!session) return res.status(404).json({ message: "Session not found" });
-      if (session.hostId !== (req.user as any).claims.sub) return res.status(401).json({ message: "Only the host can delete sessions" });
+      if (!await isHostOrLeagueAdmin(session, (req.user as any).claims.sub)) return res.status(401).json({ message: "Only the host or league admin can delete sessions" });
       await storage.deleteSession(sessionId);
       res.json({ success: true });
     } catch (err) {
@@ -737,7 +752,7 @@ export async function registerRoutes(
       const input = api.sessions.addPlayer.input.parse(req.body);
       const session = await storage.getSession(sessionId);
       if (!session) return res.status(404).json({ message: "Session not found" });
-      if (session.hostId !== (req.user as any).claims.sub) return res.status(401).json({ message: "Only the host can add players manually" });
+      if (!await isHostOrLeagueAdmin(session, (req.user as any).claims.sub)) return res.status(401).json({ message: "Only the host or league admin can add players manually" });
 
       const existingPlayers = await storage.getSessionPlayers(sessionId);
       const nameExists = existingPlayers.some(
@@ -781,14 +796,14 @@ export async function registerRoutes(
       if (!player || player.sessionId !== sessionId) return res.status(404).json({ message: "Player not found in this session" });
       if (player.status === 'cashed_out') return res.status(400).json({ message: "Player has already cashed out" });
 
-      const isHost = session.hostId === userId;
+      const isHostOrAdmin = await isHostOrLeagueAdmin(session, userId);
       const isSelf = player.userId === userId;
 
-      if (!isHost && !isSelf) {
-        return res.status(403).json({ message: "You can only cash out yourself or be the host" });
+      if (!isHostOrAdmin && !isSelf) {
+        return res.status(403).json({ message: "You can only cash out yourself or be the host/league admin" });
       }
 
-      const shouldAutoApprove = isHost || session.autoApproveTransactions;
+      const shouldAutoApprove = isHostOrAdmin || session.autoApproveTransactions;
 
       if (shouldAutoApprove) {
         const transaction = await storage.addTransaction({
@@ -819,7 +834,7 @@ export async function registerRoutes(
 
       const session = await storage.getSession(sessionId);
       if (!session) return res.status(404).json({ message: "Session not found" });
-      if (session.hostId !== (req.user as any).claims.sub) return res.status(401).json({ message: "Only the host can bust players" });
+      if (!await isHostOrLeagueAdmin(session, (req.user as any).claims.sub)) return res.status(401).json({ message: "Only the host or league admin can bust players" });
       if (session.type !== 'tournament') return res.status(400).json({ message: "Bust is only available in tournaments" });
       if (session.status !== 'active') return res.status(400).json({ message: "Session is not active" });
 
@@ -946,7 +961,7 @@ export async function registerRoutes(
 
       const session = await storage.getSession(sessionId);
       if (!session) return res.status(404).json({ message: "Session not found" });
-      if (session.hostId !== (req.user as any).claims.sub) return res.status(401).json({ message: "Only the host can set custom payouts" });
+      if (!await isHostOrLeagueAdmin(session, (req.user as any).claims.sub)) return res.status(401).json({ message: "Only the host or league admin can set custom payouts" });
       if (session.type !== 'tournament') return res.status(400).json({ message: "Custom chop is only available for tournaments" });
 
       const allPlayers = await storage.getSessionPlayers(sessionId);
@@ -982,7 +997,7 @@ export async function registerRoutes(
       const session = await storage.getSession(sessionId);
       if (!session) return res.status(404).json({ message: "Session not found" });
       const userId = (req.user as any).claims.sub;
-      if (session.hostId !== userId) return res.status(401).json({ message: "Only the host can toggle self-serve transactions." });
+      if (!await isHostOrLeagueAdmin(session, userId)) return res.status(401).json({ message: "Only the host or league admin can toggle self-serve transactions." });
       if (session.status !== 'active') return res.status(400).json({ message: "Cannot modify a completed session." });
 
       const updated = await storage.updateSessionAutoApprove(sessionId, input.enabled);
@@ -1003,8 +1018,8 @@ export async function registerRoutes(
       if (!session) return res.status(404).json({ message: "Session not found" });
 
       const userId = req.isAuthenticated() ? (req.user as any).claims.sub : null;
-      const isHost = userId && userId === session.hostId;
-      const status = isHost || session.autoApproveTransactions ? 'approved' : 'pending';
+      const isHostOrAdmin = userId ? await isHostOrLeagueAdmin(session, userId) : false;
+      const status = isHostOrAdmin || session.autoApproveTransactions ? 'approved' : 'pending';
 
       const transaction = await storage.addTransaction({ sessionId, ...input, paymentMethod: 'cash', status });
       res.status(201).json(transaction);
@@ -1025,7 +1040,7 @@ export async function registerRoutes(
 
       const session = await storage.getSession(tx.sessionId);
       if (!session) return res.status(404).json({ message: "Session not found" });
-      if (session.hostId !== userId) return res.status(403).json({ message: "Only the host can approve or reject transactions" });
+      if (!await isHostOrLeagueAdmin(session, userId)) return res.status(403).json({ message: "Only the host or league admin can approve or reject transactions" });
 
       const updated = await storage.updateTransactionStatus(transactionId, input.status);
 
@@ -1047,7 +1062,7 @@ export async function registerRoutes(
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       const session = await storage.getSession(tx.sessionId);
       if (!session) return res.status(404).json({ message: "Session not found" });
-      if (session.hostId !== (req.user as any).claims.sub) return res.status(401).json({ message: "Only the host can edit transactions" });
+      if (!await isHostOrLeagueAdmin(session, (req.user as any).claims.sub)) return res.status(401).json({ message: "Only the host or league admin can edit transactions" });
 
       const updated = await storage.updateTransaction(transactionId, input);
       res.json(updated);
@@ -1064,7 +1079,7 @@ export async function registerRoutes(
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       const session = await storage.getSession(tx.sessionId);
       if (!session) return res.status(404).json({ message: "Session not found" });
-      if (session.hostId !== (req.user as any).claims.sub) return res.status(401).json({ message: "Only the host can delete transactions" });
+      if (!await isHostOrLeagueAdmin(session, (req.user as any).claims.sub)) return res.status(401).json({ message: "Only the host or league admin can delete transactions" });
       await storage.deleteTransaction(transactionId);
       res.json({ success: true });
     } catch (err) {

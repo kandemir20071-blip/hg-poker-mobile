@@ -7,7 +7,7 @@ import { DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
-import { Crown, TrendingUp, DollarSign, LogOut, Loader2, Unlock } from "lucide-react";
+import { Crown, TrendingUp, DollarSign, LogOut, Loader2, Unlock, ShieldCheck } from "lucide-react";
 import { BuyInDialog } from "./BuyInDialog";
 import { ManagePlayerDialog } from "./ManagePlayerDialog";
 import { useCashOutPlayer } from "@/hooks/use-transactions";
@@ -28,6 +28,7 @@ interface PlayerListProps {
   transactions?: Transaction[];
   isActive?: boolean;
   autoApproveTransactions?: boolean;
+  leagueAdminIds?: string[];
 }
 
 function CashOutDialog({ sessionId, player, autoApproveTransactions, isSelfServe }: { sessionId: number; player: ExtendedPlayer; autoApproveTransactions?: boolean; isSelfServe?: boolean }) {
@@ -120,7 +121,7 @@ function CashOutDialog({ sessionId, player, autoApproveTransactions, isSelfServe
   );
 }
 
-function PlayerCard({ player, isHost, isCurrentUser, adminMode, sessionId, transactions, isActive, autoApproveTransactions }: {
+function PlayerCard({ player, isHost, isCurrentUser, adminMode, sessionId, transactions, isActive, autoApproveTransactions, isLeagueAdmin }: {
   player: ExtendedPlayer;
   isHost: boolean;
   isCurrentUser: boolean;
@@ -129,6 +130,7 @@ function PlayerCard({ player, isHost, isCurrentUser, adminMode, sessionId, trans
   transactions: Transaction[];
   isActive?: boolean;
   autoApproveTransactions?: boolean;
+  isLeagueAdmin?: boolean;
 }) {
   const profit = player.netProfit;
   const isWinning = profit > 0;
@@ -157,6 +159,7 @@ function PlayerCard({ player, isHost, isCurrentUser, adminMode, sessionId, trans
             <div className="flex items-center gap-2 flex-wrap">
               <h4 className="font-bold text-lg text-white truncate">{player.name}</h4>
               {isHost && <Crown className="h-3 w-3 text-primary fill-current shrink-0" />}
+              {isLeagueAdmin && !isHost && <ShieldCheck className="h-3 w-3 text-amber-400 shrink-0" data-testid={`icon-league-admin-${player.id}`} />}
               {isCurrentUser && <Badge variant="secondary" className="text-[10px] h-5">YOU</Badge>}
               {!player.userId && adminMode && <Badge variant="outline" className="text-[10px] h-5">MANUAL</Badge>}
               {isCashedOut && (
@@ -227,7 +230,7 @@ function PlayerCard({ player, isHost, isCurrentUser, adminMode, sessionId, trans
   );
 }
 
-export function PlayerList({ players, hostId, sessionId, currentUserId, adminMode, transactions = [], isActive = true, autoApproveTransactions = false }: PlayerListProps) {
+export function PlayerList({ players, hostId, sessionId, currentUserId, adminMode, transactions = [], isActive = true, autoApproveTransactions = false, leagueAdminIds = [] }: PlayerListProps) {
   const activePlayers = players.filter(p => p.status !== 'cashed_out');
   const finishedPlayers = players.filter(p => p.status === 'cashed_out');
 
@@ -254,6 +257,7 @@ export function PlayerList({ players, hostId, sessionId, currentUserId, adminMod
             transactions={transactions}
             isActive={isActive}
             autoApproveTransactions={autoApproveTransactions}
+            isLeagueAdmin={player.userId ? leagueAdminIds.includes(player.userId) : false}
           />
         ))}
 
@@ -279,6 +283,7 @@ export function PlayerList({ players, hostId, sessionId, currentUserId, adminMod
                 transactions={transactions}
                 isActive={isActive}
                 autoApproveTransactions={autoApproveTransactions}
+                isLeagueAdmin={player.userId ? leagueAdminIds.includes(player.userId) : false}
               />
             ))}
           </div>
