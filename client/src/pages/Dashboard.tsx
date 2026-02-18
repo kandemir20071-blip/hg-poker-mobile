@@ -18,7 +18,7 @@ import frogBankerSrc from "@assets/image-removebg-preview-3_1771176202817.png";
 import frogBalanceSrc from "@assets/image-removebg-preview-4_1771176899418.png";
 import frogMoneyBagSrc from "@assets/image-removebg-preview-5_1771177431227.png";
 import frogGladiatorSrc from "@assets/image-removebg-preview-6_1771182160649.png";
-import frogKingpinSrc from "@assets/image-removebg-preview-7_1771425921995.png";
+import frogKingpinSrc from "@assets/image-removebg-preview-7_1771426631043.png";
 import { Tooltip as UITooltip, TooltipContent as UITooltipContent, TooltipTrigger as UITooltipTrigger } from "@/components/ui/tooltip";
 import { SuitAccent, SuitsLoader, SuitsRow } from "@/components/ui/Suits";
 import { Link, useLocation } from "wouter";
@@ -742,7 +742,7 @@ function LeaguesTab({
               value={userRank ? `#${userRank}` : "Unranked"}
               icon={Trophy}
               customIconSrc={rankMascot}
-              customIconBgClass={isTopTier ? "w-32 h-auto scale-[1.8] origin-bottom-right -translate-x-2 -translate-y-2" : undefined}
+              
               subtitle={
                 <span className="flex items-center gap-1 flex-wrap" data-testid="text-league-rank-subtitle">
                   <span>{rankSubtitle}</span>
