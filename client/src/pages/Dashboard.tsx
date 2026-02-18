@@ -18,6 +18,7 @@ import frogBankerSrc from "@assets/image-removebg-preview-3_1771176202817.png";
 import frogBalanceSrc from "@assets/image-removebg-preview-4_1771176899418.png";
 import frogMoneyBagSrc from "@assets/image-removebg-preview-5_1771177431227.png";
 import frogGladiatorSrc from "@assets/image-removebg-preview-6_1771182160649.png";
+import frogKingpinSrc from "@assets/image-removebg-preview-7_1771425921995.png";
 import { Tooltip as UITooltip, TooltipContent as UITooltipContent, TooltipTrigger as UITooltipTrigger } from "@/components/ui/tooltip";
 import { SuitAccent, SuitsLoader, SuitsRow } from "@/components/ui/Suits";
 import { Link, useLocation } from "wouter";
@@ -720,28 +721,36 @@ function LeaguesTab({
           );
         })()}
         {(() => {
-          const entries = leagueStats?.totalPlayerEntries || 0;
-          const wagered = leagueStats?.totalMoneyWagered || 0;
-          const avgBuyIn = entries > 0 ? Math.round(wagered / entries) : 0;
+          const analytics = leagueStats?.playerAnalytics || [];
+          const ranked = [...analytics]
+            .sort((a: any, b: any) => b.totalProfit - a.totalProfit);
+          const claimedPlayer = leagueWithPlayers?.players?.find((p: any) => p.claimedByUserId === user?.id);
+          const claimedName = claimedPlayer?.name;
+          const userRankIndex = claimedName ? ranked.findIndex((p: any) => p.playerName === claimedName) : -1;
+          const userRank = userRankIndex >= 0 ? userRankIndex + 1 : null;
+
+          const isTopTier = userRank !== null && userRank <= 3;
+          const rankMascot = isTopTier ? frogKingpinSrc : frogBankerSrc;
+          const rankSubtitle = !userRank ? "No games yet"
+            : userRank <= 3 ? "High Roller"
+            : userRank <= 10 ? "The Grinder"
+            : "Down on Luck";
+
           return (
             <StatCard
-              title="Avg Buy-in"
-              value={`$${avgBuyIn}`}
-              icon={DollarSign}
-              customIconSrc={frogBankerSrc}
+              title="League Rank"
+              value={userRank ? `#${userRank}` : "Unranked"}
+              icon={Trophy}
+              customIconSrc={rankMascot}
               subtitle={
-                <span className="flex items-center gap-1 flex-wrap">
-                  <span>{entries} total entries</span>
-                  <UITooltip>
-                    <UITooltipTrigger asChild>
-                      <button className="text-muted-foreground" data-testid="button-avg-buyin-info">
-                        <Info className="h-3 w-3" />
-                      </button>
-                    </UITooltipTrigger>
-                    <UITooltipContent side="top" className="max-w-[220px] text-xs leading-relaxed">
-                      Defines the weight class of your league. Higher averages mean bigger stakes and swings.
-                    </UITooltipContent>
-                  </UITooltip>
+                <span className="flex items-center gap-1 flex-wrap" data-testid="text-league-rank-subtitle">
+                  <span>{rankSubtitle}</span>
+                  {userRank && (
+                    <>
+                      <span className="text-white/20">|</span>
+                      <span>{ranked.length} players</span>
+                    </>
+                  )}
                 </span>
               }
             />
