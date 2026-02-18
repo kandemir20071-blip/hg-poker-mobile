@@ -305,6 +305,18 @@ export const api = {
         200: z.array(z.any()),
       },
     },
+    createAndClaimPlayer: {
+      method: 'POST' as const,
+      path: '/api/leagues/:id/create-player' as const,
+      input: z.object({
+        name: z.string().min(1).max(30),
+      }),
+      responses: {
+        200: z.any(),
+        400: errorSchemas.validation,
+        409: errorSchemas.validation,
+      },
+    },
     claimPlayer: {
       method: 'POST' as const,
       path: '/api/leagues/:id/claim' as const,

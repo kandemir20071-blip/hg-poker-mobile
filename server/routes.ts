@@ -167,6 +167,42 @@ export async function registerRoutes(
     res.json(playersWithCounts);
   });
 
+  app.post(api.leagues.createAndClaimPlayer.path, requireAuth, async (req, res) => {
+    try {
+      const leagueId = Number(req.params.id);
+      const { name } = api.leagues.createAndClaimPlayer.input.parse(req.body);
+      const userId = (req.user as any).claims.sub;
+
+      const isMember = await storage.isLeagueMember(leagueId, userId);
+      if (!isMember) return res.status(401).json({ message: "Not a member of this league" });
+
+      const existingClaim = await storage.getLeaguePlayerByUserId(leagueId, userId);
+      if (existingClaim) {
+        return res.status(400).json({ message: `You have already claimed the name "${existingClaim.name}" in this league.` });
+      }
+
+      const trimmedName = name.trim();
+      if (!trimmedName) return res.status(400).json({ message: "Name cannot be empty" });
+
+      const existingPlayer = await storage.getLeaguePlayerByName(leagueId, trimmedName);
+      if (existingPlayer) {
+        return res.status(409).json({ message: "This name is already taken in this league." });
+      }
+
+      const newPlayer = await storage.addLeaguePlayer({ leagueId, name: trimmedName });
+      const claimed = await storage.claimLeaguePlayer(newPlayer.id, userId);
+      res.json(claimed);
+    } catch (err: any) {
+      if (err?.name === 'ZodError') {
+        return res.status(400).json({ message: "Invalid input" });
+      }
+      if (err?.code === '23505' || err?.constraint) {
+        return res.status(409).json({ message: "This name is already taken in this league." });
+      }
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   app.post(api.leagues.claimPlayer.path, requireAuth, async (req, res) => {
     try {
       const leagueId = Number(req.params.id);

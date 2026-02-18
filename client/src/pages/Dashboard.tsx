@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useStats } from "@/hooks/use-stats";
 import { useCreateSession, useDeleteSession } from "@/hooks/use-sessions";
-import { useLeagues, useLeague, useLeagueStats, useLeagueSessions, usePersonalStats, useCreateLeague, useJoinLeague, useClaimPlayer, useMigrateToLeague, useLeaveLeague, useDeleteLeague } from "@/hooks/use-leagues";
+import { useLeagues, useLeague, useLeagueStats, useLeagueSessions, usePersonalStats, useCreateLeague, useJoinLeague, useClaimPlayer, useCreateAndClaimPlayer, useMigrateToLeague, useLeaveLeague, useDeleteLeague } from "@/hooks/use-leagues";
 import { StatCard } from "@/components/ui/StatCard";
 import { Button } from "@/components/ui/button";
 
@@ -906,7 +906,7 @@ function LeaguesTab({
 
       <CreateLeagueDialog open={showCreateDialog} onOpenChange={setShowCreateDialog} name={newLeagueName} onNameChange={setNewLeagueName} onCreate={() => { createLeague({ name: newLeagueName }, { onSuccess: () => { setShowCreateDialog(false); setNewLeagueName(""); } }); }} isCreating={isCreating} />
       <JoinLeagueDialog open={showJoinDialog} onOpenChange={setShowJoinDialog} code={joinCode} onCodeChange={setJoinCode} onJoin={() => { joinLeague({ inviteCode: joinCode }, { onSuccess: () => { setShowJoinDialog(false); setJoinCode(""); } }); }} isJoining={isJoining} />
-      <ClaimNameDialog open={showClaimDialog} onOpenChange={setShowClaimDialog} league={leagueWithPlayers} onClaim={(playerId: number) => { if (selectedLeagueId) claimPlayer({ leagueId: selectedLeagueId, playerId }, { onSuccess: () => setShowClaimDialog(false) }); }} />
+      <ClaimNameDialog open={showClaimDialog} onOpenChange={setShowClaimDialog} league={leagueWithPlayers} leagueId={selectedLeagueId} onClaim={(playerId: number) => { if (selectedLeagueId) claimPlayer({ leagueId: selectedLeagueId, playerId }, { onSuccess: () => setShowClaimDialog(false) }); }} onClose={() => setShowClaimDialog(false)} />
 
       {selectedLeagueId && leagueWithPlayers?.players && (
         <LeagueAdminDialog
@@ -1065,11 +1065,19 @@ function JoinLeagueDialog({ open, onOpenChange, code, onCodeChange, onJoin, isJo
   );
 }
 
-function ClaimNameDialog({ open, onOpenChange, league, onClaim }: any) {
+function ClaimNameDialog({ open, onOpenChange, league, leagueId, onClaim, onClose }: any) {
   const [claimSearch, setClaimSearch] = useState("");
   const [claimSort, setClaimSort] = useState<"active" | "az">("active");
+  const [showCreateNew, setShowCreateNew] = useState(false);
+  const [newName, setNewName] = useState("");
+  const { mutate: createAndClaim, isPending: isCreating } = useCreateAndClaimPlayer();
 
-  const unclaimedPlayers = league?.players?.filter((p: any) => !p.claimedByUserId) || [];
+  const allPlayers = league?.players || [];
+  const unclaimedPlayers = allPlayers.filter((p: any) => !p.claimedByUserId);
+
+  const nameExists = newName.trim().length > 0 && allPlayers.some(
+    (p: any) => p.name.toLowerCase().trim() === newName.toLowerCase().trim()
+  );
 
   const filtered = unclaimedPlayers
     .filter((p: any) => p.name.toLowerCase().includes(claimSearch.toLowerCase()))
@@ -1079,64 +1087,138 @@ function ClaimNameDialog({ open, onOpenChange, league, onClaim }: any) {
       return diff !== 0 ? diff : a.name.localeCompare(b.name);
     });
 
+  const handleCreateNew = () => {
+    if (!leagueId || !newName.trim() || nameExists) return;
+    createAndClaim({ leagueId, name: newName.trim() }, {
+      onSuccess: () => {
+        setNewName("");
+        setShowCreateNew(false);
+        onClose();
+      },
+    });
+  };
+
+  const resetState = () => {
+    setClaimSearch("");
+    setShowCreateNew(false);
+    setNewName("");
+  };
+
   return (
-    <ResponsiveModal open={open} onOpenChange={(v) => { if (!v) { setClaimSearch(""); } onOpenChange(v); }}>
+    <ResponsiveModal open={open} onOpenChange={(v) => { if (!v) resetState(); onOpenChange(v); }}>
       <ResponsiveModalContent className="glass-card sm:max-w-md max-h-[90vh] flex flex-col">
         <ResponsiveModalHeader>
-          <ResponsiveModalTitle>Claim Your Name</ResponsiveModalTitle>
-          <ResponsiveModalDescription>Select your player name to link it to your account. This lets the app track your personal stats.</ResponsiveModalDescription>
+          <ResponsiveModalTitle>{showCreateNew ? "Create New Profile" : "Claim Your Name"}</ResponsiveModalTitle>
+          <ResponsiveModalDescription>
+            {showCreateNew
+              ? "Enter a unique display name for this league."
+              : "Select your player name to link it to your account. This lets the app track your personal stats."}
+          </ResponsiveModalDescription>
         </ResponsiveModalHeader>
-        {unclaimedPlayers.length > 0 && (
-          <div className="flex items-center gap-2 mt-1">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+
+        {showCreateNew ? (
+          <div className="space-y-4 mt-2">
+            <div className="relative">
+              <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                value={claimSearch}
-                onChange={(e) => setClaimSearch(e.target.value)}
-                placeholder="Search your name..."
+                value={newName}
+                onChange={(e) => setNewName(e.target.value.slice(0, 30))}
+                placeholder="Your display name..."
                 className="pl-9 bg-background/50 border-white/[0.08] min-h-[44px] text-base"
-                data-testid="input-claim-search"
+                autoFocus
+                data-testid="input-create-name"
               />
             </div>
-            <Select value={claimSort} onValueChange={(v) => setClaimSort(v as "active" | "az")}>
-              <SelectTrigger className="w-[150px] bg-background/50 border-white/[0.08]" data-testid="select-claim-sort">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="active">
-                  <span className="flex items-center gap-2"><Activity className="h-3.5 w-3.5" /> Most Active</span>
-                </SelectItem>
-                <SelectItem value="az">
-                  <span className="flex items-center gap-2"><ArrowDownAZ className="h-3.5 w-3.5" /> A-Z</span>
-                </SelectItem>
-              </SelectContent>
-            </Select>
+            {nameExists && (
+              <p className="text-xs text-emerald-400" data-testid="text-name-taken">
+                This name is already taken in this league.
+              </p>
+            )}
+            {newName.trim().length > 0 && !nameExists && (
+              <p className="text-xs text-emerald-600" data-testid="text-name-available">
+                Name available
+              </p>
+            )}
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" className="flex-1" onClick={() => setShowCreateNew(false)} data-testid="button-back-to-claim">
+                Back
+              </Button>
+              <Button
+                className="flex-1 glow-emerald"
+                disabled={!newName.trim() || nameExists || isCreating}
+                onClick={handleCreateNew}
+                data-testid="button-confirm-create-name"
+              >
+                {isCreating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
+                Create Profile
+              </Button>
+            </div>
           </div>
-        )}
-        <div className="flex-1 overflow-y-auto mt-2 min-h-0 max-h-[50vh] space-y-1.5">
-          {filtered.length > 0 ? filtered.map((player: any) => (
-            <button
-              key={player.id}
-              onClick={() => onClaim(player.id)}
-              className="w-full flex items-center justify-between gap-3 p-3 rounded-lg bg-background/40 border border-white/[0.06] hover:border-primary/40 transition-colors text-left min-h-[48px]"
-              data-testid={`button-claim-${player.id}`}
-            >
-              <span className="font-medium truncate" data-testid={`text-claim-name-${player.id}`}>{player.name}</span>
-              <div className="flex items-center gap-2 shrink-0">
-                {(player.sessionCount ?? 0) > 0 && (
-                  <Badge variant="outline" className="text-xs text-emerald-400 border-emerald-400/30" data-testid={`badge-claim-games-${player.id}`}>
-                    {player.sessionCount} {player.sessionCount === 1 ? "game" : "games"}
-                  </Badge>
-                )}
-                <span className="text-xs text-muted-foreground">Claim</span>
+        ) : (
+          <>
+            {unclaimedPlayers.length > 0 && (
+              <div className="flex items-center gap-2 mt-1">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    value={claimSearch}
+                    onChange={(e) => setClaimSearch(e.target.value)}
+                    placeholder="Search your name..."
+                    className="pl-9 bg-background/50 border-white/[0.08] min-h-[44px] text-base"
+                    data-testid="input-claim-search"
+                  />
+                </div>
+                <Select value={claimSort} onValueChange={(v) => setClaimSort(v as "active" | "az")}>
+                  <SelectTrigger className="w-[150px] bg-background/50 border-white/[0.08]" data-testid="select-claim-sort">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">
+                      <span className="flex items-center gap-2"><Activity className="h-3.5 w-3.5" /> Most Active</span>
+                    </SelectItem>
+                    <SelectItem value="az">
+                      <span className="flex items-center gap-2"><ArrowDownAZ className="h-3.5 w-3.5" /> A-Z</span>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-            </button>
-          )) : unclaimedPlayers.length > 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">No names match your search.</p>
-          ) : (
-            <p className="text-sm text-muted-foreground text-center py-4">No unclaimed names available. All player names have been claimed.</p>
-          )}
-        </div>
+            )}
+            <div className="flex-1 overflow-y-auto mt-2 min-h-0 max-h-[50vh] space-y-1.5">
+              {filtered.length > 0 ? filtered.map((player: any) => (
+                <Button
+                  key={player.id}
+                  variant="outline"
+                  onClick={() => onClaim(player.id)}
+                  className="w-full flex items-center justify-between gap-3 text-left"
+                  data-testid={`button-claim-${player.id}`}
+                >
+                  <span className="font-medium truncate" data-testid={`text-claim-name-${player.id}`}>{player.name}</span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {(player.sessionCount ?? 0) > 0 && (
+                      <Badge variant="outline" className="text-xs text-emerald-400 border-emerald-400/30" data-testid={`badge-claim-games-${player.id}`}>
+                        {player.sessionCount} {player.sessionCount === 1 ? "game" : "games"}
+                      </Badge>
+                    )}
+                    <span className="text-xs text-muted-foreground">Claim</span>
+                  </div>
+                </Button>
+              )) : unclaimedPlayers.length > 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">No names match your search.</p>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-4">No unclaimed names available.</p>
+              )}
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => setShowCreateNew(true)}
+              className="w-full mt-2 border-dashed border-emerald-500/30 text-emerald-400"
+              data-testid="button-create-new-profile"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              I don't see my name / Create New Profile
+            </Button>
+          </>
+        )}
       </ResponsiveModalContent>
     </ResponsiveModal>
   );

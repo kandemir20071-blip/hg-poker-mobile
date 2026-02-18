@@ -118,6 +118,40 @@ export function useClaimPlayer() {
   });
 }
 
+export function useCreateAndClaimPlayer() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ leagueId, name }: { leagueId: number; name: string }) => {
+      const url = buildUrl(api.leagues.createAndClaimPlayer.path, { id: leagueId });
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => null);
+        throw new Error(errorData?.message || "Failed to create player");
+      }
+      return res.json();
+    },
+    onSuccess: (_, { leagueId }) => {
+      queryClient.invalidateQueries({ queryKey: [api.leagues.get.path, leagueId], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: [api.leagues.list.path], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: [api.stats.personal.path], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: [api.stats.league.path], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: [api.stats.get.path], refetchType: 'all' });
+      toast({ title: "Profile Created", description: "Your new player name has been created and linked to your account." });
+    },
+    onError: (err: any) => {
+      const message = err?.message || "Could not create player name";
+      toast({ title: "Error", description: message, variant: "destructive" });
+    },
+  });
+}
+
 export function useLeaguePlayers(leagueId: number | null) {
   return useQuery({
     queryKey: [api.leagues.players.path, leagueId],
