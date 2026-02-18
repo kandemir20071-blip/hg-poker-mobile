@@ -1,4 +1,4 @@
-import { useParams, useLocation } from "wouter";
+import { useParams, useLocation, Link } from "wouter";
 import { useSession, useEndSession, useBustPlayer, useCustomChop, useToggleAutoApprove } from "@/hooks/use-sessions";
 import { useAuth } from "@/hooks/use-auth";
 import { useUpdateTransactionStatus, useUpdateTransaction, useDeleteTransaction, useAddTransaction } from "@/hooks/use-transactions";
@@ -65,6 +65,7 @@ export default function SessionView() {
   const session = data?.session;
   const txList = data?.transactions ?? [];
   const leagueAdminIds: string[] = data?.leagueAdminIds ?? [];
+  const leagueName: string = (data as any)?.leagueName ?? '';
   const tournamentConfig = session?.type === 'tournament' ? session.config as TournamentConfig | null : null;
   const appliedChop = useMemo(() => {
     if (!tournamentConfig?.customPayouts) return null;
@@ -248,6 +249,15 @@ export default function SessionView() {
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
+      {leagueName && (
+        <Link href={`/league/${session.leagueId}`}>
+          <div className="flex items-center gap-2 text-emerald-400/80 text-xs font-semibold uppercase tracking-widest cursor-pointer group" data-testid="link-league-breadcrumb">
+            <span className="group-hover:text-emerald-300 transition-colors">{leagueName}</span>
+            <span className="text-emerald-600">·</span>
+            <span className="text-emerald-600 group-hover:text-emerald-500 transition-colors">{isActive ? 'Live Session' : 'Session'}</span>
+          </div>
+        </Link>
+      )}
       <div className="glass-card rounded-xl p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-3 mb-1 flex-wrap">

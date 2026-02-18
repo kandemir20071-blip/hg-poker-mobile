@@ -64,9 +64,8 @@ export default function Shell({ children }: { children: React.ReactNode }) {
                       <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
                     </span>
                     <span className="truncate text-sm">
-                      <span className="font-semibold">Live</span>
-                      <span className="text-muted-foreground mx-1">·</span>
-                      <span>{game.leagueName}</span>
+                      <span className="font-semibold">Live:</span>
+                      <span className="ml-1">{game.leagueName}</span>
                     </span>
                   </Button>
                 </Link>

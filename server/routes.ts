@@ -496,6 +496,9 @@ export async function registerRoutes(
 
     const leagueAdminIds = await getLeagueAdminIds(session.leagueId);
 
+    const league = await storage.getLeague(session.leagueId);
+    const leagueName = league?.name ?? '';
+
     const isImported = session.config && (session.config as any).source === 'import';
 
     if (isImported && players.length === 0 && session.leagueId) {
@@ -521,7 +524,7 @@ export async function registerRoutes(
         netProfit: r.netProfit,
       }));
 
-      return res.json({ session, players: importedPlayers, transactions: [], leagueAdminIds });
+      return res.json({ session, players: importedPlayers, transactions: [], leagueAdminIds, leagueName });
     }
 
     const playersWithStats = players.map(p => {
@@ -531,7 +534,7 @@ export async function registerRoutes(
       return { ...p, totalBuyIn, totalCashOut, netProfit: totalCashOut - totalBuyIn };
     });
 
-    res.json({ session, players: playersWithStats, transactions: txns, leagueAdminIds });
+    res.json({ session, players: playersWithStats, transactions: txns, leagueAdminIds, leagueName });
   });
 
   app.post(api.sessions.join.path, requireAuth, async (req, res) => {
