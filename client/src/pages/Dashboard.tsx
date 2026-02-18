@@ -724,23 +724,31 @@ function LeaguesTab({
           );
         })()}
         {(() => {
+          const MIN_GAMES_FOR_RANK = 5;
           const analytics = leagueStats?.playerAnalytics || [];
-          const ranked = [...analytics]
+          const qualifiedPlayers = [...analytics]
+            .filter((p: any) => p.gamesPlayed >= MIN_GAMES_FOR_RANK)
             .sort((a: any, b: any) => b.totalProfit - a.totalProfit);
           const claimedPlayer = leagueWithPlayers?.players?.find((p: any) => p.claimedByUserId === user?.id);
           const claimedName = claimedPlayer?.name;
-          const userRankIndex = claimedName ? ranked.findIndex((p: any) => p.playerName === claimedName) : -1;
+          const userAnalytics = analytics.find((p: any) => p.playerName === claimedName);
+          const userGamesPlayed = userAnalytics?.gamesPlayed ?? 0;
+          const userQualified = userGamesPlayed >= MIN_GAMES_FOR_RANK;
+          const userRankIndex = claimedName && userQualified ? qualifiedPlayers.findIndex((p: any) => p.playerName === claimedName) : -1;
           const userRank = userRankIndex >= 0 ? userRankIndex + 1 : null;
+          const gamesRemaining = Math.max(0, MIN_GAMES_FOR_RANK - userGamesPlayed);
 
-          const rankMascot = !userRank ? frogUnrankedSrc
+          const rankMascot = (!userRank || !userQualified) ? frogUnrankedSrc
             : userRank <= 3 ? frogKingpinSrc
             : userRank <= 10 ? frogGrinderSrc
             : frogBrokeSrc;
-          const rankSubtitle = !userRank ? "Not yet ranked"
+          const rankSubtitle = !claimedName ? "Claim a name first"
+            : !userQualified ? `${gamesRemaining} more game${gamesRemaining !== 1 ? 's' : ''} until ranked`
+            : !userRank ? "Not yet ranked"
             : userRank <= 3 ? "High Roller"
             : userRank <= 10 ? "The Grinder"
             : "Down on Luck";
-          const rankDisplay = userRank ? `#${userRank}` : "---";
+          const rankDisplay = userRank && userQualified ? `#${userRank}` : "Unranked";
 
           return (
             <StatCard
@@ -751,11 +759,17 @@ function LeaguesTab({
               
               subtitle={
                 <span className="flex items-center gap-1 flex-wrap" data-testid="text-league-rank-subtitle">
-                  <span>{rankSubtitle}</span>
-                  {userRank && (
+                  <span className={!userQualified && claimedName ? "text-emerald-400/70" : ""}>{rankSubtitle}</span>
+                  {userRank && userQualified && (
                     <>
                       <span className="text-white/20">|</span>
-                      <span>{ranked.length} players</span>
+                      <span>{qualifiedPlayers.length} ranked</span>
+                    </>
+                  )}
+                  {!userQualified && claimedName && (
+                    <>
+                      <span className="text-white/20">|</span>
+                      <span className="text-emerald-600">{userGamesPlayed}/{MIN_GAMES_FOR_RANK}</span>
                     </>
                   )}
                 </span>
