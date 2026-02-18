@@ -129,7 +129,7 @@ function ProfileTab() {
           trendUp={(stats?.roi || 0) > 0}
           className="col-span-2 md:col-span-1"
         />
-        <StatCard title="Money Wagered" value={`$${personalStats?.totalBuyIn || 0}`} icon={ArrowUpRight} customIconSrc={frogBankerSrc} />
+        <StatCard title="Money Wagered" value={`$${personalStats?.totalBuyIn || 0}`} icon={ArrowUpRight} customIconSrc={frogBalanceSrc} />
         <StatCard title="Total Cash Out" value={`$${personalStats?.totalCashOut || 0}`} icon={ArrowDownLeft} customIconSrc={frogMoneyBagSrc} />
         <StatCard title="Games Played" value={stats?.totalGames || 0} icon={History} customIconSrc={frogClockSrc} />
       </div>
