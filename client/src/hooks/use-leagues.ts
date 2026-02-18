@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, buildUrl } from "@shared/routes";
 import { useToast } from "@/hooks/use-toast";
 
-export function useLeagues() {
+export function useLeagues(enabled: boolean = true) {
   return useQuery({
     queryKey: [api.leagues.list.path],
     queryFn: async () => {
@@ -10,6 +10,7 @@ export function useLeagues() {
       if (!res.ok) throw new Error("Failed to fetch leagues");
       return res.json();
     },
+    enabled,
   });
 }
 

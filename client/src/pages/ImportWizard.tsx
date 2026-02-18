@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 import { useLeagues } from "@/hooks/use-leagues";
 import { api } from "@shared/routes";
 import {
@@ -55,7 +56,9 @@ export default function ImportWizard() {
   const searchParams = new URLSearchParams(searchString);
   const initialLeagueId = searchParams.get('leagueId');
   const [selectedLeagueId, setSelectedLeagueId] = useState<number | null>(initialLeagueId ? Number(initialLeagueId) : null);
+  const { user } = useAuth();
   const { data: leagues } = useLeagues();
+  const adminLeagues = (leagues || []).filter((l: any) => l.creatorId === user?.id);
 
   const fetchExistingNames = async () => {
     try {
@@ -244,6 +247,20 @@ export default function ImportWizard() {
         </div>
       </div>
 
+      {adminLeagues.length === 0 && (
+        <Card className="p-8 text-center bg-card/50 border-white/[0.06]" data-testid="card-import-no-admin">
+          <Shield className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+          <h3 className="text-base font-semibold text-white mb-1">Admin Access Required</h3>
+          <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+            Only League Admins can import historical data. Create a league or ask your league admin to import data for you.
+          </p>
+          <Button variant="outline" className="mt-4" onClick={() => setLocation("/dashboard")} data-testid="button-back-dashboard">
+            Back to Dashboard
+          </Button>
+        </Card>
+      )}
+
+      {adminLeagues.length > 0 && (<>
       <Card className="p-4 flex items-center gap-4 flex-wrap bg-card/50 border-white/[0.06]" data-testid="card-league-selector">
         <Users className="h-5 w-5 text-primary shrink-0" />
         <div className="flex-1 min-w-0">
@@ -255,7 +272,7 @@ export default function ImportWizard() {
             <SelectValue placeholder="Select league" />
           </SelectTrigger>
           <SelectContent>
-            {(leagues || []).map((league: any) => (
+            {adminLeagues.map((league: any) => (
               <SelectItem key={league.id} value={league.id.toString()}>{league.name}</SelectItem>
             ))}
           </SelectContent>
@@ -703,6 +720,7 @@ CardShark 50 Endstand: 0`}
           </div>
         </Card>
       )}
+      </>)}
     </div>
   );
 }

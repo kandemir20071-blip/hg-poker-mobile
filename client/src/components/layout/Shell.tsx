@@ -1,5 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
+import { useLeagues } from "@/hooks/use-leagues";
 import { Button } from "@/components/ui/button";
 import { LogOut, LayoutDashboard, PlusCircle, Upload, User } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
@@ -7,15 +8,17 @@ import { Logo } from "@/components/ui/Logo";
 export default function Shell({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
   const [location] = useLocation();
+  const { data: leagues } = useLeagues(!!user);
 
   if (!user) return <>{children}</>;
 
+  const isAdminOfAny = (leagues || []).some((l: any) => l.creatorId === user?.id);
   const isActive = (path: string) => location === path;
 
   const navItems = [
     { path: "/dashboard", icon: LayoutDashboard, label: "Home", testId: "nav-home" },
     { path: "/join", icon: PlusCircle, label: "Join", testId: "nav-join" },
-    { path: "/import", icon: Upload, label: "Import", testId: "nav-import" },
+    ...(isAdminOfAny ? [{ path: "/import", icon: Upload, label: "Import", testId: "nav-import" }] : []),
   ];
 
   return (

@@ -1300,6 +1300,9 @@ export async function registerRoutes(
       let existingNames: string[] = [];
       
       if (leagueId) {
+        const league = await storage.getLeague(leagueId);
+        if (!league) return res.status(404).json({ message: "League not found" });
+        if (league.creatorId !== userId) return res.status(403).json({ message: "Only the League Admin can import data into this league." });
         const leaguePlayers = await storage.getLeaguePlayers(leagueId);
         existingNames = leaguePlayers.map(p => p.name.trim().toLowerCase());
       } else {
@@ -1323,6 +1326,7 @@ export async function registerRoutes(
 
       const league = await storage.getLeague(leagueId);
       if (!league) return res.status(400).json({ message: "League not found" });
+      if (league.creatorId !== userId) return res.status(403).json({ message: "Only the League Admin can import data into this league." });
 
       const existingResults = await storage.getLeagueGameResults(leagueId);
       const existingSet = new Set<string>();
