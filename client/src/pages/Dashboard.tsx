@@ -21,6 +21,7 @@ import frogGladiatorSrc from "@assets/image-removebg-preview-6_1771182160649.png
 import frogKingpinSrc from "@assets/image-removebg-preview-7_1771426631043.png";
 import frogGrinderSrc from "@assets/image-removebg-preview-8_1771428133336.png";
 import frogBrokeSrc from "@assets/image-removebg-preview-9_1771428615912.png";
+import frogUnrankedSrc from "@assets/image-removebg-preview-10_1771430415897.png";
 import { Tooltip as UITooltip, TooltipContent as UITooltipContent, TooltipTrigger as UITooltipTrigger } from "@/components/ui/tooltip";
 import { SuitAccent, SuitsLoader, SuitsRow } from "@/components/ui/Suits";
 import { Link, useLocation } from "wouter";
@@ -731,19 +732,20 @@ function LeaguesTab({
           const userRankIndex = claimedName ? ranked.findIndex((p: any) => p.playerName === claimedName) : -1;
           const userRank = userRankIndex >= 0 ? userRankIndex + 1 : null;
 
-          const rankMascot = !userRank ? frogBankerSrc
+          const rankMascot = !userRank ? frogUnrankedSrc
             : userRank <= 3 ? frogKingpinSrc
             : userRank <= 10 ? frogGrinderSrc
             : frogBrokeSrc;
-          const rankSubtitle = !userRank ? "No games yet"
+          const rankSubtitle = !userRank ? "Not yet ranked"
             : userRank <= 3 ? "High Roller"
             : userRank <= 10 ? "The Grinder"
             : "Down on Luck";
+          const rankDisplay = userRank ? `#${userRank}` : "---";
 
           return (
             <StatCard
               title="League Rank"
-              value={userRank ? `#${userRank}` : "Unranked"}
+              value={rankDisplay}
               icon={Trophy}
               customIconSrc={rankMascot}
               
