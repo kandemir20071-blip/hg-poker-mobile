@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useStats } from "@/hooks/use-stats";
+import { useMediaQuery } from "@/hooks/use-media-query";
 import { useCreateSession, useDeleteSession } from "@/hooks/use-sessions";
 import { useLeagues, useLeague, useLeagueStats, useLeagueSessions, usePersonalStats, useCreateLeague, useJoinLeague, useClaimPlayer, useCreateAndClaimPlayer, useMigrateToLeague, useLeaveLeague, useDeleteLeague } from "@/hooks/use-leagues";
 import { StatCard } from "@/components/ui/StatCard";
@@ -1065,72 +1066,58 @@ function JoinLeagueDialog({ open, onOpenChange, code, onCodeChange, onJoin, isJo
   );
 }
 
-function ClaimNameDialog({ open, onOpenChange, league, leagueId, onClaim, onClose }: any) {
-  const [claimSearch, setClaimSearch] = useState("");
-  const [claimSort, setClaimSort] = useState<"active" | "az">("active");
-  const [showCreateNew, setShowCreateNew] = useState(false);
+function CreateProfileFullscreen({ open, onClose, leagueId, allPlayers }: { open: boolean; onClose: () => void; leagueId: number | null; allPlayers: any[] }) {
   const [newName, setNewName] = useState("");
   const { mutate: createAndClaim, isPending: isCreating } = useCreateAndClaimPlayer();
-
-  const allPlayers = league?.players || [];
-  const unclaimedPlayers = allPlayers.filter((p: any) => !p.claimedByUserId);
 
   const nameExists = newName.trim().length > 0 && allPlayers.some(
     (p: any) => p.name.toLowerCase().trim() === newName.toLowerCase().trim()
   );
-
-  const filtered = unclaimedPlayers
-    .filter((p: any) => p.name.toLowerCase().includes(claimSearch.toLowerCase()))
-    .sort((a: any, b: any) => {
-      if (claimSort === "az") return a.name.localeCompare(b.name);
-      const diff = (b.sessionCount ?? 0) - (a.sessionCount ?? 0);
-      return diff !== 0 ? diff : a.name.localeCompare(b.name);
-    });
 
   const handleCreateNew = () => {
     if (!leagueId || !newName.trim() || nameExists) return;
     createAndClaim({ leagueId, name: newName.trim() }, {
       onSuccess: () => {
         setNewName("");
-        setShowCreateNew(false);
         onClose();
       },
     });
   };
 
-  const resetState = () => {
-    setClaimSearch("");
-    setShowCreateNew(false);
-    setNewName("");
-  };
+  if (!open) return null;
 
   return (
-    <ResponsiveModal open={open} onOpenChange={(v) => { if (!v) resetState(); onOpenChange(v); }}>
-      <ResponsiveModalContent className="glass-card sm:max-w-md max-h-[90dvh] flex flex-col">
-        <ResponsiveModalHeader>
-          <ResponsiveModalTitle>{showCreateNew ? "Create New Profile" : "Claim Your Name"}</ResponsiveModalTitle>
-          <ResponsiveModalDescription>
-            {showCreateNew
-              ? "Enter a unique display name for this league."
-              : "Select your player name to link it to your account. This lets the app track your personal stats."}
-          </ResponsiveModalDescription>
-        </ResponsiveModalHeader>
-
-        {showCreateNew ? (
-          <div className="flex flex-col gap-3 mt-2">
-            <div className="relative shrink-0">
+    <div
+      className="fixed inset-0 z-50 bg-background flex flex-col"
+      style={{ paddingTop: "env(safe-area-inset-top)", paddingBottom: "env(safe-area-inset-bottom)" }}
+      data-testid="create-profile-fullscreen"
+    >
+      <div className="flex items-center justify-between p-4 shrink-0">
+        <Button variant="ghost" onClick={() => { setNewName(""); onClose(); }} data-testid="button-back-to-claim">
+          <ChevronRight className="h-4 w-4 mr-1 rotate-180" />
+          Back
+        </Button>
+      </div>
+      <div className="flex-1 overflow-y-auto flex flex-col items-center justify-center px-6 pb-8" style={{ WebkitOverflowScrolling: "touch" }}>
+        <div className="w-full max-w-sm space-y-6">
+          <div className="text-center space-y-2">
+            <h2 className="text-xl font-semibold tracking-tight" data-testid="text-create-profile-title">Create New Profile</h2>
+            <p className="text-sm text-muted-foreground">Enter a unique display name for this league.</p>
+          </div>
+          <div className="space-y-2">
+            <div className="relative">
               <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 value={newName}
                 onChange={(e) => setNewName(e.target.value.slice(0, 30))}
                 placeholder="Your display name..."
-                className="pl-9 bg-background/50 border-white/[0.08] min-h-[44px] text-base"
+                className="pl-9 bg-background/50 border-white/[0.08] min-h-[48px] text-base"
                 autoFocus
                 onFocus={(e) => { setTimeout(() => e.target.scrollIntoView({ behavior: "smooth", block: "center" }), 300); }}
                 data-testid="input-create-name"
               />
             </div>
-            <div className="shrink-0 min-h-[20px]">
+            <div className="min-h-[20px]">
               {nameExists && (
                 <p className="text-xs text-emerald-400" data-testid="text-name-taken">
                   This name is already taken in this league.
@@ -1142,88 +1129,213 @@ function ClaimNameDialog({ open, onOpenChange, league, leagueId, onClaim, onClos
                 </p>
               )}
             </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <Button variant="ghost" className="flex-1" onClick={() => setShowCreateNew(false)} data-testid="button-back-to-claim">
-                Back
-              </Button>
-              <Button
-                className="flex-1 glow-emerald"
-                disabled={!newName.trim() || nameExists || isCreating}
-                onClick={handleCreateNew}
-                data-testid="button-confirm-create-name"
-              >
-                {isCreating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
-                Create Profile
-              </Button>
-            </div>
           </div>
-        ) : (
-          <>
-            {unclaimedPlayers.length > 0 && (
-              <div className="flex items-center gap-2 mt-1">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    value={claimSearch}
-                    onChange={(e) => setClaimSearch(e.target.value)}
-                    placeholder="Search your name..."
-                    className="pl-9 bg-background/50 border-white/[0.08] min-h-[44px] text-base"
-                    onFocus={(e) => { setTimeout(() => e.target.scrollIntoView({ behavior: "smooth", block: "center" }), 300); }}
-                    data-testid="input-claim-search"
-                  />
-                </div>
-                <Select value={claimSort} onValueChange={(v) => setClaimSort(v as "active" | "az")}>
-                  <SelectTrigger className="w-[150px] bg-background/50 border-white/[0.08]" data-testid="select-claim-sort">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">
-                      <span className="flex items-center gap-2"><Activity className="h-3.5 w-3.5" /> Most Active</span>
-                    </SelectItem>
-                    <SelectItem value="az">
-                      <span className="flex items-center gap-2"><ArrowDownAZ className="h-3.5 w-3.5" /> A-Z</span>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-            <div className="flex-1 overflow-y-auto mt-2 min-h-0 max-h-[50dvh] space-y-1.5">
-              {filtered.length > 0 ? filtered.map((player: any) => (
-                <Button
-                  key={player.id}
-                  variant="outline"
-                  onClick={() => onClaim(player.id)}
-                  className="w-full flex items-center justify-between gap-3 text-left"
-                  data-testid={`button-claim-${player.id}`}
-                >
-                  <span className="font-medium truncate" data-testid={`text-claim-name-${player.id}`}>{player.name}</span>
-                  <div className="flex items-center gap-2 shrink-0">
-                    {(player.sessionCount ?? 0) > 0 && (
-                      <Badge variant="outline" className="text-xs text-emerald-400 border-emerald-400/30" data-testid={`badge-claim-games-${player.id}`}>
-                        {player.sessionCount} {player.sessionCount === 1 ? "game" : "games"}
-                      </Badge>
-                    )}
-                    <span className="text-xs text-muted-foreground">Claim</span>
+          <Button
+            className="w-full glow-emerald"
+            disabled={!newName.trim() || nameExists || isCreating}
+            onClick={handleCreateNew}
+            data-testid="button-confirm-create-name"
+          >
+            {isCreating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
+            Create Profile
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ClaimNameDialog({ open, onOpenChange, league, leagueId, onClaim, onClose }: any) {
+  const [claimSearch, setClaimSearch] = useState("");
+  const [claimSort, setClaimSort] = useState<"active" | "az">("active");
+  const [showCreateNew, setShowCreateNew] = useState(false);
+  const isDesktop = useMediaQuery("(min-width: 768px)");
+
+  const allPlayers = league?.players || [];
+  const unclaimedPlayers = allPlayers.filter((p: any) => !p.claimedByUserId);
+
+  const filtered = unclaimedPlayers
+    .filter((p: any) => p.name.toLowerCase().includes(claimSearch.toLowerCase()))
+    .sort((a: any, b: any) => {
+      if (claimSort === "az") return a.name.localeCompare(b.name);
+      const diff = (b.sessionCount ?? 0) - (a.sessionCount ?? 0);
+      return diff !== 0 ? diff : a.name.localeCompare(b.name);
+    });
+
+  const resetState = () => {
+    setClaimSearch("");
+    setShowCreateNew(false);
+  };
+
+  const handleCloseCreate = () => {
+    setShowCreateNew(false);
+  };
+
+  if (!isDesktop && showCreateNew && open) {
+    return (
+      <>
+        <CreateProfileFullscreen
+          open={true}
+          onClose={() => {
+            resetState();
+            onClose();
+          }}
+          leagueId={leagueId}
+          allPlayers={allPlayers}
+        />
+      </>
+    );
+  }
+
+  return (
+    <>
+      <ResponsiveModal open={open} onOpenChange={(v) => { if (!v) resetState(); onOpenChange(v); }}>
+        <ResponsiveModalContent className="glass-card sm:max-w-md max-h-[90dvh] flex flex-col">
+          <ResponsiveModalHeader>
+            <ResponsiveModalTitle>{showCreateNew ? "Create New Profile" : "Claim Your Name"}</ResponsiveModalTitle>
+            <ResponsiveModalDescription>
+              {showCreateNew
+                ? "Enter a unique display name for this league."
+                : "Select your player name to link it to your account. This lets the app track your personal stats."}
+            </ResponsiveModalDescription>
+          </ResponsiveModalHeader>
+
+          {showCreateNew ? (
+            <CreateProfileDesktopInline
+              leagueId={leagueId}
+              allPlayers={allPlayers}
+              onBack={() => setShowCreateNew(false)}
+              onClose={onClose}
+            />
+          ) : (
+            <>
+              {unclaimedPlayers.length > 0 && (
+                <div className="flex items-center gap-2 mt-1">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      value={claimSearch}
+                      onChange={(e) => setClaimSearch(e.target.value)}
+                      placeholder="Search your name..."
+                      className="pl-9 bg-background/50 border-white/[0.08] min-h-[44px] text-base"
+                      onFocus={(e) => { setTimeout(() => e.target.scrollIntoView({ behavior: "smooth", block: "center" }), 300); }}
+                      data-testid="input-claim-search"
+                    />
                   </div>
-                </Button>
-              )) : unclaimedPlayers.length > 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">No names match your search.</p>
-              ) : (
-                <p className="text-sm text-muted-foreground text-center py-4">No unclaimed names available.</p>
+                  <Select value={claimSort} onValueChange={(v) => setClaimSort(v as "active" | "az")}>
+                    <SelectTrigger className="w-[150px] bg-background/50 border-white/[0.08]" data-testid="select-claim-sort">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">
+                        <span className="flex items-center gap-2"><Activity className="h-3.5 w-3.5" /> Most Active</span>
+                      </SelectItem>
+                      <SelectItem value="az">
+                        <span className="flex items-center gap-2"><ArrowDownAZ className="h-3.5 w-3.5" /> A-Z</span>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               )}
-            </div>
-            <Button
-              variant="outline"
-              onClick={() => setShowCreateNew(true)}
-              className="w-full mt-2 border-dashed border-emerald-500/30 text-emerald-400"
-              data-testid="button-create-new-profile"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              I don't see my name / Create New Profile
-            </Button>
-          </>
+              <div className="flex-1 overflow-y-auto mt-2 min-h-0 max-h-[50dvh] space-y-1.5">
+                {filtered.length > 0 ? filtered.map((player: any) => (
+                  <Button
+                    key={player.id}
+                    variant="outline"
+                    onClick={() => onClaim(player.id)}
+                    className="w-full flex items-center justify-between gap-3 text-left"
+                    data-testid={`button-claim-${player.id}`}
+                  >
+                    <span className="font-medium truncate" data-testid={`text-claim-name-${player.id}`}>{player.name}</span>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {(player.sessionCount ?? 0) > 0 && (
+                        <Badge variant="outline" className="text-xs text-emerald-400 border-emerald-400/30" data-testid={`badge-claim-games-${player.id}`}>
+                          {player.sessionCount} {player.sessionCount === 1 ? "game" : "games"}
+                        </Badge>
+                      )}
+                      <span className="text-xs text-muted-foreground">Claim</span>
+                    </div>
+                  </Button>
+                )) : unclaimedPlayers.length > 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">No names match your search.</p>
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-4">No unclaimed names available.</p>
+                )}
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => setShowCreateNew(true)}
+                className="w-full mt-2 border-dashed border-emerald-500/30 text-emerald-400"
+                data-testid="button-create-new-profile"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                I don't see my name / Create New Profile
+              </Button>
+            </>
+          )}
+        </ResponsiveModalContent>
+      </ResponsiveModal>
+    </>
+  );
+}
+
+function CreateProfileDesktopInline({ leagueId, allPlayers, onBack, onClose }: { leagueId: number | null; allPlayers: any[]; onBack: () => void; onClose: () => void }) {
+  const [newName, setNewName] = useState("");
+  const { mutate: createAndClaim, isPending: isCreating } = useCreateAndClaimPlayer();
+
+  const nameExists = newName.trim().length > 0 && allPlayers.some(
+    (p: any) => p.name.toLowerCase().trim() === newName.toLowerCase().trim()
+  );
+
+  const handleCreateNew = () => {
+    if (!leagueId || !newName.trim() || nameExists) return;
+    createAndClaim({ leagueId, name: newName.trim() }, {
+      onSuccess: () => {
+        setNewName("");
+        onClose();
+      },
+    });
+  };
+
+  return (
+    <div className="flex flex-col gap-3 mt-2">
+      <div className="relative shrink-0">
+        <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          value={newName}
+          onChange={(e) => setNewName(e.target.value.slice(0, 30))}
+          placeholder="Your display name..."
+          className="pl-9 bg-background/50 border-white/[0.08] min-h-[44px] text-base"
+          autoFocus
+          data-testid="input-create-name"
+        />
+      </div>
+      <div className="shrink-0 min-h-[20px]">
+        {nameExists && (
+          <p className="text-xs text-emerald-400" data-testid="text-name-taken">
+            This name is already taken in this league.
+          </p>
         )}
-      </ResponsiveModalContent>
-    </ResponsiveModal>
+        {newName.trim().length > 0 && !nameExists && (
+          <p className="text-xs text-emerald-600" data-testid="text-name-available">
+            Name available
+          </p>
+        )}
+      </div>
+      <div className="flex items-center gap-2 shrink-0">
+        <Button variant="ghost" className="flex-1" onClick={onBack} data-testid="button-back-to-claim">
+          Back
+        </Button>
+        <Button
+          className="flex-1 glow-emerald"
+          disabled={!newName.trim() || nameExists || isCreating}
+          onClick={handleCreateNew}
+          data-testid="button-confirm-create-name"
+        >
+          {isCreating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
+          Create Profile
+        </Button>
+      </div>
+    </div>
   );
 }
