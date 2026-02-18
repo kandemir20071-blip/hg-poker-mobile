@@ -708,7 +708,7 @@ function LeaguesTab({
               title="Total Money Wagered"
               value={`$${wagered}`}
               icon={Coins}
-              customIconSrc={frogBankerSrc}
+              customIconSrc={frogBalanceSrc}
               subtitle={
                 <span className="flex items-center gap-1 flex-wrap">
                   <span>Pot: ${cashOut}</span>
@@ -728,7 +728,7 @@ function LeaguesTab({
               title="Avg Buy-in"
               value={`$${avgBuyIn}`}
               icon={DollarSign}
-              customIconSrc={frogBalanceSrc}
+              customIconSrc={frogBankerSrc}
               subtitle={
                 <span className="flex items-center gap-1 flex-wrap">
                   <span>{entries} total entries</span>
