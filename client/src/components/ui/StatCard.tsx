@@ -6,6 +6,7 @@ interface StatCardProps {
   value: string | number;
   icon: LucideIcon;
   customIconSrc?: string;
+  customIconBgClass?: string;
   trend?: string;
   trendUp?: boolean;
   subtitle?: React.ReactNode;
@@ -14,7 +15,7 @@ interface StatCardProps {
   className?: string;
 }
 
-export function StatCard({ title, value, icon: Icon, customIconSrc, trend, trendUp, subtitle, prominent, valueColor, className }: StatCardProps) {
+export function StatCard({ title, value, icon: Icon, customIconSrc, customIconBgClass, trend, trendUp, subtitle, prominent, valueColor, className }: StatCardProps) {
   return (
     <div className={cn(
       "glass-card rounded-xl relative overflow-hidden group hover:border-primary/20 transition-all duration-300",
@@ -23,7 +24,7 @@ export function StatCard({ title, value, icon: Icon, customIconSrc, trend, trend
     )} data-testid={`stat-card-${title.toLowerCase().replace(/\s+/g, '-')}`}>
       {customIconSrc ? (
         <div className={cn("absolute -bottom-2 -right-2 transition-opacity hidden sm:block", "opacity-[0.35] group-hover:opacity-[0.5]")}>
-          <img src={customIconSrc} alt="" className={cn("object-contain", prominent ? "w-40 h-40" : "w-36 h-36")} style={{ imageRendering: 'pixelated' }} />
+          <img src={customIconSrc} alt="" className={cn("object-contain", customIconBgClass || (prominent ? "w-40 h-40" : "w-36 h-36"))} style={{ imageRendering: 'pixelated' }} />
         </div>
       ) : (
         <div className="absolute top-0 right-0 p-4 opacity-[0.04] group-hover:opacity-[0.08] transition-opacity hidden sm:block">

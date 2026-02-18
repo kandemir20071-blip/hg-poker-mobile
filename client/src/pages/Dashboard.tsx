@@ -742,6 +742,7 @@ function LeaguesTab({
               value={userRank ? `#${userRank}` : "Unranked"}
               icon={Trophy}
               customIconSrc={rankMascot}
+              customIconBgClass={isTopTier ? "w-44 h-44 scale-110 origin-bottom-right" : undefined}
               subtitle={
                 <span className="flex items-center gap-1 flex-wrap" data-testid="text-league-rank-subtitle">
                   <span>{rankSubtitle}</span>
