@@ -21,7 +21,25 @@ async function isHostOrLeagueAdmin(session: { hostId: string; leagueId: number |
   if (session.hostId === userId) return true;
   if (!session.leagueId) return false;
   const league = await storage.getLeague(session.leagueId);
-  return league?.creatorId === userId;
+  if (!league) return false;
+  if (league.creatorId === userId) return true;
+  const member = await storage.getLeagueMember(session.leagueId, userId);
+  return member?.canHostSessions === true;
+}
+
+async function getLeagueAdminIds(leagueId: number | null): Promise<string[]> {
+  if (!leagueId) return [];
+  const league = await storage.getLeague(leagueId);
+  if (!league) return [];
+  const members = await storage.getLeagueMembers(leagueId);
+  const adminIds = new Set<string>();
+  adminIds.add(league.creatorId);
+  for (const m of members) {
+    if (m.canHostSessions) {
+      adminIds.add(m.userId);
+    }
+  }
+  return Array.from(adminIds);
 }
 
 const upload = multer({
@@ -466,13 +484,7 @@ export async function registerRoutes(
     const players = await storage.getSessionPlayers(sessionId);
     const txns = await storage.getSessionTransactions(sessionId);
 
-    let leagueAdminIds: string[] = [];
-    if (session.leagueId) {
-      const league = await storage.getLeague(session.leagueId);
-      if (league) {
-        leagueAdminIds = [league.creatorId];
-      }
-    }
+    const leagueAdminIds = await getLeagueAdminIds(session.leagueId);
 
     const isImported = session.config && (session.config as any).source === 'import';
 
