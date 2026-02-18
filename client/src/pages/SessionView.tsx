@@ -15,7 +15,7 @@ import { Switch } from "@/components/ui/switch";
 import { SuitsLoader, SuitAccent } from "@/components/ui/Suits";
 import { BlindClock } from "@/components/game/BlindClock";
 import { format } from "date-fns";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import type { TournamentConfig } from "@shared/schema";
 
@@ -26,9 +26,6 @@ export default function SessionView() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
-  const urlParams = new URLSearchParams(window.location.search);
-  const forceAdmin = urlParams.get('admin') === 'true';
-  
   const { data, isLoading } = useSession(sessionId);
   const { mutate: endSession, isPending: isEnding } = useEndSession();
   const { mutate: updateTx } = useUpdateTransactionStatus();
@@ -45,7 +42,8 @@ export default function SessionView() {
   const [specificPlayerId, setSpecificPlayerId] = useState<number | null>(null);
   const [playerSearchQuery, setPlayerSearchQuery] = useState("");
   const [finishTournamentOpen, setFinishTournamentOpen] = useState(false);
-  const [adminMode, setAdminMode] = useState(forceAdmin);
+  const [adminMode, setAdminMode] = useState(false);
+  const [adminAutoSet, setAdminAutoSet] = useState(false);
   const [editingLedgerId, setEditingLedgerId] = useState<number | null>(null);
   const [editLedgerAmount, setEditLedgerAmount] = useState("");
   const [customChopOpen, setCustomChopOpen] = useState(false);
@@ -133,6 +131,13 @@ export default function SessionView() {
   const isCompleted = session.status === 'completed';
   const isImported = !!(session.config && (session.config as Record<string, unknown>).source === 'import');
   const showSummary = isCompleted;
+
+  useEffect(() => {
+    if (isHost && !adminAutoSet) {
+      setAdminMode(true);
+      setAdminAutoSet(true);
+    }
+  }, [isHost, adminAutoSet]);
 
   const chipsInPlay = totalWagered - totalCashedOut;
   const pendingTransactions = transactions.filter(t => t.status === 'pending');
