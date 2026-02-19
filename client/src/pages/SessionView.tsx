@@ -123,6 +123,17 @@ export default function SessionView() {
     );
   }, [rankedPlayers, playerSearchQuery]);
 
+  const isSessionHost = session?.hostId === user?.id;
+  const isLeagueAdmin = user?.id ? leagueAdminIds.includes(user.id) : false;
+  const isHost = isSessionHost || isLeagueAdmin;
+
+  useEffect(() => {
+    if (isHost && !adminAutoSet) {
+      setAdminMode(true);
+      setAdminAutoSet(true);
+    }
+  }, [isHost, adminAutoSet]);
+
   if (isLoading || !data || !session) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center text-muted-foreground gap-4">
@@ -133,20 +144,10 @@ export default function SessionView() {
   }
 
   const transactions = txList;
-  const isSessionHost = session.hostId === user?.id;
-  const isLeagueAdmin = user?.id ? leagueAdminIds.includes(user.id) : false;
-  const isHost = isSessionHost || isLeagueAdmin;
   const isActive = session.status === 'active';
   const isCompleted = session.status === 'completed';
   const isImported = !!(session.config && (session.config as Record<string, unknown>).source === 'import');
   const showSummary = isCompleted;
-
-  useEffect(() => {
-    if (isHost && !adminAutoSet) {
-      setAdminMode(true);
-      setAdminAutoSet(true);
-    }
-  }, [isHost, adminAutoSet]);
 
   const chipsInPlay = totalWagered - totalCashedOut;
   const pendingTransactions = transactions.filter(t => t.status === 'pending');
