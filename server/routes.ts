@@ -532,7 +532,7 @@ export async function registerRoutes(
 
     const leagueAdminIds = await getLeagueAdminIds(session.leagueId);
 
-    const league = await storage.getLeague(session.leagueId);
+    const league = session.leagueId ? await storage.getLeague(session.leagueId) : null;
     const leagueName = league?.name ?? '';
 
     const isImported = session.config && (session.config as any).source === 'import';
@@ -1071,15 +1071,26 @@ export async function registerRoutes(
 
   // ==================== TRANSACTIONS ====================
 
-  app.post(api.transactions.create.path, async (req, res) => {
+  app.post(api.transactions.create.path, requireAuth, async (req, res) => {
     try {
       const sessionId = Number(req.params.sessionId);
       const input = api.transactions.create.input.parse(req.body);
       const session = await storage.getSession(sessionId);
       if (!session) return res.status(404).json({ message: "Session not found" });
 
-      const userId = req.isAuthenticated() ? (req.user as any).claims.sub : null;
-      const isHostOrAdmin = userId ? await isHostOrLeagueAdmin(session, userId) : false;
+      const userId = (req.user as any).claims.sub;
+      const isHostOrAdmin = await isHostOrLeagueAdmin(session, userId);
+
+      if (!isHostOrAdmin) {
+        if (session.leagueId) {
+          const member = await storage.getLeagueMember(session.leagueId, userId);
+          if (!member) return res.status(403).json({ message: "You must be a league member to create transactions" });
+        } else {
+          const sessionPlayer = await storage.getPlayerBySessionAndUser(sessionId, userId);
+          if (!sessionPlayer) return res.status(403).json({ message: "You must be a session participant to create transactions" });
+        }
+      }
+
       const status = isHostOrAdmin || session.autoApproveTransactions ? 'approved' : 'pending';
 
       const transaction = await storage.addTransaction({ sessionId, ...input, paymentMethod: 'cash', status });
@@ -1416,6 +1427,7 @@ export async function registerRoutes(
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
         rows = mapSpreadsheetData(XLSX.utils.sheet_to_json<any>(sheet));
       } else if (ext === '.pdf') {
+        // @ts-ignore - pdf-parse has no type declarations
         const pdfParse = (await import('pdf-parse/lib/pdf-parse.js')).default;
         const pdfData = await pdfParse(file.buffer);
         rawText = pdfData.text || '';

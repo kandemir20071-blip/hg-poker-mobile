@@ -1,0 +1,37 @@
+Security Patch & End-of-Game Settlement Engine
+
+Objective: Patch a medium-severity security flaw regarding unauthenticated transactions, resolve pending TypeScript errors, and build a "Settlement Engine" that automatically calculates who owes whom when a session ends. Do NOT change any existing terminology (keep "Wagered", "Buy-in", and the "$" symbol as they are).
+
+Step 1: Patch Unauthenticated Transactions (Security)
+
+Locate the transactions.create endpoint (around line 1074 in server/routes.ts).
+
+Currently, if req.isAuthenticated() is false, it allows the transaction creation and defaults the status to pending.
+
+Fix: Update this endpoint to strictly reject unauthenticated requests. If a user is not authenticated, return a 401 Unauthorized. Only authenticated players who are verified members of the session should be able to create transactions.
+
+Step 2: Fix TypeScript Errors
+
+Fix the number | null is not assignable to number error in server/routes.ts (around line 535) by adding a null check or providing a fallback (e.g., leagueId: leagueId ?? 0).
+
+Add a // @ts-ignore or proper type declaration for pdf-parse to clear the cosmetic LSP warning.
+
+Step 3: Build the Settlement Algorithm
+
+Create a new utility function calculateSettlements(players).
+
+Logic: >   1. Calculate the Net Profit for every player (currentStack - totalBuyIns).
+2. Separate players into two arrays: Winners (Net Profit > 0) and Losers (Net Profit < 0).
+3. Sort Winners descending by profit, and Losers ascending by loss.
+4. Iterate through and match them up: The biggest loser pays the biggest winner until the loser's debt is cleared, then move to the next.
+5. Return an array of settlement objects: { fromPlayer: string, toPlayer: string, amount: number }.
+
+Step 4: The Settlement UI (End Game Screen)
+
+In SessionView.tsx, when the host clicks "End Game" and the session status changes to completed, replace the active table view with the Final Settlement Screen.
+
+Display a clean list of "Who Pays Who" using the output from the algorithm in Step 3.
+
+Styling: Adhere strictly to the existing monochromatic dark navy and neon green styling. Do not introduce any new colors like red for losers or generic gray borders. Use neon green text for the payout amounts (e.g., "Player A pays Player B: $50").
+
+Include a "Mark as Settled" button for the host to confirm when all money has been moved.

@@ -1,0 +1,49 @@
+Deep System Architecture & State Audit
+
+Objective: Perform a deep architectural and state audit of the entire codebase. I need a comprehensive technical breakdown of the current environment to plan the next major development phase.
+
+Please analyze and summarize the following 6 areas in detail:
+
+1. Core Tech Stack & Environment:
+
+Confirm the frontend framework: Is this a React Web app (react-dom) or a React Native/Expo app?
+
+What routing library is being used?
+
+What ORM or database query builder is being used (e.g., Drizzle, Prisma), and what database type (PostgreSQL, SQLite)?
+
+2. Database Schema (The Big Picture):
+
+List the core models/tables (e.g., Users, Leagues, Sessions/Games, Transactions, LeagueMembers).
+
+Briefly describe the relationships between them (e.g., How does a Transaction link to a Session and a User?).
+
+3. Security, Roles & Authentication:
+
+How is the user session currently authenticated?
+
+Detail the exact logic inside the isHostOrLeagueAdmin() function.
+
+Confirm if the frontend successfully completely hides the Admin controls from non-admins without relying solely on the ?admin=true URL parameter.
+
+4. The Live Game & Transaction Engine:
+
+Summarize the flow for joining a game via code. Does it successfully pull the user's display_name from their league profile?
+
+Confirm the state of the autoApproveTransactions feature: Does the self-serve mode successfully bypass the host approval queue for rebuys/cashouts?
+
+5. UI, Mascots & Leaderboard Logic:
+
+Confirm the visual state: Are the mascots on the stat cards successfully using absolute top-1/2 -translate-y-1/2 to stay vertically centered?
+
+Does the "Live Game" sidebar indicator successfully pull and display the [League Name]?
+
+Confirm the "Sanitization" status: Have terms like "Wagered" and "Buy-in" been swapped out, and is the showCurrencySymbol toggle implemented?
+
+6. Unresolved Bugs & Technical Debt:
+
+Scan for any unresolved TypeScript errors, missing dependencies, or hardcoded mock data that needs to be replaced.
+
+Are there any open issues with the KeyboardAvoidingView on the "Create Profile" modal?
+
+Output Format: Provide a highly structured, technical Markdown report. Do not truncate the findings.

@@ -10,12 +10,13 @@ import { DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
 import { QRCodeSVG } from "qrcode.react";
 import { Input } from "@/components/ui/input";
-import { Loader2, Share2, Copy, AlertTriangle, CheckCircle, XCircle, LogOut, Shield, Pencil, Trash2, Trophy, Calendar, Clock, Skull, RefreshCw, DollarSign, Search, Check, Unlock, Lock } from "lucide-react";
+import { Loader2, Share2, Copy, AlertTriangle, CheckCircle, XCircle, LogOut, Shield, Pencil, Trash2, Trophy, Calendar, Clock, Skull, RefreshCw, DollarSign, Search, Check, Unlock, Lock, ArrowRight } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { SuitsLoader, SuitAccent } from "@/components/ui/Suits";
 import { BlindClock } from "@/components/game/BlindClock";
 import { format } from "date-fns";
 import { useState, useMemo, useEffect } from "react";
+import { calculateSettlements } from "@/lib/settlements";
 import { useToast } from "@/hooks/use-toast";
 import type { TournamentConfig } from "@shared/schema";
 
@@ -59,6 +60,14 @@ export default function SessionView() {
       }))
       .sort((a, b) => b.netProfit - a.netProfit);
   }, [players]);
+
+  const settlements = useMemo(() => {
+    return calculateSettlements(rankedPlayers.map(p => ({
+      id: p.id,
+      name: p.name,
+      netProfit: p.totalCashOut - p.totalBuyIn,
+    })));
+  }, [rankedPlayers]);
 
   const session = data?.session;
   const txList = data?.transactions ?? [];
@@ -701,6 +710,29 @@ export default function SessionView() {
               </div>
             </div>
 
+            {settlements.length > 0 && (
+              <div className="glass-card rounded-xl p-5 sm:p-6" data-testid="tournament-settlement-section">
+                <h3 className="text-lg font-bold text-white flex items-center gap-2 mb-4">
+                  <DollarSign className="w-5 h-5 text-primary" /> Settlement
+                </h3>
+                <p className="text-xs text-muted-foreground mb-4">Optimized transfers to settle all debts with the fewest payments.</p>
+                <div className="space-y-3">
+                  {settlements.map((s, i) => (
+                    <div
+                      key={i}
+                      className="flex items-center gap-3 glass-card rounded-lg px-4 py-3"
+                      data-testid={`tournament-settlement-row-${i}`}
+                    >
+                      <span className="font-medium text-white truncate flex-1 min-w-0">{s.fromPlayer}</span>
+                      <ArrowRight className="w-4 h-4 text-primary shrink-0" />
+                      <span className="font-medium text-white truncate flex-1 min-w-0 text-right">{s.toPlayer}</span>
+                      <span className="font-mono font-bold text-primary text-lg shrink-0 ml-2">${s.amount}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="flex justify-center gap-3 flex-wrap">
               <Button variant="outline" className="gap-2 min-h-[44px]" onClick={() => setLocation('/dashboard')} data-testid="button-back-to-dashboard">
                 <LogOut className="w-4 h-4" /> Back to Dashboard
@@ -830,6 +862,29 @@ export default function SessionView() {
                 </table>
               </div>
             </div>
+
+            {settlements.length > 0 && (
+              <div className="glass-card rounded-xl p-5 sm:p-6" data-testid="settlement-section">
+                <h3 className="text-lg font-bold text-white flex items-center gap-2 mb-4">
+                  <DollarSign className="w-5 h-5 text-primary" /> Settlement
+                </h3>
+                <p className="text-xs text-muted-foreground mb-4">Optimized transfers to settle all debts with the fewest payments.</p>
+                <div className="space-y-3">
+                  {settlements.map((s, i) => (
+                    <div
+                      key={i}
+                      className="flex items-center gap-3 glass-card rounded-lg px-4 py-3"
+                      data-testid={`settlement-row-${i}`}
+                    >
+                      <span className="font-medium text-white truncate flex-1 min-w-0" data-testid={`settlement-from-${i}`}>{s.fromPlayer}</span>
+                      <ArrowRight className="w-4 h-4 text-primary shrink-0" />
+                      <span className="font-medium text-white truncate flex-1 min-w-0 text-right" data-testid={`settlement-to-${i}`}>{s.toPlayer}</span>
+                      <span className="font-mono font-bold text-primary text-lg shrink-0 ml-2" data-testid={`settlement-amount-${i}`}>${s.amount}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )
       ) : (
