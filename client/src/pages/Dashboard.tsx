@@ -153,9 +153,9 @@ function ProfileTab() {
           prominent
           customIconSrc={(stats?.totalProfit || 0) < 0 ? frogSisyphusSrc : frogMountainSrc}
           landscapeIcon={true}
-          valueColor="text-emerald-400"
+          valueColor={(stats?.totalProfit || 0) < 0 ? "text-red-500" : "text-emerald-400"}
           trend={stats?.roi ? `${stats.roi}% ROI` : undefined}
-          trendUp={true}
+          trendUp={(stats?.roi || 0) >= 0}
           className="col-span-2 md:col-span-1"
         />
         <StatCard title="Money Wagered" value={`$${personalStats?.totalBuyIn || 0}`} icon={ArrowUpRight} customIconSrc={frogBalanceSrc} />
