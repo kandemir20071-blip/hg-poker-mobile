@@ -258,6 +258,31 @@ export const api = {
         401: errorSchemas.unauthorized,
       },
     },
+    playerRivalries: {
+      method: 'GET' as const,
+      path: '/api/stats/personal/rivalries' as const,
+      responses: {
+        200: z.object({
+          formChart: z.array(z.object({
+            date: z.string(),
+            netProfit: z.number(),
+            cumulativeProfit: z.number(),
+            leagueName: z.string(),
+          })),
+          nemesis: z.object({
+            name: z.string(),
+            totalProfit: z.number(),
+            sharedGames: z.number(),
+          }).nullable(),
+          target: z.object({
+            name: z.string(),
+            totalProfit: z.number(),
+            sharedGames: z.number(),
+          }).nullable(),
+        }),
+        401: errorSchemas.unauthorized,
+      },
+    },
   },
   leagues: {
     create: {

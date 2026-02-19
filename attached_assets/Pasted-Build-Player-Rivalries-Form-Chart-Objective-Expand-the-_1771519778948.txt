@@ -1,0 +1,39 @@
+Build "Player Rivalries" & Form Chart
+
+Objective: Expand the Player Profile/Analytics view to include a "Last 10 Games" profit line chart and a new "Rivalries" section showing their Nemesis and Target. CRITICAL: Do NOT introduce any new colors (like red or gray). Strictly use the existing dark navy backgrounds and emerald/neon green accents for all text and chart lines.
+
+Step 1: Backend Analytics Update (Rivalries & Form)
+
+Update or create an endpoint to fetch detailed analytics for a specific player (e.g., /api/players/:id/analytics).
+
+Form Data (Chart): Fetch the player's last 10 completed sessions. Return an array mapping the session date to their netProfit and a cumulativeProfit across those 10 games.
+
+Rivalry Math: >   1. Find all completed sessions this specific player participated in.
+2. Look at all other players in those exact same sessions.
+3. Sum up the netProfit of those opponents only in the games they played against the current player.
+4. Nemesis: The opponent with the highest total profit in those shared games.
+5. Target (or "ATM"): The opponent with the lowest total profit (most losses) in those shared games.
+
+Step 2: Install Charting Library
+
+Install recharts (npm install recharts) to handle the line chart rendering.
+
+Step 3: Frontend UI - The "Form" Chart
+
+On the Player Profile/Analytics screen, add a new section titled "Recent Form (Last 10 Games)".
+
+Implement a ResponsiveContainer and LineChart from recharts.
+
+Plot the cumulativeProfit or netProfit over time.
+
+Styling: Set the line stroke color to the app's primary neon green (e.g., #10b981 or the hex code for text-emerald-500). Remove the default cartesian grid or make it highly transparent (e.g., rgba(16, 185, 129, 0.1)). Ensure the chart tooltip matches the dark navy theme.
+
+Step 4: Frontend UI - Rivalry Cards
+
+Below the chart, render two new Stat Cards side-by-side.
+
+Card 1 (Nemesis): Label it "Nemesis". Display the opponent's name and their total profit against the user. (e.g., "Anton", "+$350 in shared games").
+
+Card 2 (Target): Label it "Target" or "ATM". Display the opponent's name and their total losses against the user. (e.g., "Vali", "-$120 in shared games").
+
+Use the existing StatCard UI component to ensure styling perfectly matches the dashboard.

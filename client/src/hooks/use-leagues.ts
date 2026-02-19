@@ -204,6 +204,21 @@ export function usePersonalStats() {
   });
 }
 
+export function usePlayerRivalries() {
+  return useQuery({
+    queryKey: [api.stats.playerRivalries.path],
+    queryFn: async () => {
+      const res = await fetch(api.stats.playerRivalries.path, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch rivalries");
+      return res.json() as Promise<{
+        formChart: Array<{ date: string; netProfit: number; cumulativeProfit: number; leagueName: string }>;
+        nemesis: { name: string; totalProfit: number; sharedGames: number } | null;
+        target: { name: string; totalProfit: number; sharedGames: number } | null;
+      }>;
+    },
+  });
+}
+
 export function useUnclaimPlayer() {
   const queryClient = useQueryClient();
   const { toast } = useToast();

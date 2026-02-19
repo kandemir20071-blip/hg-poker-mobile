@@ -1217,6 +1217,82 @@ export async function registerRoutes(
     res.json({ totalGames, totalProfit, totalBuyIn, totalCashOut, roi, bankrollHistory, recentGames });
   });
 
+  app.get(api.stats.playerRivalries.path, requireAuth, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const userLeagues = await storage.getUserLeagues(userId);
+
+    type ResultRow = { date: Date; netProfit: number; leagueName: string; sessionId: number | null; playerName: string };
+    let myResults: ResultRow[] = [];
+    let allLeagueResults: ResultRow[] = [];
+
+    for (const league of userLeagues) {
+      const results = await storage.getLeagueGameResults(league.id);
+      const leaguePlayers = await storage.getLeaguePlayers(league.id);
+      const claimedPlayer = leaguePlayers.find(p => p.claimedByUserId === userId);
+      if (!claimedPlayer) continue;
+
+      const myName = claimedPlayer.name.toLowerCase().trim();
+      for (const r of results) {
+        const row: ResultRow = {
+          date: new Date(r.date),
+          netProfit: r.netProfit,
+          leagueName: league.name,
+          sessionId: r.sessionId ?? null,
+          playerName: r.playerName.toLowerCase().trim(),
+        };
+        if (row.playerName === myName) {
+          myResults.push(row);
+        }
+        allLeagueResults.push(row);
+      }
+    }
+
+    myResults.sort((a, b) => a.date.getTime() - b.date.getTime());
+    const last10 = myResults.slice(-10);
+    let cumulative = 0;
+    const formChart = last10.map(r => {
+      cumulative += r.netProfit;
+      return {
+        date: r.date.toISOString().split('T')[0],
+        netProfit: r.netProfit,
+        cumulativeProfit: cumulative,
+        leagueName: r.leagueName,
+      };
+    });
+
+    const mySessionIds = new Set(myResults.filter(r => r.sessionId).map(r => r.sessionId!));
+    const myPlayerNames = new Set(myResults.map(r => r.playerName));
+
+    const opponentProfits = new Map<string, { total: number; games: number }>();
+    for (const r of allLeagueResults) {
+      if (myPlayerNames.has(r.playerName)) continue;
+      if (!r.sessionId || !mySessionIds.has(r.sessionId)) continue;
+
+      const existing = opponentProfits.get(r.playerName) || { total: 0, games: 0 };
+      existing.total += r.netProfit;
+      existing.games += 1;
+      opponentProfits.set(r.playerName, existing);
+    }
+
+    const opponents = Array.from(opponentProfits.entries()).map(([name, data]) => ({
+      name,
+      totalProfit: data.total,
+      sharedGames: data.games,
+    }));
+
+    const sortedByProfit = [...opponents].sort((a, b) => b.totalProfit - a.totalProfit);
+    let nemesis = sortedByProfit.length > 0 ? sortedByProfit[0] : null;
+    let target = sortedByProfit.length > 0 ? sortedByProfit[sortedByProfit.length - 1] : null;
+
+    if (nemesis && nemesis === target) target = null;
+
+    const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+    if (nemesis) nemesis = { ...nemesis, name: capitalize(nemesis.name) };
+    if (target) target = { ...target, name: capitalize(target.name) };
+
+    res.json({ formChart, nemesis, target });
+  });
+
   app.get(api.stats.league.path, requireAuth, async (req, res) => {
     const leagueId = Number(req.params.leagueId);
     const userId = (req.user as any).claims.sub;

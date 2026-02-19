@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useStats } from "@/hooks/use-stats";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { useCreateSession, useDeleteSession } from "@/hooks/use-sessions";
-import { useLeagues, useLeague, useLeagueStats, useLeagueSessions, usePersonalStats, useCreateLeague, useJoinLeague, useClaimPlayer, useCreateAndClaimPlayer, useMigrateToLeague, useLeaveLeague, useDeleteLeague } from "@/hooks/use-leagues";
+import { useLeagues, useLeague, useLeagueStats, useLeagueSessions, usePersonalStats, usePlayerRivalries, useCreateLeague, useJoinLeague, useClaimPlayer, useCreateAndClaimPlayer, useMigrateToLeague, useLeaveLeague, useDeleteLeague } from "@/hooks/use-leagues";
 import { StatCard } from "@/components/ui/StatCard";
 import { Button } from "@/components/ui/button";
 
@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Coins, Trophy, TrendingUp, History, Play, Loader2, ArrowRight, Pencil, Trash2, AlertTriangle, Users, Plus, LogIn, User, Shield, Copy, Check, ArrowDownLeft, ArrowUpRight, DollarSign, Info, Clock, Percent, X, ChevronRight, Search, Activity, ArrowDownAZ } from "lucide-react";
+import { Coins, Trophy, TrendingUp, History, Play, Loader2, ArrowRight, Pencil, Trash2, AlertTriangle, Users, Plus, LogIn, User, Shield, Copy, Check, ArrowDownLeft, ArrowUpRight, DollarSign, Info, Clock, Percent, X, ChevronRight, Search, Activity, ArrowDownAZ, Crosshair, Target } from "lucide-react";
 import frogClockSrc from "@assets/image-removebg-preview-2_1771174670390.png";
 import frogBankerSrc from "@assets/image-removebg-preview-3_1771176202817.png";
 import frogBalanceSrc from "@assets/image-removebg-preview-4_1771176899418.png";
@@ -29,7 +29,7 @@ import { Link, useLocation } from "wouter";
 import { format } from "date-fns";
 import { LeagueAnalytics } from "@/components/LeagueAnalytics";
 import { LeagueAdminDialog } from "@/components/LeagueAdminDialog";
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine } from "recharts";
 
 type Tab = "profile" | "leagues";
 
@@ -101,6 +101,7 @@ function ProfileTab() {
   const [, setLocation] = useLocation();
   const { data: personalStats, isLoading } = usePersonalStats();
   const { data: legacyStats } = useStats();
+  const { data: rivalries } = usePlayerRivalries();
 
   const stats = personalStats || legacyStats;
   const bankrollHistory = personalStats?.bankrollHistory || legacyStats?.bankrollHistory || [];
@@ -114,6 +115,27 @@ function ProfileTab() {
         <p className="font-semibold" style={{ color: payload[0].value >= 0 ? "#10b981" : "#ef4444" }}>
           {payload[0].value >= 0 ? "+" : ""}${payload[0].value}
         </p>
+      </div>
+    );
+  };
+
+  const FormTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload?.length) return null;
+    const net = payload.find((p: any) => p.dataKey === 'netProfit');
+    const cum = payload.find((p: any) => p.dataKey === 'cumulativeProfit');
+    return (
+      <div className="rounded-xl border border-white/[0.08] p-3 text-sm" style={{ backgroundColor: "hsla(222, 47%, 14%, 0.95)", backdropFilter: "blur(12px)" }}>
+        <p className="text-muted-foreground text-xs font-medium mb-1">{label ? format(new Date(label), "MMM d") : ""}</p>
+        {net && (
+          <p className="font-semibold" style={{ color: "#10b981" }}>
+            Game: {net.value >= 0 ? "+" : ""}${net.value}
+          </p>
+        )}
+        {cum && (
+          <p className="font-medium text-xs" style={{ color: "rgba(16, 185, 129, 0.7)" }}>
+            Cumulative: {cum.value >= 0 ? "+" : ""}${cum.value}
+          </p>
+        )}
       </div>
     );
   };
@@ -190,6 +212,56 @@ function ProfileTab() {
           </div>
         </div>
       </div>
+
+      {rivalries && rivalries.formChart.length > 0 && (
+        <div className="glass-card rounded-xl p-6" data-testid="chart-recent-form">
+          <h3 className="font-bold text-base mb-4 flex items-center gap-2 text-white">
+            <Activity className="h-5 w-5 text-primary" /> Recent Form (Last 10 Games)
+          </h3>
+          <div className="h-[250px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={rivalries.formChart}>
+                <CartesianGrid stroke="rgba(16, 185, 129, 0.08)" strokeDasharray="3 3" />
+                <XAxis dataKey="date" stroke="#475569" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(v) => format(new Date(v), "MMM d")} />
+                <YAxis stroke="#475569" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(v) => `$${v}`} />
+                <ReferenceLine y={0} stroke="rgba(255,255,255,0.1)" />
+                <Tooltip content={<FormTooltip />} />
+                <Line type="monotone" dataKey="cumulativeProfit" stroke="#10b981" strokeWidth={2.5} dot={{ r: 4, fill: "#10b981", strokeWidth: 0 }} activeDot={{ r: 6, fill: "#10b981" }} name="Cumulative" />
+                <Line type="monotone" dataKey="netProfit" stroke="rgba(16, 185, 129, 0.4)" strokeWidth={1.5} strokeDasharray="4 4" dot={{ r: 3, fill: "rgba(16, 185, 129, 0.5)", strokeWidth: 0 }} name="Per Game" />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
+      {rivalries && (rivalries.nemesis || rivalries.target) && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4" data-testid="section-rivalries">
+          {rivalries.nemesis && (
+            <StatCard
+              title="Nemesis"
+              value={rivalries.nemesis.name}
+              icon={Crosshair}
+              subtitle={
+                <span className="text-emerald-400 font-mono font-semibold">
+                  +${rivalries.nemesis.totalProfit} in {rivalries.nemesis.sharedGames} shared games
+                </span>
+              }
+            />
+          )}
+          {rivalries.target && (
+            <StatCard
+              title="Target"
+              value={rivalries.target.name}
+              icon={Target}
+              subtitle={
+                <span className="text-emerald-400 font-mono font-semibold">
+                  {rivalries.target.totalProfit >= 0 ? '+' : ''}${rivalries.target.totalProfit} in {rivalries.target.sharedGames} shared games
+                </span>
+              }
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 }
