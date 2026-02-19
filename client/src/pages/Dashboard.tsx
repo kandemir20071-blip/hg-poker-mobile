@@ -17,7 +17,7 @@ import { Coins, Trophy, TrendingUp, History, Play, Loader2, ArrowRight, Pencil, 
 import frogClockSrc from "@assets/image-removebg-preview-2_1771174670390.png";
 import frogBankerSrc from "@assets/image-removebg-preview-3_1771176202817.png";
 import frogBalanceSrc from "@assets/image-removebg-preview-4_1771176899418.png";
-import frogMoneyBagSrc from "@assets/image-removebg-preview-13_1771525111109.png";
+import frogMoneyBagSrc from "@assets/image-removebg-preview-14_1771525554057.png";
 import frogGladiatorSrc from "@assets/image-removebg-preview-6_1771182160649.png";
 import frogKingpinSrc from "@assets/image-removebg-preview-7_1771426631043.png";
 import frogGrinderSrc from "@assets/image-removebg-preview-8_1771428133336.png";
