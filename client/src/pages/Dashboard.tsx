@@ -23,6 +23,7 @@ import frogKingpinSrc from "@assets/image-removebg-preview-7_1771426631043.png";
 import frogGrinderSrc from "@assets/image-removebg-preview-8_1771428133336.png";
 import frogBrokeSrc from "@assets/image-removebg-preview-9_1771428615912.png";
 import frogUnrankedSrc from "@assets/image-removebg-preview-10_1771430415897.png";
+import frogSisyphusSrc from "@assets/image-removebg-preview-12_1771522503944.png";
 import { Tooltip as UITooltip, TooltipContent as UITooltipContent, TooltipTrigger as UITooltipTrigger } from "@/components/ui/tooltip";
 import { SuitAccent, SuitsLoader, SuitsRow } from "@/components/ui/Suits";
 import { Link, useLocation } from "wouter";
@@ -145,12 +146,14 @@ function ProfileTab() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         <StatCard
           title="Total Profit"
-          value={`$${stats?.totalProfit || 0}`}
+          value={`${(stats?.totalProfit || 0) < 0 ? '-' : ''}$${Math.abs(stats?.totalProfit || 0)}`}
           icon={Coins}
           prominent
-          valueColor={(stats?.totalProfit || 0) >= 0 ? "text-emerald-400" : "text-destructive"}
+          customIconSrc={(stats?.totalProfit || 0) < 0 ? frogSisyphusSrc : undefined}
+          landscapeIcon={(stats?.totalProfit || 0) < 0}
+          valueColor="text-emerald-400"
           trend={stats?.roi ? `${stats.roi}% ROI` : undefined}
-          trendUp={(stats?.roi || 0) > 0}
+          trendUp={true}
           className="col-span-2 md:col-span-1"
         />
         <StatCard title="Money Wagered" value={`$${personalStats?.totalBuyIn || 0}`} icon={ArrowUpRight} customIconSrc={frogBalanceSrc} />
