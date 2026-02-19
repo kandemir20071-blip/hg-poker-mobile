@@ -24,8 +24,8 @@ export function StatCard({ title, value, icon: Icon, customIconSrc, customIconBg
       className
     )} data-testid={`stat-card-${title.toLowerCase().replace(/\s+/g, '-')}`}>
       {customIconSrc ? (
-        <div className="absolute bottom-0 right-0 transition-opacity opacity-[0.45] group-hover:opacity-[0.6] sm:opacity-[0.35] sm:group-hover:opacity-[0.5]">
-          <img src={customIconSrc} alt="" className={cn("object-contain w-24 h-24 sm:w-36 sm:h-36")} style={{ imageRendering: 'pixelated' }} />
+        <div className="absolute top-1/2 -translate-y-1/2 right-4 transition-opacity opacity-[0.45] group-hover:opacity-[0.6] sm:opacity-[0.35] sm:group-hover:opacity-[0.5]">
+          <img src={customIconSrc} alt="" className={cn("object-contain w-20 h-20 sm:w-28 sm:h-28")} style={{ imageRendering: 'pixelated' }} />
         </div>
       ) : (
         <div className="absolute top-0 right-0 p-4 opacity-[0.04] group-hover:opacity-[0.08] transition-opacity hidden sm:block">
