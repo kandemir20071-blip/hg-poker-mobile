@@ -29,7 +29,7 @@ export function StatCard({ title, value, icon: Icon, customIconSrc, customIconBg
           <img
             src={customIconSrc}
             alt=""
-            className="absolute right-0 top-1/2 -translate-y-1/2 h-5/6 w-auto max-w-[50%] object-contain opacity-60 pointer-events-none"
+            className="absolute right-0 top-0 h-full w-auto object-contain opacity-60 pointer-events-none"
             style={{ imageRendering: 'pixelated' }}
           />
         ) : (
