@@ -25,7 +25,7 @@ import frogGrinderSrc from "@assets/image-removebg-preview-8_1771428133336.png";
 import frogBrokeSrc from "@assets/image-removebg-preview-9_1771428615912.png";
 import frogUnrankedSrc from "@assets/image-removebg-preview-10_1771430415897.png";
 import frogSisyphusSrc from "@assets/image-removebg-preview-12_1771522503944.png";
-import frogMountainSrc from "@assets/image-removebg-preview-17_1771528406419.png";
+import frogMountainSrc from "@assets/unnamed-6_1771529210979.jpg";
 import { Tooltip as UITooltip, TooltipContent as UITooltipContent, TooltipTrigger as UITooltipTrigger } from "@/components/ui/tooltip";
 import { SuitAccent, SuitsLoader, SuitsRow } from "@/components/ui/Suits";
 import { Link, useLocation } from "wouter";
@@ -152,7 +152,8 @@ function ProfileTab() {
           icon={Coins}
           prominent
           customIconSrc={(stats?.totalProfit || 0) < 0 ? frogSisyphusSrc : frogMountainSrc}
-          landscapeIcon={true}
+          landscapeIcon={(stats?.totalProfit || 0) < 0}
+          cinematicIcon={(stats?.totalProfit || 0) >= 0}
           valueColor="text-emerald-400"
           trend={stats?.roi ? `${stats.roi}% ROI` : undefined}
           trendUp={true}

@@ -9,6 +9,7 @@ interface StatCardProps {
   customIconBgClass?: string;
   customIconSize?: string;
   landscapeIcon?: boolean;
+  cinematicIcon?: boolean;
   trend?: string;
   trendUp?: boolean;
   subtitle?: React.ReactNode;
@@ -17,7 +18,7 @@ interface StatCardProps {
   className?: string;
 }
 
-export function StatCard({ title, value, icon: Icon, customIconSrc, customIconBgClass, customIconSize, landscapeIcon, trend, trendUp, subtitle, prominent, valueColor, className }: StatCardProps) {
+export function StatCard({ title, value, icon: Icon, customIconSrc, customIconBgClass, customIconSize, landscapeIcon, cinematicIcon, trend, trendUp, subtitle, prominent, valueColor, className }: StatCardProps) {
   return (
     <div className={cn(
       "glass-card rounded-xl relative overflow-hidden group hover:border-primary/20 transition-all duration-300",
@@ -26,7 +27,14 @@ export function StatCard({ title, value, icon: Icon, customIconSrc, customIconBg
       className
     )} data-testid={`stat-card-${title.toLowerCase().replace(/\s+/g, '-')}`}>
       {customIconSrc ? (
-        landscapeIcon ? (
+        cinematicIcon ? (
+          <img
+            src={customIconSrc}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover opacity-50 pointer-events-none"
+            style={{ imageRendering: 'pixelated' }}
+          />
+        ) : landscapeIcon ? (
           <img
             src={customIconSrc}
             alt=""
