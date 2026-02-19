@@ -157,7 +157,7 @@ function ProfileTab() {
           className="col-span-2 md:col-span-1"
         />
         <StatCard title="Money Wagered" value={`$${personalStats?.totalBuyIn || 0}`} icon={ArrowUpRight} customIconSrc={frogBalanceSrc} />
-        <StatCard title="Total Cash Out" value={`$${personalStats?.totalCashOut || 0}`} icon={ArrowDownLeft} customIconSrc={frogMoneyBagSrc} />
+        <StatCard title="Total Cash Out" value={`$${personalStats?.totalCashOut || 0}`} icon={ArrowDownLeft} customIconSrc={frogMoneyBagSrc} customIconSize="w-36 h-36 sm:w-44 sm:h-44" />
         <StatCard title="Games Played" value={stats?.totalGames || 0} icon={History} customIconSrc={frogClockSrc} />
       </div>
 

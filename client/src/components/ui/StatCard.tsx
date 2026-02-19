@@ -7,6 +7,7 @@ interface StatCardProps {
   icon: LucideIcon;
   customIconSrc?: string;
   customIconBgClass?: string;
+  customIconSize?: string;
   landscapeIcon?: boolean;
   trend?: string;
   trendUp?: boolean;
@@ -16,7 +17,7 @@ interface StatCardProps {
   className?: string;
 }
 
-export function StatCard({ title, value, icon: Icon, customIconSrc, customIconBgClass, landscapeIcon, trend, trendUp, subtitle, prominent, valueColor, className }: StatCardProps) {
+export function StatCard({ title, value, icon: Icon, customIconSrc, customIconBgClass, customIconSize, landscapeIcon, trend, trendUp, subtitle, prominent, valueColor, className }: StatCardProps) {
   return (
     <div className={cn(
       "glass-card rounded-xl relative overflow-hidden group hover:border-primary/20 transition-all duration-300",
@@ -34,7 +35,7 @@ export function StatCard({ title, value, icon: Icon, customIconSrc, customIconBg
           />
         ) : (
         <div className="absolute top-1/2 -translate-y-1/2 right-4 transition-opacity opacity-[0.45] group-hover:opacity-[0.6] sm:opacity-[0.35] sm:group-hover:opacity-[0.5]">
-          <img src={customIconSrc} alt="" className={cn("object-contain w-20 h-20 sm:w-28 sm:h-28")} style={{ imageRendering: 'pixelated' }} />
+          <img src={customIconSrc} alt="" className={cn("object-contain", customIconSize || "w-20 h-20 sm:w-28 sm:h-28")} style={{ imageRendering: 'pixelated' }} />
         </div>
         )
       ) : (
