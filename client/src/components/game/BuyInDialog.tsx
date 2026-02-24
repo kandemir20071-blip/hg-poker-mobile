@@ -14,8 +14,6 @@ interface BuyInDialogProps {
   isReBuy?: boolean;
 }
 
-const rebuyPresets = [10, 20, 30, 40, 50];
-
 export function BuyInDialog({ sessionId, playerId, trigger, defaultAmount = 100, isReBuy = false }: BuyInDialogProps) {
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState(defaultAmount.toString());
@@ -50,24 +48,8 @@ export function BuyInDialog({ sessionId, playerId, trigger, defaultAmount = 100,
 
         <form onSubmit={handleSubmit} className="space-y-6 mt-4">
           <div className="space-y-4">
-            {isReBuy && (
-              <div className="grid grid-cols-3 gap-2">
-                {rebuyPresets.map((preset) => (
-                  <Button
-                    key={preset}
-                    type="button"
-                    variant={Number(amount) === preset ? "default" : "outline"}
-                    className="font-mono text-base min-h-[44px]"
-                    onClick={() => setAmount(preset.toString())}
-                    data-testid={`button-rebuy-preset-${preset}`}
-                  >
-                    ${preset}
-                  </Button>
-                ))}
-              </div>
-            )}
             <div className="grid gap-2">
-              <Label htmlFor="amount" className="text-muted-foreground">{isReBuy ? "Custom Amount" : "Amount"}</Label>
+              <Label htmlFor="amount" className="text-muted-foreground">Amount</Label>
               <div className="relative">
                 <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-primary" />
                 <Input

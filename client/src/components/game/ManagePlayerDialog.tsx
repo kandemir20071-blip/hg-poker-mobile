@@ -211,9 +211,25 @@ export function ManagePlayerDialog({ sessionId, playerId, playerName, transactio
 
         {showAddForm ? (
           <form onSubmit={handleAdd} className="border-t border-white/[0.06] pt-4 space-y-3">
+            {type === "buy_in" && hasPriorBuyIn && (
+              <div className="grid grid-cols-3 gap-2">
+                {[10, 20, 30, 40, 50].map((preset) => (
+                  <Button
+                    key={preset}
+                    type="button"
+                    variant={Number(amount) === preset ? "default" : "outline"}
+                    className="font-mono text-base min-h-[44px]"
+                    onClick={() => setAmount(preset.toString())}
+                    data-testid={`button-rebuy-preset-${preset}`}
+                  >
+                    ${preset}
+                  </Button>
+                ))}
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-3">
               <div className="grid gap-1">
-                <Label className="text-xs text-muted-foreground">Amount</Label>
+                <Label className="text-xs text-muted-foreground">{type === "buy_in" && hasPriorBuyIn ? "Custom Amount" : "Amount"}</Label>
                 <div className="relative">
                   <DollarSign className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
                   <Input
