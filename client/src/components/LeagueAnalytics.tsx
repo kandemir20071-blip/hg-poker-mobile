@@ -26,6 +26,7 @@ import { HelpCircle, X, Search, ChevronsUpDown, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PlayerProfitChart, type FilterMode } from "./PlayerProfitChart";
+import { PaywallOverlay } from "@/components/ui/PaywallOverlay";
 
 type PlayerSeries = {
   playerName: string;
@@ -210,7 +211,7 @@ const VIEW_HELP: Record<AnalyticsView, string> = {
   pulse: "The health monitor of your league. Shows the Total Money Wagered per session over time.",
 };
 
-export function LeagueAnalytics({ playerProfitHistory, playerAnalytics, sessionHistory }: LeagueAnalyticsProps) {
+export function LeagueAnalytics({ playerProfitHistory, playerAnalytics, sessionHistory, isPro }: LeagueAnalyticsProps) {
   const [view, setView] = useState<AnalyticsView>("performance");
   const [skillFilter, setSkillFilter] = useState("all");
   const [volatilitySort, setVolatilitySort] = useState("biggest_win");
@@ -335,10 +336,14 @@ export function LeagueAnalytics({ playerProfitHistory, playerAnalytics, sessionH
         />
       )}
       {view === "skill_map" && (
-        <SkillMapChart data={skillFiltered} />
+        <PaywallOverlay isPro={!!isPro} featureName="Skill Map">
+          <SkillMapChart data={skillFiltered} />
+        </PaywallOverlay>
       )}
       {view === "volatility" && (
-        <VolatilityChart playerAnalytics={playerAnalytics} sortBy={volatilitySort} />
+        <PaywallOverlay isPro={!!isPro} featureName="Volatility Index">
+          <VolatilityChart playerAnalytics={playerAnalytics} sortBy={volatilitySort} />
+        </PaywallOverlay>
       )}
       {view === "pulse" && (
         <PulseChart sessionHistory={sessionHistory} timeframe={pulseTimeframe} />

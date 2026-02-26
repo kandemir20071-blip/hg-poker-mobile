@@ -929,6 +929,7 @@ function LeaguesTab({
             playerProfitHistory={playerProfitHistory}
             playerAnalytics={leagueStats?.playerAnalytics || []}
             sessionHistory={leagueStats?.sessionHistory || []}
+            isPro={user?.subscriptionTier === 'pro'}
           />
         </div>
 
