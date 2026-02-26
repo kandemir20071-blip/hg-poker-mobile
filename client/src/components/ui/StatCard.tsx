@@ -31,18 +31,18 @@ export function StatCard({ title, value, icon: Icon, customIconSrc, customIconBg
           <img
             src={customIconSrc}
             alt=""
-            className="absolute inset-0 w-full h-full object-cover opacity-50 pointer-events-none transition-all duration-300 group-hover:drop-shadow-[0_0_20px_rgba(34,197,94,0.8)]"
+            className="absolute inset-0 w-full h-full object-cover opacity-50 pointer-events-none transition-all duration-700 ease-out group-hover:drop-shadow-[0_0_20px_rgba(34,197,94,0.8)]"
             style={{ imageRendering: 'pixelated' }}
           />
         ) : landscapeIcon ? (
           <img
             src={customIconSrc}
             alt=""
-            className="absolute right-0 top-0 h-full w-auto object-contain opacity-60 pointer-events-none transition-all duration-300 group-hover:opacity-80 group-hover:drop-shadow-[0_0_20px_rgba(34,197,94,0.8)]"
+            className="absolute right-0 top-0 h-full w-auto object-contain opacity-60 pointer-events-none transition-all duration-700 ease-out group-hover:opacity-80 group-hover:drop-shadow-[0_0_20px_rgba(34,197,94,0.8)]"
             style={{ imageRendering: 'pixelated' }}
           />
         ) : (
-        <div className="absolute top-1/2 -translate-y-1/2 right-4 transition-all duration-300 opacity-[0.45] group-hover:opacity-[0.7] sm:opacity-[0.35] sm:group-hover:opacity-[0.6] group-hover:drop-shadow-[0_0_20px_rgba(34,197,94,0.8)]">
+        <div className="absolute top-1/2 -translate-y-1/2 right-4 transition-all duration-700 ease-out opacity-[0.45] group-hover:opacity-[0.7] sm:opacity-[0.35] sm:group-hover:opacity-[0.6] group-hover:drop-shadow-[0_0_20px_rgba(34,197,94,0.8)]">
           <img src={customIconSrc} alt="" className={cn("object-contain", customIconSize || "w-20 h-20 sm:w-28 sm:h-28")} style={{ imageRendering: 'pixelated' }} />
         </div>
         )
