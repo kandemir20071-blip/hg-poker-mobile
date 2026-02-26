@@ -554,13 +554,13 @@ function LeaguesTab({
                   <div className="grid grid-cols-2 gap-4 mt-4">
                     <button onClick={() => setNewSessionType('cash')} className="flex flex-col items-center justify-center p-4 pt-6 rounded-xl bg-background/50 border border-white/[0.08] hover:border-primary/40 hover:bg-primary/5 transition-all group relative overflow-hidden" data-testid="button-cash-game">
                       <div className="absolute top-2 right-2"><SuitAccent suit="diamond" size={16} /></div>
-                      <img src={frogCashGameSrc} alt="" className="w-full max-w-[16rem] h-auto object-contain mx-auto mb-4 group-hover:scale-105 transition-transform drop-shadow-[0_0_20px_rgba(34,197,94,0.6)]" style={{ imageRendering: 'pixelated' }} />
+                      <img src={frogCashGameSrc} alt="" className="w-full max-w-[16rem] h-auto object-contain mx-auto mb-4 group-hover:scale-105 transition-all duration-700 ease-out drop-shadow-[0_0_20px_rgba(34,197,94,0.6)] mix-blend-screen bg-transparent border-none outline-none ring-0" style={{ imageRendering: 'pixelated' }} />
                       <h3 className="font-bold text-lg text-white">Cash Game</h3>
                       <p className="text-xs text-muted-foreground text-center mt-2">Flexible buy-ins, cash out anytime.</p>
                     </button>
                     <button onClick={() => setNewSessionType('tournament')} className="flex flex-col items-center justify-center p-4 pt-6 rounded-xl bg-background/50 border border-white/[0.08] hover:border-primary/40 hover:bg-primary/5 transition-all group relative overflow-hidden" data-testid="button-tournament">
                       <div className="absolute top-2 right-2"><SuitAccent suit="spade" size={16} /></div>
-                      <img src={frogGladiatorSrc} alt="" className="w-full max-w-[16rem] h-auto object-contain mx-auto mb-4 group-hover:scale-105 transition-transform drop-shadow-[0_0_20px_rgba(34,197,94,0.6)]" style={{ imageRendering: 'pixelated' }} />
+                      <img src={frogGladiatorSrc} alt="" className="w-full max-w-[16rem] h-auto object-contain mx-auto mb-4 group-hover:scale-105 transition-all duration-700 ease-out drop-shadow-[0_0_20px_rgba(34,197,94,0.6)] mix-blend-screen bg-transparent border-none outline-none ring-0" style={{ imageRendering: 'pixelated' }} />
                       <h3 className="font-bold text-lg text-white">Tournament</h3>
                       <p className="text-xs text-muted-foreground text-center mt-2">Fixed buy-in, blinds increase, last one standing.</p>
                     </button>
