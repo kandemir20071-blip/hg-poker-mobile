@@ -31,19 +31,17 @@ export function StatCard({ title, value, icon: Icon, customIconSrc, customIconBg
           <img
             src={customIconSrc}
             alt=""
-            className="absolute inset-0 w-full h-full object-cover opacity-50 pointer-events-none transition-all duration-700 ease-out group-hover:drop-shadow-[0_0_20px_rgba(34,197,94,0.8)] mix-blend-screen bg-transparent border-none outline-none ring-0"
-            style={{ imageRendering: 'pixelated' }}
+            className="absolute inset-0 w-full h-full object-cover opacity-50 pointer-events-none transition-[filter,opacity] duration-500 ease-out group-hover:drop-shadow-[0_0_15px_rgba(16,185,129,0.8)] mix-blend-screen border-none outline-none ring-0"
           />
         ) : landscapeIcon ? (
           <img
             src={customIconSrc}
             alt=""
-            className="absolute right-0 top-0 h-full w-auto object-contain opacity-60 pointer-events-none transition-all duration-700 ease-out group-hover:opacity-80 group-hover:drop-shadow-[0_0_20px_rgba(34,197,94,0.8)] mix-blend-screen bg-transparent border-none outline-none ring-0"
-            style={{ imageRendering: 'pixelated' }}
+            className="absolute right-0 top-0 h-full w-auto object-contain opacity-60 pointer-events-none transition-[filter,opacity] duration-500 ease-out group-hover:opacity-80 group-hover:drop-shadow-[0_0_15px_rgba(16,185,129,0.8)] mix-blend-screen border-none outline-none ring-0"
           />
         ) : (
-        <div className="absolute top-1/2 -translate-y-1/2 right-4 transition-all duration-700 ease-out opacity-[0.45] group-hover:opacity-[0.7] sm:opacity-[0.35] sm:group-hover:opacity-[0.6]">
-          <img src={customIconSrc} alt="" className={cn("object-contain group-hover:drop-shadow-[0_0_20px_rgba(34,197,94,0.8)] mix-blend-screen bg-transparent border-none outline-none ring-0 transition-all duration-700 ease-out", customIconSize || "w-20 h-20 sm:w-28 sm:h-28")} style={{ imageRendering: 'pixelated' }} />
+        <div className="absolute top-1/2 -translate-y-1/2 right-4 transition-[opacity] duration-500 ease-out opacity-[0.45] group-hover:opacity-[0.7] sm:opacity-[0.35] sm:group-hover:opacity-[0.6]">
+          <img src={customIconSrc} alt="" className={cn("object-contain transition-[filter] duration-500 ease-out group-hover:drop-shadow-[0_0_15px_rgba(16,185,129,0.8)] mix-blend-screen border-none outline-none ring-0", customIconSize || "w-20 h-20 sm:w-28 sm:h-28")} />
         </div>
         )
       ) : (
