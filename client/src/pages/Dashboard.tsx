@@ -964,7 +964,7 @@ function LeaguesTab({
                     <div className="font-medium text-white capitalize">{session.type === 'cash' ? 'Cash Game' : session.type}</div>
                     <div className="text-xs text-muted-foreground">{format(new Date(session.startTime), 'MMM d, yyyy')}</div>
                   </div>
-                  {session.hostId === user?.id && (
+                  {(session.hostId === user?.id || isCreator) && (
                     <div className="flex items-center gap-1 shrink-0">
                       <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); setLocation(`/session/${session.id}?admin=true`); }} data-testid={`button-edit-session-${session.id}`}>
                         <Pencil className="h-3.5 w-3.5" />
