@@ -125,7 +125,11 @@ export async function registerRoutes(
     const currentMember = members.find(m => m.userId === userId);
     const canHost = league.creatorId === userId || currentMember?.canHostSessions || false;
 
-    res.json({ ...league, memberCount: members.length, players: playersWithCounts, members: membersWithPermissions, canHost });
+    const { authStorage } = await import('./replit_integrations/auth/storage');
+    const creator = await authStorage.getUser(league.creatorId);
+    const creatorName = creator?.personalDisplayName || creator?.firstName || 'Unknown';
+
+    res.json({ ...league, memberCount: members.length, players: playersWithCounts, members: membersWithPermissions, canHost, creatorName });
   });
 
   app.post(api.leagues.join.path, requireAuth, async (req, res) => {

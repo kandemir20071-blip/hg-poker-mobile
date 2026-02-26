@@ -991,6 +991,10 @@ function LeaguesTab({
                 </div>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
+                    <span className="text-muted-foreground">Organized by</span>
+                    <span className="font-semibold text-emerald-400">{leagueWithPlayers.creatorName || 'Unknown'}</span>
+                  </div>
+                  <div className="flex justify-between">
                     <span className="text-muted-foreground">Players</span>
                     <span className="text-white">{leagueWithPlayers.players?.length || 0}</span>
                   </div>
