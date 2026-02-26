@@ -1082,12 +1082,16 @@ export async function registerRoutes(
       const isHostOrAdmin = await isHostOrLeagueAdmin(session, userId);
 
       if (!isHostOrAdmin) {
-        if (session.leagueId) {
-          const member = await storage.getLeagueMember(session.leagueId, userId);
-          if (!member) return res.status(403).json({ message: "You must be a league member to create transactions" });
-        } else {
-          const sessionPlayer = await storage.getPlayerBySessionAndUser(sessionId, userId);
-          if (!sessionPlayer) return res.status(403).json({ message: "You must be a session participant to create transactions" });
+        const selfPlayer = await storage.getPlayerBySessionAndUser(sessionId, userId);
+        if (!selfPlayer) {
+          if (session.leagueId) {
+            const member = await storage.getLeagueMember(session.leagueId, userId);
+            if (!member) return res.status(403).json({ message: "You must be a league member to create transactions" });
+          }
+          return res.status(403).json({ message: "You must be a session participant to create transactions" });
+        }
+        if (selfPlayer.id !== input.playerId) {
+          return res.status(403).json({ message: "You can only create transactions for yourself" });
         }
       }
 

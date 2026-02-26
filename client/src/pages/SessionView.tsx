@@ -126,6 +126,7 @@ export default function SessionView() {
   const isSessionHost = session?.hostId === user?.id;
   const isLeagueAdmin = user?.id ? leagueAdminIds.includes(user.id) : false;
   const isHost = isSessionHost || isLeagueAdmin;
+  const effectiveAdminMode = isHost && adminMode;
 
   useEffect(() => {
     if (isHost && !adminAutoSet) {
@@ -288,7 +289,7 @@ export default function SessionView() {
                 Imported
               </span>
             )}
-            {adminMode && !isImported && (
+            {effectiveAdminMode && !isImported && (
               <span className="px-2 py-0.5 rounded-full text-xs font-bold uppercase bg-amber-500/20 text-amber-400" data-testid="badge-admin-mode">
                 Admin Mode
               </span>
@@ -922,7 +923,7 @@ export default function SessionView() {
               <div>
                 <div className="flex items-center justify-between gap-4 mb-4 flex-wrap">
                   <h3 className="text-lg font-bold text-white" data-testid="text-active-players-heading">Active Players ({tournamentActivePlayers.length})</h3>
-                  {adminMode && (
+                  {effectiveAdminMode && (
                     <AddPlayerDialog
                       sessionId={sessionId}
                       leagueId={session.leagueId}
@@ -941,7 +942,7 @@ export default function SessionView() {
                         <p className="font-bold text-white text-lg truncate" data-testid={`text-active-player-name-${player.id}`}>{player.name}</p>
                         <p className="text-xs text-muted-foreground mt-0.5">Buy-in: <span className="font-mono font-bold text-white">${player.totalBuyIn}</span></p>
                       </div>
-                      {adminMode && (
+                      {effectiveAdminMode && (
                         <div className="flex items-center gap-2 shrink-0 flex-wrap">
                           {tournamentConfig?.allowRebuys && (
                             <Button
@@ -1100,7 +1101,7 @@ export default function SessionView() {
                                 <span className={`font-mono font-bold ${isBuyIn ? 'text-destructive' : 'text-emerald-400'}`}>
                                   {isBuyIn ? '-' : '+'}${tx.amount}
                                 </span>
-                                {adminMode && (
+                                {effectiveAdminMode && (
                                   <div className="flex items-center gap-0.5">
                                     <Button
                                       size="icon"
@@ -1141,7 +1142,7 @@ export default function SessionView() {
               <div className="flex items-center justify-between gap-4 flex-wrap">
                 <h2 className="text-xl font-bold text-white">Players</h2>
                 <div className="flex items-center gap-3 flex-wrap">
-                  {adminMode && (
+                  {effectiveAdminMode && (
                     <AddPlayerDialog
                       sessionId={sessionId}
                       leagueId={session.leagueId}
@@ -1166,7 +1167,7 @@ export default function SessionView() {
                 hostId={session.hostId} 
                 sessionId={sessionId} 
                 currentUserId={user?.id}
-                adminMode={adminMode}
+                adminMode={effectiveAdminMode}
                 transactions={transactions}
                 isActive={isActive}
                 autoApproveTransactions={session.autoApproveTransactions}
@@ -1271,7 +1272,7 @@ export default function SessionView() {
                                 <span className={`font-mono font-bold ${isBuyIn ? 'text-destructive' : 'text-emerald-400'}`}>
                                   {isBuyIn ? '-' : '+'}${tx.amount}
                                 </span>
-                                {adminMode && (
+                                {effectiveAdminMode && (
                                   <div className="flex items-center gap-0.5">
                                     <Button
                                       size="icon"
