@@ -33,6 +33,7 @@ import { format } from "date-fns";
 import { LeagueAnalytics } from "@/components/LeagueAnalytics";
 import { LeagueAdminDialog } from "@/components/LeagueAdminDialog";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine } from "recharts";
+import { PaywallOverlay } from "@/components/ui/PaywallOverlay";
 
 type Tab = "profile" | "leagues";
 
@@ -282,24 +283,26 @@ function ProfileTab() {
       </div>
 
       {rivalries && rivalries.formChart.length > 0 && (
-        <div className="glass-card rounded-xl p-6" data-testid="chart-recent-form">
-          <h3 className="font-bold text-base mb-4 flex items-center gap-2 text-white">
-            <Activity className="h-5 w-5 text-primary" /> Recent Form (Last 10 Games)
-          </h3>
-          <div className="h-[250px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={rivalries.formChart}>
-                <CartesianGrid stroke="rgba(16, 185, 129, 0.08)" strokeDasharray="3 3" />
-                <XAxis dataKey="date" stroke="#475569" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(v) => format(new Date(v), "MMM d")} />
-                <YAxis stroke="#475569" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(v) => `$${v}`} />
-                <ReferenceLine y={0} stroke="rgba(255,255,255,0.1)" />
-                <Tooltip content={<FormTooltip />} />
-                <Line type="monotone" dataKey="cumulativeProfit" stroke="#10b981" strokeWidth={2.5} dot={{ r: 4, fill: "#10b981", strokeWidth: 0 }} activeDot={{ r: 6, fill: "#10b981" }} name="Cumulative" />
-                <Line type="monotone" dataKey="netProfit" stroke="rgba(16, 185, 129, 0.4)" strokeWidth={1.5} strokeDasharray="4 4" dot={{ r: 3, fill: "rgba(16, 185, 129, 0.5)", strokeWidth: 0 }} name="Per Game" />
-              </LineChart>
-            </ResponsiveContainer>
+        <PaywallOverlay isPro={user?.subscriptionTier === 'pro'} featureName="Recent Form Chart">
+          <div className="glass-card rounded-xl p-6" data-testid="chart-recent-form">
+            <h3 className="font-bold text-base mb-4 flex items-center gap-2 text-white">
+              <Activity className="h-5 w-5 text-primary" /> Recent Form (Last 10 Games)
+            </h3>
+            <div className="h-[250px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={rivalries.formChart}>
+                  <CartesianGrid stroke="rgba(16, 185, 129, 0.08)" strokeDasharray="3 3" />
+                  <XAxis dataKey="date" stroke="#475569" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(v) => format(new Date(v), "MMM d")} />
+                  <YAxis stroke="#475569" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(v) => `$${v}`} />
+                  <ReferenceLine y={0} stroke="rgba(255,255,255,0.1)" />
+                  <Tooltip content={<FormTooltip />} />
+                  <Line type="monotone" dataKey="cumulativeProfit" stroke="#10b981" strokeWidth={2.5} dot={{ r: 4, fill: "#10b981", strokeWidth: 0 }} activeDot={{ r: 6, fill: "#10b981" }} name="Cumulative" />
+                  <Line type="monotone" dataKey="netProfit" stroke="rgba(16, 185, 129, 0.4)" strokeWidth={1.5} strokeDasharray="4 4" dot={{ r: 3, fill: "rgba(16, 185, 129, 0.5)", strokeWidth: 0 }} name="Per Game" />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
           </div>
-        </div>
+        </PaywallOverlay>
       )}
 
       {rivalries && (rivalries.nemesis || rivalries.target) && (

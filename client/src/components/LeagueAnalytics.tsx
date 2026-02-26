@@ -54,6 +54,7 @@ interface LeagueAnalyticsProps {
   playerProfitHistory: PlayerSeries[];
   playerAnalytics: PlayerAnalyticsData[];
   sessionHistory: SessionHistoryData[];
+  isPro?: boolean;
 }
 
 function HelpBubble({ text }: { text: string }) {
