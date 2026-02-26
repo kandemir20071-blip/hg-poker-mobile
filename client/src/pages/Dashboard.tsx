@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useStats } from "@/hooks/use-stats";
 import { useMediaQuery } from "@/hooks/use-media-query";
@@ -37,10 +37,13 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianG
 type Tab = "profile" | "leagues";
 
 export default function Dashboard() {
-  const { user } = useAuth();
+  const { user, updateDisplayName, isUpdatingDisplayName } = useAuth();
   const [activeTab, setActiveTab] = useState<Tab>("leagues");
   const [selectedLeagueId, setSelectedLeagueId] = useState<number | null>(null);
   const [, setLocation] = useLocation();
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editName, setEditName] = useState("");
+  const nameInputRef = useRef<HTMLInputElement>(null);
 
   const { data: leagues, isLoading: leaguesLoading } = useLeagues();
 
@@ -55,7 +58,67 @@ export default function Dashboard() {
             Dashboard
             <SuitsRow size={10} className="text-muted-foreground/25" />
           </h2>
-          <p className="text-muted-foreground">Welcome back, {user?.firstName}.</p>
+          <div className="flex items-center gap-2">
+            {isEditingName ? (
+              <form
+                className="flex items-center gap-2"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (editName.trim()) {
+                    updateDisplayName(editName.trim(), {
+                      onSuccess: () => setIsEditingName(false),
+                    });
+                  }
+                }}
+              >
+                <p className="text-muted-foreground">Welcome back,</p>
+                <Input
+                  ref={nameInputRef}
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="h-7 w-32 bg-background/50 border-white/[0.08] text-white text-sm"
+                  autoFocus
+                  data-testid="input-display-name"
+                />
+                <Button
+                  type="submit"
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 text-emerald-400 hover:text-emerald-300"
+                  disabled={isUpdatingDisplayName}
+                  data-testid="button-save-display-name"
+                >
+                  <Check className="w-4 h-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 text-muted-foreground"
+                  onClick={() => setIsEditingName(false)}
+                  data-testid="button-cancel-display-name"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </Button>
+              </form>
+            ) : (
+              <>
+                <p className="text-muted-foreground">
+                  Welcome back, {user?.personalDisplayName || user?.firstName || "Player"}.
+                </p>
+                <button
+                  onClick={() => {
+                    setEditName(user?.personalDisplayName || user?.firstName || "");
+                    setIsEditingName(true);
+                  }}
+                  className="text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+                  data-testid="button-edit-display-name"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
