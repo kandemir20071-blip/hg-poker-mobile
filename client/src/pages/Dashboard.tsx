@@ -405,7 +405,7 @@ function ProfileTab() {
             <div className="h-[250px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={rivalries.formChart}>
-                  <CartesianGrid stroke="rgba(16, 185, 129, 0.08)" strokeDasharray="3 3" />
+                  <CartesianGrid stroke="#374151" strokeDasharray="3 3" />
                   <XAxis dataKey="date" stroke="#4b5563" tick={{ fill: "#9ca3af", fontSize: 12 }} fontSize={12} tickLine={false} axisLine={false} tickFormatter={(v) => format(new Date(v), "MMM d")} />
                   <YAxis stroke="#4b5563" tick={{ fill: "#9ca3af", fontSize: 12 }} fontSize={12} tickLine={false} axisLine={false} tickFormatter={(v) => `$${v}`} />
                   <ReferenceLine y={0} stroke="rgba(255,255,255,0.1)" />

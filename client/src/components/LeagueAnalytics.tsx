@@ -380,7 +380,7 @@ function SkillMapChart({ data }: { data: PlayerAnalyticsData[] }) {
       {data.length > 0 ? (
         <ResponsiveContainer width="100%" height="100%">
           <ScatterChart margin={{ top: 10, right: 20, bottom: 10, left: 10 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+            <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
             <XAxis
               dataKey="gamesPlayed"
               name="Games Played"
@@ -473,7 +473,7 @@ function VolatilityChart({ playerAnalytics, sortBy }: { playerAnalytics: PlayerA
       {chartData.length > 0 ? (
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData} margin={{ top: 10, right: 10, bottom: 40, left: 10 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+            <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
             <XAxis
               dataKey="name"
               stroke="#4b5563"
@@ -542,7 +542,7 @@ function PulseChart({ sessionHistory, timeframe }: { sessionHistory: SessionHist
                 <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+            <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
             <XAxis
               dataKey="date"
               stroke="#4b5563"
