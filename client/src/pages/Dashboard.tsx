@@ -34,6 +34,8 @@ import { LeagueAnalytics } from "@/components/LeagueAnalytics";
 import { LeagueAdminDialog } from "@/components/LeagueAdminDialog";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine } from "recharts";
 import { PaywallOverlay } from "@/components/ui/PaywallOverlay";
+import { useToast } from "@/hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
 
 type Tab = "profile" | "leagues";
 
@@ -45,6 +47,33 @@ export default function Dashboard() {
   const [isEditingName, setIsEditingName] = useState(false);
   const [editName, setEditName] = useState("");
   const nameInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const success = params.get("success");
+    const sessionId = params.get("session_id");
+    if (success === "true" && sessionId) {
+      fetch(`/api/verify-session?session_id=${sessionId}`, { credentials: "include" })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success) {
+            queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+            toast({ title: "Welcome to Pro!", description: "Your Pro features are now unlocked." });
+          } else {
+            toast({ title: "Payment issue", description: data.message || "Could not verify payment.", variant: "destructive" });
+          }
+        })
+        .catch(() => {
+          toast({ title: "Error", description: "Failed to verify payment.", variant: "destructive" });
+        });
+      window.history.replaceState({}, "", "/");
+    } else if (success === "false") {
+      toast({ title: "Checkout cancelled", description: "No charges were made." });
+      window.history.replaceState({}, "", "/");
+    }
+  }, []);
 
   const { data: leagues, isLoading: leaguesLoading } = useLeagues();
 

@@ -3,10 +3,12 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { setupAuth, registerAuthRoutes } from "./replit_integrations/auth";
+import { authStorage } from "./replit_integrations/auth/storage";
 import { z } from "zod";
 import { randomBytes } from "crypto";
 import multer from "multer";
 import path from "path";
+import Stripe from "stripe";
 
 function isUniqueViolation(err: unknown): boolean {
   return (
@@ -1703,6 +1705,59 @@ export async function registerRoutes(
     } catch (err: any) {
       console.error("Backfill sessions error:", err);
       res.status(500).json({ message: err.message || "Failed to backfill sessions" });
+    }
+  });
+
+  // ==================== STRIPE ====================
+
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2025-01-27.acacia" as any });
+
+  app.post("/api/create-checkout-session", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).claims.sub;
+      const protocol = req.headers["x-forwarded-proto"] || "https";
+      const host = req.headers.host;
+      const baseUrl = `${protocol}://${host}`;
+
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ["card"],
+        line_items: [
+          {
+            price: process.env.STRIPE_PRICE_ID_PRO!,
+            quantity: 1,
+          },
+        ],
+        mode: "payment",
+        success_url: `${baseUrl}/?success=true&session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${baseUrl}/?success=false`,
+        client_reference_id: userId,
+        metadata: { userId },
+      });
+
+      res.json({ url: session.url });
+    } catch (err: any) {
+      console.error("Stripe checkout error:", err);
+      res.status(500).json({ message: err.message || "Failed to create checkout session" });
+    }
+  });
+
+  app.get("/api/verify-session", requireAuth, async (req, res) => {
+    try {
+      const sessionId = req.query.session_id as string;
+      if (!sessionId) return res.status(400).json({ message: "Missing session_id" });
+
+      const userId = (req.user as any).claims.sub;
+      const checkoutSession = await stripe.checkout.sessions.retrieve(sessionId);
+
+      if (checkoutSession.payment_status === "paid" && checkoutSession.client_reference_id === userId) {
+        const updatedUser = await authStorage.updateSubscriptionTier(userId, "pro");
+        res.json({ success: true, user: updatedUser });
+      } else {
+        res.json({ success: false, message: "Payment not completed or user mismatch" });
+      }
+    } catch (err: any) {
+      console.error("Verify session error:", err);
+      res.status(500).json({ message: err.message || "Failed to verify session" });
     }
   });
 

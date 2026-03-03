@@ -60,10 +60,11 @@ export default function ImportWizard() {
   const { data: leagues } = useLeagues();
   const adminLeagues = (leagues || []).filter((l: any) => l.creatorId === user?.id);
 
-  const fetchExistingNames = async () => {
+  const fetchExistingNames = async (leagueIdOverride?: number | null) => {
     try {
-      const url = selectedLeagueId
-        ? `/api/import/history?leagueId=${selectedLeagueId}`
+      const lid = leagueIdOverride !== undefined ? leagueIdOverride : selectedLeagueId;
+      const url = lid
+        ? `/api/import/history?leagueId=${lid}`
         : "/api/import/history";
       const res = await fetch(url, { credentials: "include" });
       if (res.ok) {
@@ -79,7 +80,7 @@ export default function ImportWizard() {
 
   useEffect(() => {
     if (selectedLeagueId) {
-      fetchExistingNames();
+      fetchExistingNames(selectedLeagueId);
     }
   }, [selectedLeagueId]);
 

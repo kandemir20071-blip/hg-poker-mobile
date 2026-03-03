@@ -1,4 +1,5 @@
-import { Lock } from "lucide-react";
+import { useState } from "react";
+import { Lock, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 
@@ -10,8 +11,30 @@ interface PaywallOverlayProps {
 
 export function PaywallOverlay({ isPro, children, featureName = "Pro Feature" }: PaywallOverlayProps) {
   const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
 
   if (isPro) return <>{children}</>;
+
+  const handleUpgrade = async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch("/api/create-checkout-session", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        toast({ title: "Error", description: data.message || "Failed to start checkout", variant: "destructive" });
+        setIsLoading(false);
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to connect to payment service", variant: "destructive" });
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="relative" data-testid="paywall-overlay">
@@ -28,8 +51,10 @@ export function PaywallOverlay({ isPro, children, featureName = "Pro Feature" }:
           <Button
             className="w-full font-semibold min-h-[44px]"
             data-testid="button-upgrade-pro"
-            onClick={() => toast({ title: "Coming Soon!", description: "Pro subscriptions are currently in development. Check back later!" })}
+            onClick={handleUpgrade}
+            disabled={isLoading}
           >
+            {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
             Upgrade to Pro
           </Button>
         </div>
