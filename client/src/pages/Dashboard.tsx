@@ -165,6 +165,7 @@ export default function Dashboard() {
 }
 
 function ProfileTab() {
+  const { user } = useAuth();
   const [, setLocation] = useLocation();
   const { data: personalStats, isLoading } = usePersonalStats();
   const { data: legacyStats } = useStats();
