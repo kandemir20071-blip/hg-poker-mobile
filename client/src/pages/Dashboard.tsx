@@ -96,7 +96,7 @@ export default function Dashboard() {
                 className="relative w-full h-full object-contain drop-shadow-[0_0_25px_rgba(16,185,129,0.6)]"
               />
             </div>
-            <h3 className="text-2xl font-bold text-white mb-2 tracking-wide" data-testid="text-pro-welcome">Welcome to the Elite</h3>
+            <h3 className="text-2xl font-bold text-white mb-2 tracking-wide" data-testid="text-pro-welcome">Elite Access Granted</h3>
             <p className="text-emerald-400/80 text-sm mb-6">Your analytical edge is now live.</p>
             <Button
               className="w-full font-semibold min-h-[48px] bg-emerald-600 hover:bg-emerald-500 text-white"

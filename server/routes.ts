@@ -1727,7 +1727,7 @@ export async function registerRoutes(
             quantity: 1,
           },
         ],
-        mode: "payment",
+        mode: "subscription",
         success_url: `${baseUrl}/?success=true&session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${baseUrl}/?success=false`,
         client_reference_id: userId,

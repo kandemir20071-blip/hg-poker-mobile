@@ -67,7 +67,7 @@ Preferred communication style: Simple, everyday language.
 ### Third-Party Services
 - **Replit Auth (OIDC):** User authentication.
 - **PostgreSQL:** Primary database.
-- **Stripe:** Pro subscription checkout via Stripe Checkout Sessions (one-time payment). Endpoints: `POST /api/create-checkout-session`, `GET /api/verify-session`. PaywallOverlay redirects to Stripe; Dashboard handles success redirect verification and updates `subscriptionTier` to `'pro'`.
+- **Stripe:** Pro subscription checkout via Stripe Checkout Sessions (recurring subscription). Endpoints: `POST /api/create-checkout-session`, `GET /api/verify-session`. PaywallOverlay redirects to Stripe; Dashboard handles success redirect verification and updates `subscriptionTier` to `'pro'`.
 
 ### Key NPM Packages
 - `drizzle-orm`, `drizzle-kit`
