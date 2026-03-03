@@ -58,6 +58,7 @@ export default function Dashboard() {
     const success = params.get("success");
     const sessionId = params.get("session_id");
     if (success === "true" && sessionId) {
+      window.history.replaceState({}, "", "/dashboard");
       fetch(`/api/verify-session?session_id=${sessionId}`, { credentials: "include" })
         .then((res) => res.json())
         .then((data) => {
@@ -71,10 +72,9 @@ export default function Dashboard() {
         .catch(() => {
           toast({ title: "Error", description: "Failed to verify payment.", variant: "destructive" });
         });
-      window.history.replaceState({}, "", "/");
     } else if (success === "false") {
+      window.history.replaceState({}, "", "/dashboard");
       toast({ title: "Checkout cancelled", description: "No charges were made." });
-      window.history.replaceState({}, "", "/");
     }
   }, []);
 

@@ -1728,8 +1728,8 @@ export async function registerRoutes(
           },
         ],
         mode: "subscription",
-        success_url: `${baseUrl}/?success=true&session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${baseUrl}/?success=false`,
+        success_url: `${baseUrl}/dashboard?success=true&session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${baseUrl}/dashboard?success=false`,
         client_reference_id: userId,
         metadata: { userId },
       });
