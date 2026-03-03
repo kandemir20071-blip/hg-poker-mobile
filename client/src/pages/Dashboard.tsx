@@ -627,43 +627,42 @@ function LeaguesTab({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-3 flex-wrap">
-          <Select value={selectedLeagueId?.toString() || ""} onValueChange={(v) => onSelectLeague(Number(v))}>
-            <SelectTrigger className="w-full sm:w-[220px] bg-background/50 border-white/[0.08]" data-testid="select-league">
-              <SelectValue placeholder="Select league" />
-            </SelectTrigger>
-            <SelectContent>
-              {leagues.map((league: any) => (
-                <SelectItem key={league.id} value={league.id.toString()}>{league.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+      <div className="space-y-3">
+        <Select value={selectedLeagueId?.toString() || ""} onValueChange={(v) => onSelectLeague(Number(v))}>
+          <SelectTrigger className="w-full bg-background/50 border-white/[0.08] min-h-[48px] text-base" data-testid="select-league">
+            <SelectValue placeholder="Select league" />
+          </SelectTrigger>
+          <SelectContent>
+            {leagues.map((league: any) => (
+              <SelectItem key={league.id} value={league.id.toString()}>{league.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-          <Button variant="outline" size="icon" onClick={() => setShowCreateDialog(true)} data-testid="button-create-league-inline">
-            <Plus className="h-4 w-4" />
+        <div className="grid grid-cols-2 gap-2">
+          <Button variant="ghost" className="min-h-[44px] border border-white/[0.06] bg-background/30 text-muted-foreground hover:text-white" onClick={() => setShowCreateDialog(true)} data-testid="button-create-league-inline">
+            <Plus className="mr-2 h-4 w-4" /> Create League
           </Button>
-          <Button variant="outline" size="icon" onClick={() => setShowJoinDialog(true)} data-testid="button-join-league-inline">
-            <LogIn className="h-4 w-4" />
-          </Button>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {currentLeague && (
-            <Button variant="outline" size="sm" onClick={copyInviteCode} data-testid="button-copy-invite">
-              {copiedCode ? <Check className="mr-2 h-3.5 w-3.5" /> : <Copy className="mr-2 h-3.5 w-3.5" />}
-              {copiedCode ? "Copied" : currentLeague.inviteCode}
+          {currentLeague ? (
+            <Button variant="ghost" className="min-h-[44px] border border-white/[0.06] bg-background/30 text-muted-foreground hover:text-white font-mono tracking-wider" onClick={copyInviteCode} data-testid="button-copy-invite">
+              {copiedCode ? <Check className="mr-2 h-4 w-4 text-emerald-400" /> : <Copy className="mr-2 h-4 w-4" />}
+              {copiedCode ? "Copied!" : `Invite: ${currentLeague.inviteCode}`}
+            </Button>
+          ) : (
+            <Button variant="ghost" className="min-h-[44px] border border-white/[0.06] bg-background/30 text-muted-foreground hover:text-white" onClick={() => setShowJoinDialog(true)} data-testid="button-join-league-inline">
+              <LogIn className="mr-2 h-4 w-4" /> Join League
             </Button>
           )}
+        </div>
 
-          <ResponsiveModal open={newSessionOpen} onOpenChange={(v) => { setNewSessionOpen(v); if (!v) resetNewSession(); }}>
-            {canHost && (
-              <ResponsiveModalTrigger asChild>
-                <Button size="default" className="rounded-full font-semibold glow-emerald" data-testid="button-new-session">
-                  <Play className="mr-2 h-4 w-4" /> New Session
-                </Button>
-              </ResponsiveModalTrigger>
-            )}
+        <ResponsiveModal open={newSessionOpen} onOpenChange={(v) => { setNewSessionOpen(v); if (!v) resetNewSession(); }}>
+          {canHost && (
+            <ResponsiveModalTrigger asChild>
+              <Button size="lg" className="w-full rounded-full font-semibold glow-emerald min-h-[48px] text-base" data-testid="button-new-session">
+                <Play className="mr-2 h-5 w-5" /> New Session
+              </Button>
+            </ResponsiveModalTrigger>
+          )}
             <ResponsiveModalContent className="glass-card sm:max-w-lg max-h-[90vh] overflow-y-auto">
               {!newSessionType ? (
                 <>
@@ -930,7 +929,6 @@ function LeaguesTab({
               {isCreatingSession && <div className="flex justify-center mt-4"><SuitsLoader /></div>}
             </ResponsiveModalContent>
           </ResponsiveModal>
-        </div>
       </div>
 
       {selectedLeagueId && !hasClaimedProfile && hasUnclaimedNames && (
