@@ -220,6 +220,7 @@ export default function Dashboard() {
           leaguesLoading={leaguesLoading}
           selectedLeagueId={currentLeagueId}
           onSelectLeague={setSelectedLeagueId}
+          analyticsRef={analyticsRef}
         />
       )}
     </div>
@@ -405,11 +406,13 @@ function LeaguesTab({
   leaguesLoading,
   selectedLeagueId,
   onSelectLeague,
+  analyticsRef,
 }: {
   leagues: any[];
   leaguesLoading: boolean;
   selectedLeagueId: number | null;
   onSelectLeague: (id: number) => void;
+  analyticsRef: React.RefObject<HTMLDivElement | null>;
 }) {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
