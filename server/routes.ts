@@ -1642,6 +1642,25 @@ export async function registerRoutes(
 
   app.get(api.import.history.path, requireAuth, async (req, res) => {
     const userId = (req.user as any).claims.sub;
+    const leagueId = req.query.leagueId ? Number(req.query.leagueId) : null;
+
+    if (leagueId) {
+      const isMember = await storage.isLeagueMember(leagueId, userId);
+      if (!isMember) return res.status(403).json({ message: "Not a league member" });
+      const leaguePlayers = await storage.getLeaguePlayers(leagueId);
+      const playerNames = leaguePlayers.map(p => ({ playerName: p.name }));
+      const results = await storage.getGameResults(userId);
+      const resultNames = results.map(r => ({ playerName: r.playerName }));
+      const seen = new Set<string>();
+      const merged = [...playerNames, ...resultNames].filter(r => {
+        const key = (r.playerName || "").trim().toLowerCase();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+      return res.json(merged);
+    }
+
     const results = await storage.getGameResults(userId);
     res.json(results);
   });

@@ -62,7 +62,10 @@ export default function ImportWizard() {
 
   const fetchExistingNames = async () => {
     try {
-      const res = await fetch("/api/import/history", { credentials: "include" });
+      const url = selectedLeagueId
+        ? `/api/import/history?leagueId=${selectedLeagueId}`
+        : "/api/import/history";
+      const res = await fetch(url, { credentials: "include" });
       if (res.ok) {
         const data = await res.json();
         const names = new Set<string>();
