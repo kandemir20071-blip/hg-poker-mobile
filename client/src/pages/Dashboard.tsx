@@ -37,7 +37,6 @@ import { PaywallOverlay } from "@/components/ui/PaywallOverlay";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import diamondFrogSrc from "@assets/Bildschirmfoto_2026-03-03_um_16.02.50-removebg-preview_1772558097106.png";
-import diamondToadProSrc from "@assets/image-removebg-preview-20_1772576469103.png";
 
 type Tab = "profile" | "leagues";
 
@@ -296,12 +295,8 @@ function ProfileTab() {
     <div className="space-y-6">
       <div className="md:hidden glass-card rounded-xl p-4 border border-white/[0.06]" data-testid="mobile-pro-status">
         <div className="flex items-center gap-3">
-          <div className={`shrink-0 flex items-center justify-center ${user?.subscriptionTier === 'pro' ? 'w-14 h-14' : 'w-10 h-10 rounded-full bg-primary/15'}`}>
-            {user?.subscriptionTier === 'pro' ? (
-              <img src={diamondToadProSrc} alt="Diamond Toad Pro" className="w-14 h-14 object-contain rounded-lg" data-testid="mobile-profile-mascot" />
-            ) : (
-              <span className="text-primary font-bold text-sm">{(user?.personalDisplayName || user?.firstName || "P")[0]}</span>
-            )}
+          <div className="w-10 h-10 shrink-0 rounded-full bg-primary/15 flex items-center justify-center">
+            <span className="text-primary font-bold text-sm">{(user?.personalDisplayName || user?.firstName || "P")[0]}</span>
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-white truncate flex items-center gap-1.5">

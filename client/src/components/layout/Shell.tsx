@@ -5,7 +5,6 @@ import { useActiveGames } from "@/hooks/use-sessions";
 import { Button } from "@/components/ui/button";
 import { LogOut, LayoutDashboard, PlusCircle, Upload, Radio, Gem } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
-import diamondToadProSrc from "@assets/image-removebg-preview-20_1772576469103.png";
 
 export default function Shell({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
@@ -30,16 +29,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-background flex flex-col">
       <aside className="hidden md:flex flex-col w-64 border-r border-white/[0.06] bg-card/30 p-6 fixed h-full z-40">
         <div className="mb-10 flex items-center gap-3">
-          {user.subscriptionTier === 'pro' ? (
-            <img
-              src={diamondToadProSrc}
-              alt="Diamond Toad Pro"
-              className="w-12 h-12 object-contain rounded-lg"
-              data-testid="img-diamond-toad-logo"
-            />
-          ) : (
-            <Logo className="w-12 h-12" />
-          )}
+          <Logo className="w-12 h-12" />
           <div>
             <h1 className="text-lg font-bold text-white leading-none">HG Poker</h1>
             <p className="text-[11px] text-muted-foreground mt-0.5">Tracker</p>
@@ -116,28 +106,18 @@ export default function Shell({ children }: { children: React.ReactNode }) {
       <header className="md:hidden sticky top-0 z-40 glass-card border-b border-white/[0.08] backdrop-blur-xl" data-testid="mobile-header">
         <div className="flex items-center justify-between px-4 py-2.5">
           <div className="flex items-center gap-3">
-            {user.subscriptionTier === 'pro' ? (
-              <img
-                src={diamondToadProSrc}
-                alt="Diamond Toad Pro"
-                className="w-10 h-10 object-contain rounded-lg"
-                data-testid="mobile-header-mascot"
-              />
-            ) : (
-              <Logo className="w-8 h-8" />
-            )}
+            <Logo className="w-8 h-8" />
             <span className="text-sm font-bold text-white leading-none">HG Poker</span>
           </div>
           <div className="flex items-center gap-2.5">
-            {user.subscriptionTier === 'pro' ? (
+            {user.subscriptionTier === 'pro' && (
               <span className="inline-flex items-center text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-full border border-emerald-500/20" data-testid="mobile-header-pro">
                 PRO
               </span>
-            ) : (
-              <div className="w-8 h-8 rounded-full bg-primary/15 flex items-center justify-center text-primary font-bold text-xs">
-                {user.firstName?.[0] || user.email?.[0]?.toUpperCase()}
-              </div>
             )}
+            <div className="w-8 h-8 rounded-full bg-primary/15 flex items-center justify-center text-primary font-bold text-xs">
+              {user.firstName?.[0] || user.email?.[0]?.toUpperCase()}
+            </div>
           </div>
         </div>
       </header>
