@@ -295,9 +295,9 @@ function ProfileTab() {
     <div className="space-y-6">
       <div className="md:hidden glass-card rounded-xl p-4 border border-white/[0.06]" data-testid="mobile-pro-status">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
+          <div className={`shrink-0 rounded-full flex items-center justify-center ${user?.subscriptionTier === 'pro' ? 'w-14 h-14 bg-emerald-500/10' : 'w-10 h-10 bg-primary/15'}`}>
             {user?.subscriptionTier === 'pro' ? (
-              <img src={diamondFrogSrc} alt="Pro" className="w-8 h-8 object-contain drop-shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
+              <img src={diamondFrogSrc} alt="Diamond Frog" className="w-12 h-12 object-contain drop-shadow-[0_0_12px_rgba(16,185,129,0.5)]" data-testid="mobile-profile-mascot" />
             ) : (
               <span className="text-primary font-bold text-sm">{(user?.personalDisplayName || user?.firstName || "P")[0]}</span>
             )}
