@@ -5,7 +5,7 @@ import { useActiveGames } from "@/hooks/use-sessions";
 import { Button } from "@/components/ui/button";
 import { LogOut, LayoutDashboard, PlusCircle, Upload, Radio, Gem } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
-import diamondToadProSrc from "@assets/image-removebg-preview-19_1772575880656.png";
+import diamondToadProSrc from "@assets/image-removebg-preview-20_1772576469103.png";
 
 export default function Shell({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
@@ -31,15 +31,12 @@ export default function Shell({ children }: { children: React.ReactNode }) {
       <aside className="hidden md:flex flex-col w-64 border-r border-white/[0.06] bg-card/30 p-6 fixed h-full z-40">
         <div className="mb-10 flex items-center gap-3">
           {user.subscriptionTier === 'pro' ? (
-            <div className="relative w-12 h-12 shrink-0">
-              <div className="absolute inset-0 rounded-full bg-emerald-500/10 blur-lg" />
-              <img
-                src={diamondToadProSrc}
-                alt="Diamond Toad Pro"
-                className="relative w-full h-full object-contain drop-shadow-[0_0_12px_rgba(16,185,129,0.4)]"
-                data-testid="img-diamond-toad-logo"
-              />
-            </div>
+            <img
+              src={diamondToadProSrc}
+              alt="Diamond Toad Pro"
+              className="w-12 h-12 object-contain rounded-lg"
+              data-testid="img-diamond-toad-logo"
+            />
           ) : (
             <Logo className="w-12 h-12" />
           )}
@@ -120,15 +117,12 @@ export default function Shell({ children }: { children: React.ReactNode }) {
         <div className="flex items-center justify-between px-4 py-2.5">
           <div className="flex items-center gap-3">
             {user.subscriptionTier === 'pro' ? (
-              <div className="relative w-10 h-10 shrink-0">
-                <div className="absolute inset-0 rounded-full bg-emerald-500/10 blur-lg" />
-                <img
-                  src={diamondToadProSrc}
-                  alt="Diamond Toad Pro"
-                  className="relative w-full h-full object-contain drop-shadow-[0_0_10px_rgba(16,185,129,0.5)]"
-                  data-testid="mobile-header-mascot"
-                />
-              </div>
+              <img
+                src={diamondToadProSrc}
+                alt="Diamond Toad Pro"
+                className="w-10 h-10 object-contain rounded-lg"
+                data-testid="mobile-header-mascot"
+              />
             ) : (
               <Logo className="w-8 h-8" />
             )}
