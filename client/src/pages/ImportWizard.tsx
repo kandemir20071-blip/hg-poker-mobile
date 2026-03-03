@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { useLocation, useSearch } from "wouter";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -76,6 +76,12 @@ export default function ImportWizard() {
       }
     } catch {}
   };
+
+  useEffect(() => {
+    if (selectedLeagueId) {
+      fetchExistingNames();
+    }
+  }, [selectedLeagueId]);
 
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
