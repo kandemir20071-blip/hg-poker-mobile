@@ -37,6 +37,7 @@ import { PaywallOverlay } from "@/components/ui/PaywallOverlay";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import diamondFrogSrc from "@assets/Bildschirmfoto_2026-03-03_um_16.02.50-removebg-preview_1772558097106.png";
+import diamondToadProSrc from "@assets/image-removebg-preview-19_1772575880656.png";
 
 type Tab = "profile" | "leagues";
 
@@ -297,7 +298,7 @@ function ProfileTab() {
         <div className="flex items-center gap-3">
           <div className={`shrink-0 rounded-full flex items-center justify-center ${user?.subscriptionTier === 'pro' ? 'w-14 h-14 bg-emerald-500/10' : 'w-10 h-10 bg-primary/15'}`}>
             {user?.subscriptionTier === 'pro' ? (
-              <img src={diamondFrogSrc} alt="Diamond Frog" className="w-12 h-12 object-contain drop-shadow-[0_0_12px_rgba(16,185,129,0.5)]" data-testid="mobile-profile-mascot" />
+              <img src={diamondToadProSrc} alt="Diamond Toad Pro" className="w-12 h-12 object-contain drop-shadow-[0_0_12px_rgba(16,185,129,0.5)]" data-testid="mobile-profile-mascot" />
             ) : (
               <span className="text-primary font-bold text-sm">{(user?.personalDisplayName || user?.firstName || "P")[0]}</span>
             )}

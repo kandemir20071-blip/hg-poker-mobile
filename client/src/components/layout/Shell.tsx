@@ -5,7 +5,7 @@ import { useActiveGames } from "@/hooks/use-sessions";
 import { Button } from "@/components/ui/button";
 import { LogOut, LayoutDashboard, PlusCircle, Upload, Radio, Gem } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
-import diamondFrogSrc from "@assets/Bildschirmfoto_2026-03-03_um_16.02.50-removebg-preview_1772558097106.png";
+import diamondToadProSrc from "@assets/image-removebg-preview-19_1772575880656.png";
 
 export default function Shell({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
@@ -30,7 +30,19 @@ export default function Shell({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-background flex flex-col">
       <aside className="hidden md:flex flex-col w-64 border-r border-white/[0.06] bg-card/30 p-6 fixed h-full z-40">
         <div className="mb-10 flex items-center gap-3">
-          <Logo className="w-12 h-12" />
+          {user.subscriptionTier === 'pro' ? (
+            <div className="relative w-12 h-12 shrink-0">
+              <div className="absolute inset-0 rounded-full bg-emerald-500/10 blur-lg" />
+              <img
+                src={diamondToadProSrc}
+                alt="Diamond Toad Pro"
+                className="relative w-full h-full object-contain drop-shadow-[0_0_12px_rgba(16,185,129,0.4)]"
+                data-testid="img-diamond-toad-logo"
+              />
+            </div>
+          ) : (
+            <Logo className="w-12 h-12" />
+          )}
           <div>
             <h1 className="text-lg font-bold text-white leading-none">HG Poker</h1>
             <p className="text-[11px] text-muted-foreground mt-0.5">Tracker</p>
@@ -84,8 +96,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
                 <p className="text-sm font-medium truncate flex items-center gap-1.5">
                   {user.firstName} {user.lastName}
                   {user.subscriptionTier === 'pro' && (
-                    <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-full border border-emerald-500/20" data-testid="badge-pro">
-                      <Gem className="w-2.5 h-2.5" />
+                    <span className="inline-flex items-center text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-full border border-emerald-500/20" data-testid="badge-pro">
                       PRO
                     </span>
                   )}
@@ -108,26 +119,26 @@ export default function Shell({ children }: { children: React.ReactNode }) {
       <header className="md:hidden sticky top-0 z-40 glass-card border-b border-white/[0.08] backdrop-blur-xl" data-testid="mobile-header">
         <div className="flex items-center justify-between px-4 py-2.5">
           <div className="flex items-center gap-3">
-            <Logo className="w-8 h-8" />
+            {user.subscriptionTier === 'pro' ? (
+              <div className="relative w-10 h-10 shrink-0">
+                <div className="absolute inset-0 rounded-full bg-emerald-500/10 blur-lg" />
+                <img
+                  src={diamondToadProSrc}
+                  alt="Diamond Toad Pro"
+                  className="relative w-full h-full object-contain drop-shadow-[0_0_10px_rgba(16,185,129,0.5)]"
+                  data-testid="mobile-header-mascot"
+                />
+              </div>
+            ) : (
+              <Logo className="w-8 h-8" />
+            )}
             <span className="text-sm font-bold text-white leading-none">HG Poker</span>
           </div>
           <div className="flex items-center gap-2.5">
             {user.subscriptionTier === 'pro' ? (
-              <div className="flex items-center gap-2" data-testid="mobile-header-pro">
-                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-full border border-emerald-500/20">
-                  <Gem className="w-2.5 h-2.5" />
-                  PRO
-                </span>
-                <div className="relative w-10 h-10 shrink-0">
-                  <div className="absolute inset-0 rounded-full bg-emerald-500/10 blur-lg" />
-                  <img
-                    src={diamondFrogSrc}
-                    alt="Diamond Frog"
-                    className="relative w-full h-full object-contain drop-shadow-[0_0_10px_rgba(16,185,129,0.5)]"
-                    data-testid="mobile-header-mascot"
-                  />
-                </div>
-              </div>
+              <span className="inline-flex items-center text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-full border border-emerald-500/20" data-testid="mobile-header-pro">
+                PRO
+              </span>
             ) : (
               <div className="w-8 h-8 rounded-full bg-primary/15 flex items-center justify-center text-primary font-bold text-xs">
                 {user.firstName?.[0] || user.email?.[0]?.toUpperCase()}
