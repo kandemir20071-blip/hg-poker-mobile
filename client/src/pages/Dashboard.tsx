@@ -36,6 +36,7 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianG
 import { PaywallOverlay } from "@/components/ui/PaywallOverlay";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
+import diamondFrogSrc from "@assets/Bildschirmfoto_2026-03-03_um_16.02.50-removebg-preview_1772558097106.png";
 
 type Tab = "profile" | "leagues";
 
@@ -49,6 +50,8 @@ export default function Dashboard() {
   const nameInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [showProModal, setShowProModal] = useState(false);
+  const analyticsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -60,7 +63,7 @@ export default function Dashboard() {
         .then((data) => {
           if (data.success) {
             queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-            toast({ title: "Welcome to Pro!", description: "Your Pro features are now unlocked." });
+            setShowProModal(true);
           } else {
             toast({ title: "Payment issue", description: data.message || "Could not verify payment.", variant: "destructive" });
           }
@@ -82,6 +85,36 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
+      {showProModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-md animate-in fade-in duration-300" data-testid="pro-success-modal">
+          <div className="glass-card rounded-2xl p-8 text-center max-w-sm mx-4 border border-emerald-500/20 bg-card/90 backdrop-blur-xl animate-in zoom-in-95 duration-500">
+            <div className="relative mx-auto mb-6 w-48 h-48">
+              <div className="absolute inset-0 rounded-full bg-emerald-500/10 blur-3xl" />
+              <img
+                src={diamondFrogSrc}
+                alt="Diamond Frog"
+                className="relative w-full h-full object-contain drop-shadow-[0_0_25px_rgba(16,185,129,0.6)]"
+              />
+            </div>
+            <h3 className="text-2xl font-bold text-white mb-2 tracking-wide" data-testid="text-pro-welcome">Welcome to the Elite</h3>
+            <p className="text-emerald-400/80 text-sm mb-6">Your analytical edge is now live.</p>
+            <Button
+              className="w-full font-semibold min-h-[48px] bg-emerald-600 hover:bg-emerald-500 text-white"
+              data-testid="button-pro-see-data"
+              onClick={() => {
+                setShowProModal(false);
+                setActiveTab("leagues");
+                setTimeout(() => {
+                  analyticsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }, 150);
+              }}
+            >
+              Let's See the Data
+            </Button>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-3xl font-bold text-white flex items-center gap-3" data-testid="text-dashboard-title">
@@ -953,7 +986,7 @@ function LeaguesTab({
         })()}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6" ref={analyticsRef}>
         <div className="lg:col-span-2 space-y-6">
           <LeagueAnalytics
             playerProfitHistory={playerProfitHistory}

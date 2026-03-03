@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useLeagues } from "@/hooks/use-leagues";
 import { useActiveGames } from "@/hooks/use-sessions";
 import { Button } from "@/components/ui/button";
-import { LogOut, LayoutDashboard, PlusCircle, Upload, Radio } from "lucide-react";
+import { LogOut, LayoutDashboard, PlusCircle, Upload, Radio, Gem } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
 
 export default function Shell({ children }: { children: React.ReactNode }) {
@@ -80,7 +80,15 @@ export default function Shell({ children }: { children: React.ReactNode }) {
                 {user.firstName?.[0]}
               </div>
               <div className="overflow-hidden">
-                <p className="text-sm font-medium truncate">{user.firstName} {user.lastName}</p>
+                <p className="text-sm font-medium truncate flex items-center gap-1.5">
+                  {user.firstName} {user.lastName}
+                  {user.subscriptionTier === 'pro' && (
+                    <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-full border border-emerald-500/20" data-testid="badge-pro">
+                      <Gem className="w-2.5 h-2.5" />
+                      PRO
+                    </span>
+                  )}
+                </p>
                 <p className="text-xs text-muted-foreground truncate">{user.email}</p>
               </div>
             </div>
