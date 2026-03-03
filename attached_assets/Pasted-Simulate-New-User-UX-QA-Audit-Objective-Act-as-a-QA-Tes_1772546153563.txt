@@ -1,0 +1,38 @@
+Simulate New User UX & QA Audit
+
+Objective: Act as a QA Tester and UX Researcher. I want you to mentally simulate the complete user journey of a brand-new, non-admin player experiencing this application for the first time.
+
+Analyze the codebase and current UI logic to execute this simulation. For each scenario below, document the exact actions the user would take, what they would see on screen, and identify any potential friction points, confusing logic, or permission bugs they might encounter.
+
+Scenario 1: Onboarding & First Impressions
+
+Action: The user signs up via Replit Auth, lands on the /dashboard, and joins the league using an invite code. They then navigate to set their personalDisplayName.
+
+Audit Focus: Is the distinction between their "League Player" name (used for official stats) and their "Personal Display Name" clearly communicated in the UI? What happens if they leave the display name blank?
+
+Scenario 2: The First Live Game
+
+Action: An Admin starts a Cash Game. Our new user joins the active session. They want to buy in for $20.
+
+Audit Focus: Based on the current frontend and backend logic, what exactly does this non-admin user see? Are the "Admin Mode" toggle and "Manage Player" buttons completely hidden from them? If "Self-Serve" is disabled by the host, is it obvious to the new user how they get their buy-in approved?
+
+Scenario 3: Mid-Game Rebuy
+
+Action: The user loses their stack and needs to re-buy.
+
+Audit Focus: How many clicks does this take for a non-admin? Do they have access to the $10-$50 quick-select preset buttons, or were those strictly locked to the Admin Modal? Is the flow frictionless?
+
+Scenario 4: Post-Game Profile & Paywall Discovery
+
+Action: The game ends. The user clicks their Profile to see their stats. They see the frog mascots glowing and spot their Nemesis and Target. Then, they scroll down to the Recent Form chart.
+
+Audit Focus: Does the <PaywallOverlay> render correctly for this free user without crashing? Is the text inside the lock-screen compelling enough to explain why they should upgrade to Pro? Does the blur effect (backdrop-blur-md) completely obscure the data, or can they still read the chart tooltips if they hover over the blurred area?
+
+Output Requirement:
+Generate a "New User UX Report." For each scenario, explicitly state:
+
+Expected Behavior: What happens technically.
+
+Friction Points: Where the user might get confused or frustrated.
+
+Actionable Fixes: Code or UI recommendations to smooth out the experience, strictly adhering to the established dark navy/emerald color palette and glass-card aesthetic.
