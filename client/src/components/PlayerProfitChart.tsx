@@ -256,14 +256,16 @@ export function PlayerProfitChart({
             <LineChart data={chartData}>
               <XAxis
                 dataKey="date"
-                stroke="#475569"
+                stroke="#4b5563"
+                tick={{ fill: "#9ca3af", fontSize: 12 }}
                 fontSize={12}
                 tickLine={false}
                 axisLine={false}
                 tickFormatter={(value) => format(new Date(value), "MMM d")}
               />
               <YAxis
-                stroke="#475569"
+                stroke="#4b5563"
+                tick={{ fill: "#9ca3af", fontSize: 12 }}
                 fontSize={12}
                 tickLine={false}
                 axisLine={false}

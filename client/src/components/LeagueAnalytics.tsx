@@ -380,24 +380,26 @@ function SkillMapChart({ data }: { data: PlayerAnalyticsData[] }) {
       {data.length > 0 ? (
         <ResponsiveContainer width="100%" height="100%">
           <ScatterChart margin={{ top: 10, right: 20, bottom: 10, left: 10 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
             <XAxis
               dataKey="gamesPlayed"
               name="Games Played"
               type="number"
-              stroke="#475569"
+              stroke="#4b5563"
+              tick={{ fill: "#9ca3af", fontSize: 12 }}
               fontSize={12}
               tickLine={false}
-              label={{ value: "Experience (Games)", position: "insideBottom", offset: -5, fill: "#64748b", fontSize: 11 }}
+              label={{ value: "Experience (Games)", position: "insideBottom", offset: -5, fill: "#9ca3af", fontSize: 11 }}
             />
             <YAxis
               dataKey="roi"
               name="ROI %"
-              stroke="#475569"
+              stroke="#4b5563"
+              tick={{ fill: "#9ca3af", fontSize: 12 }}
               fontSize={12}
               tickLine={false}
               tickFormatter={(v) => `${v}%`}
-              label={{ value: "ROI %", angle: -90, position: "insideLeft", fill: "#64748b", fontSize: 11 }}
+              label={{ value: "ROI %", angle: -90, position: "insideLeft", fill: "#9ca3af", fontSize: 11 }}
             />
             <ReferenceLine y={0} stroke="rgba(255,255,255,0.1)" />
             <Tooltip
@@ -471,10 +473,11 @@ function VolatilityChart({ playerAnalytics, sortBy }: { playerAnalytics: PlayerA
       {chartData.length > 0 ? (
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData} margin={{ top: 10, right: 10, bottom: 40, left: 10 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
             <XAxis
               dataKey="name"
-              stroke="#475569"
+              stroke="#4b5563"
+              tick={{ fill: "#9ca3af", fontSize: 11 }}
               fontSize={11}
               tickLine={false}
               angle={-35}
@@ -483,7 +486,8 @@ function VolatilityChart({ playerAnalytics, sortBy }: { playerAnalytics: PlayerA
               height={60}
             />
             <YAxis
-              stroke="#475569"
+              stroke="#4b5563"
+              tick={{ fill: "#9ca3af", fontSize: 12 }}
               fontSize={12}
               tickLine={false}
               tickFormatter={(v) => `$${v}`}
@@ -538,16 +542,18 @@ function PulseChart({ sessionHistory, timeframe }: { sessionHistory: SessionHist
                 <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
             <XAxis
               dataKey="date"
-              stroke="#475569"
+              stroke="#4b5563"
+              tick={{ fill: "#9ca3af", fontSize: 12 }}
               fontSize={12}
               tickLine={false}
               tickFormatter={(v) => format(new Date(v), "MMM d")}
             />
             <YAxis
-              stroke="#475569"
+              stroke="#4b5563"
+              tick={{ fill: "#9ca3af", fontSize: 12 }}
               fontSize={12}
               tickLine={false}
               tickFormatter={(v) => `$${v}`}

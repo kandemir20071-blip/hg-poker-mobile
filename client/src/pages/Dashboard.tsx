@@ -351,8 +351,8 @@ function ProfileTab() {
               <div className="h-[300px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={bankrollHistory}>
-                    <XAxis dataKey="date" stroke="#475569" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(v) => format(new Date(v), "MMM d")} />
-                    <YAxis stroke="#475569" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(v) => `$${v}`} />
+                    <XAxis dataKey="date" stroke="#4b5563" tick={{ fill: "#9ca3af", fontSize: 12 }} fontSize={12} tickLine={false} axisLine={false} tickFormatter={(v) => format(new Date(v), "MMM d")} />
+                    <YAxis stroke="#4b5563" tick={{ fill: "#9ca3af", fontSize: 12 }} fontSize={12} tickLine={false} axisLine={false} tickFormatter={(v) => `$${v}`} />
                     <Tooltip content={<CustomTooltip />} />
                     <Line type="monotone" dataKey="cumulative" stroke="#10b981" strokeWidth={2} dot={false} />
                   </LineChart>
@@ -406,8 +406,8 @@ function ProfileTab() {
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={rivalries.formChart}>
                   <CartesianGrid stroke="rgba(16, 185, 129, 0.08)" strokeDasharray="3 3" />
-                  <XAxis dataKey="date" stroke="#475569" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(v) => format(new Date(v), "MMM d")} />
-                  <YAxis stroke="#475569" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(v) => `$${v}`} />
+                  <XAxis dataKey="date" stroke="#4b5563" tick={{ fill: "#9ca3af", fontSize: 12 }} fontSize={12} tickLine={false} axisLine={false} tickFormatter={(v) => format(new Date(v), "MMM d")} />
+                  <YAxis stroke="#4b5563" tick={{ fill: "#9ca3af", fontSize: 12 }} fontSize={12} tickLine={false} axisLine={false} tickFormatter={(v) => `$${v}`} />
                   <ReferenceLine y={0} stroke="rgba(255,255,255,0.1)" />
                   <Tooltip content={<FormTooltip />} />
                   <Line type="monotone" dataKey="cumulativeProfit" stroke="#10b981" strokeWidth={2.5} dot={{ r: 4, fill: "#10b981", strokeWidth: 0 }} activeDot={{ r: 6, fill: "#10b981" }} name="Cumulative" />
