@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useLeagues } from "@/hooks/use-leagues";
 import { useActiveGames } from "@/hooks/use-sessions";
 import { Button } from "@/components/ui/button";
-import { LogOut, LayoutDashboard, PlusCircle, Upload, Radio, Gem } from "lucide-react";
+import { LogOut, LayoutDashboard, UserPlus, Upload, Radio, Gem } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
 
 export default function Shell({ children }: { children: React.ReactNode }) {
@@ -19,7 +19,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
 
   const navItems = [
     { path: "/dashboard", icon: LayoutDashboard, label: "Home", testId: "nav-home" },
-    { path: "/join", icon: PlusCircle, label: "Join", testId: "nav-join" },
+    { path: "/join", icon: UserPlus, label: "Join League", testId: "nav-join" },
     ...(isAdminOfAny ? [{ path: "/import", icon: Upload, label: "Import", testId: "nav-import" }] : []),
   ];
 
@@ -134,15 +134,15 @@ export default function Shell({ children }: { children: React.ReactNode }) {
             {navItems.map((item) => (
               <Link key={item.path} href={item.path}>
                 <button
-                  className={`flex flex-col items-center justify-center min-w-[64px] min-h-[48px] rounded-xl transition-colors relative ${
+                  className={`flex flex-col items-center justify-center min-w-[64px] min-h-[48px] rounded-xl transition-all relative ${
                     isActive(item.path)
-                      ? "text-primary"
+                      ? "text-primary bg-primary/10"
                       : "text-muted-foreground active:text-white"
                   }`}
                   data-testid={`mobile-${item.testId}`}
                 >
-                  <item.icon className={`h-5 w-5 ${isActive(item.path) ? "drop-shadow-[0_0_6px_rgba(16,185,129,0.5)]" : ""}`} />
-                  <span className="text-[10px] font-medium mt-1">{item.label}</span>
+                  <item.icon className={`h-5 w-5 ${isActive(item.path) ? "stroke-[2.5] drop-shadow-[0_0_6px_rgba(16,185,129,0.5)]" : ""}`} />
+                  <span className={`text-[10px] mt-1 ${isActive(item.path) ? "font-semibold" : "font-medium"}`}>{item.label}</span>
                   {item.path === "/dashboard" && user.subscriptionTier === 'pro' && (
                     <span className="absolute -top-0.5 right-1 inline-flex items-center gap-0.5 text-[8px] font-bold text-emerald-400 bg-emerald-500/15 px-1 py-px rounded-full border border-emerald-500/20" data-testid="mobile-badge-pro">
                       <Gem className="w-2 h-2" />
