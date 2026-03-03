@@ -1,5 +1,6 @@
 import { Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 interface PaywallOverlayProps {
   isPro: boolean;
@@ -8,6 +9,8 @@ interface PaywallOverlayProps {
 }
 
 export function PaywallOverlay({ isPro, children, featureName = "Pro Feature" }: PaywallOverlayProps) {
+  const { toast } = useToast();
+
   if (isPro) return <>{children}</>;
 
   return (
@@ -22,7 +25,11 @@ export function PaywallOverlay({ isPro, children, featureName = "Pro Feature" }:
           </div>
           <h4 className="font-bold text-white text-lg mb-1" data-testid="text-paywall-title">{featureName}</h4>
           <p className="text-sm text-muted-foreground mb-4">Unlock advanced analytics and detailed insights with Pro.</p>
-          <Button className="w-full font-semibold min-h-[44px]" data-testid="button-upgrade-pro">
+          <Button
+            className="w-full font-semibold min-h-[44px]"
+            data-testid="button-upgrade-pro"
+            onClick={() => toast({ title: "Coming Soon!", description: "Pro subscriptions are currently in development. Check back later!" })}
+          >
             Upgrade to Pro
           </Button>
         </div>
