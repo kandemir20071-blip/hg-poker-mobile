@@ -346,7 +346,9 @@ export function LeagueAnalytics({ playerProfitHistory, playerAnalytics, sessionH
         </PaywallOverlay>
       )}
       {view === "pulse" && (
-        <PulseChart sessionHistory={sessionHistory} timeframe={pulseTimeframe} />
+        <PaywallOverlay isPro={!!isPro} featureName="League Pulse">
+          <PulseChart sessionHistory={sessionHistory} timeframe={pulseTimeframe} />
+        </PaywallOverlay>
       )}
     </div>
   );
