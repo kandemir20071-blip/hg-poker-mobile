@@ -49,7 +49,7 @@ export function PaywallOverlay({ isPro, children, featureName = "Pro Feature" }:
           <h4 className="font-bold text-white text-lg mb-1" data-testid="text-paywall-title">{featureName}</h4>
           <p className="text-sm text-muted-foreground mb-4">Unlock advanced analytics and detailed insights with Pro.</p>
           <Button
-            className="w-full font-semibold min-h-[44px]"
+            className="w-full font-semibold min-h-[48px] text-base"
             data-testid="button-upgrade-pro"
             onClick={handleUpgrade}
             disabled={isLoading}

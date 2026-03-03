@@ -116,7 +116,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
             {navItems.map((item) => (
               <Link key={item.path} href={item.path}>
                 <button
-                  className={`flex flex-col items-center justify-center min-w-[64px] min-h-[48px] rounded-xl transition-colors ${
+                  className={`flex flex-col items-center justify-center min-w-[64px] min-h-[48px] rounded-xl transition-colors relative ${
                     isActive(item.path)
                       ? "text-primary"
                       : "text-muted-foreground active:text-white"
@@ -125,6 +125,11 @@ export default function Shell({ children }: { children: React.ReactNode }) {
                 >
                   <item.icon className={`h-5 w-5 ${isActive(item.path) ? "drop-shadow-[0_0_6px_rgba(16,185,129,0.5)]" : ""}`} />
                   <span className="text-[10px] font-medium mt-1">{item.label}</span>
+                  {item.path === "/dashboard" && user.subscriptionTier === 'pro' && (
+                    <span className="absolute -top-0.5 right-1 inline-flex items-center gap-0.5 text-[8px] font-bold text-emerald-400 bg-emerald-500/15 px-1 py-px rounded-full border border-emerald-500/20" data-testid="mobile-badge-pro">
+                      <Gem className="w-2 h-2" />
+                    </span>
+                  )}
                 </button>
               </Link>
             ))}

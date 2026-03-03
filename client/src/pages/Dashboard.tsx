@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Coins, Trophy, TrendingUp, History, Play, Loader2, ArrowRight, Pencil, Trash2, AlertTriangle, Users, Plus, LogIn, User, Shield, Copy, Check, ArrowDownLeft, ArrowUpRight, DollarSign, Info, Clock, Percent, X, ChevronRight, Search, Activity, ArrowDownAZ, Crosshair, Target } from "lucide-react";
+import { Coins, Trophy, TrendingUp, History, Play, Loader2, ArrowRight, Pencil, Trash2, AlertTriangle, Users, Plus, LogIn, User, Shield, Copy, Check, ArrowDownLeft, ArrowUpRight, DollarSign, Info, Clock, Percent, X, ChevronRight, Search, Activity, ArrowDownAZ, Crosshair, Target, Gem } from "lucide-react";
 import frogClockSrc from "@assets/image-removebg-preview-2_1771174670390.png";
 import frogBankerSrc from "@assets/image-removebg-preview-3_1771176202817.png";
 import frogBalanceSrc from "@assets/image-removebg-preview-4_1771176899418.png";
@@ -87,7 +87,7 @@ export default function Dashboard() {
     <div className="space-y-6 animate-in fade-in duration-500">
       {showProModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-md animate-in fade-in duration-300" data-testid="pro-success-modal">
-          <div className="glass-card rounded-2xl p-8 text-center max-w-sm mx-4 border border-emerald-500/20 bg-card/90 backdrop-blur-xl animate-in zoom-in-95 duration-500">
+          <div className="glass-card rounded-2xl p-6 sm:p-8 text-center max-w-[90vw] sm:max-w-sm mx-4 border border-emerald-500/20 bg-card/90 backdrop-blur-xl animate-in zoom-in-95 duration-500">
             <div className="relative mx-auto mb-6 w-48 h-48">
               <div className="absolute inset-0 rounded-full bg-emerald-500/10 blur-3xl" />
               <img
@@ -166,8 +166,14 @@ export default function Dashboard() {
               </form>
             ) : (
               <>
-                <p className="text-muted-foreground">
+                <p className="text-muted-foreground flex items-center gap-1.5 flex-wrap">
                   Welcome back, {user?.personalDisplayName || user?.firstName || "Player"}.
+                  {user?.subscriptionTier === 'pro' && (
+                    <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-full border border-emerald-500/20" data-testid="badge-pro-header">
+                      <Gem className="w-2.5 h-2.5" />
+                      PRO
+                    </span>
+                  )}
                 </p>
                 <button
                   onClick={() => {
@@ -271,8 +277,56 @@ function ProfileTab() {
     );
   };
 
+  const handleMobileUpgrade = async () => {
+    try {
+      const res = await fetch("/api/create-checkout-session", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    } catch {}
+  };
+
   return (
     <div className="space-y-6">
+      <div className="md:hidden glass-card rounded-xl p-4 border border-white/[0.06]" data-testid="mobile-pro-status">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
+            {user?.subscriptionTier === 'pro' ? (
+              <img src={diamondFrogSrc} alt="Pro" className="w-8 h-8 object-contain drop-shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
+            ) : (
+              <span className="text-primary font-bold text-sm">{(user?.personalDisplayName || user?.firstName || "P")[0]}</span>
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-white truncate flex items-center gap-1.5">
+              {user?.personalDisplayName || user?.firstName || "Player"}
+              {user?.subscriptionTier === 'pro' && (
+                <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-full border border-emerald-500/20">
+                  <Gem className="w-2.5 h-2.5" />
+                  PRO
+                </span>
+              )}
+            </p>
+            <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+          </div>
+          {user?.subscriptionTier !== 'pro' && (
+            <Button
+              onClick={handleMobileUpgrade}
+              className="shrink-0 min-h-[48px] px-4 font-semibold text-sm bg-emerald-600 hover:bg-emerald-500 text-white"
+              data-testid="button-mobile-upgrade-pro"
+            >
+              <Gem className="w-4 h-4 mr-1.5" />
+              Upgrade
+            </Button>
+          )}
+        </div>
+      </div>
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         <StatCard
           title="Total Profit"
