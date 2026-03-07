@@ -103,7 +103,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
         </nav>
       </aside>
 
-      <header className="md:hidden sticky top-0 z-40 glass-card border-b border-white/[0.08] backdrop-blur-xl" data-testid="mobile-header">
+      <header className="md:hidden sticky top-0 z-40 glass-card border-b border-white/[0.08] backdrop-blur-xl pt-safe" data-testid="mobile-header">
         <div className="flex items-center justify-between px-4 py-2.5">
           <div className="flex items-center gap-3">
             <Logo className="w-8 h-8" />
@@ -134,7 +134,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
             {navItems.map((item) => (
               <Link key={item.path} href={item.path}>
                 <button
-                  className={`flex flex-col items-center justify-center min-w-[64px] min-h-[48px] rounded-xl transition-all relative ${
+                  className={`flex flex-col items-center justify-center min-w-[64px] min-h-[48px] rounded-xl transition-all relative active:scale-95 ${
                     isActive(item.path)
                       ? "text-primary bg-primary/10"
                       : "text-muted-foreground active:text-white"
@@ -154,7 +154,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
             {liveGames.length > 0 && (
               <Link href={`/session/${liveGames[0].session.id}`}>
                 <button
-                  className={`flex flex-col items-center justify-center min-w-[64px] min-h-[48px] rounded-xl transition-colors relative ${
+                  className={`flex flex-col items-center justify-center min-w-[64px] min-h-[48px] rounded-xl transition-colors relative active:scale-95 ${
                     liveGames.some(g => isActive(`/session/${g.session.id}`))
                       ? "text-emerald-400"
                       : "text-emerald-400/70 active:text-emerald-300"
@@ -174,7 +174,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
             )}
             <button
               onClick={() => logout()}
-              className="flex flex-col items-center justify-center min-w-[64px] min-h-[48px] rounded-xl text-muted-foreground active:text-destructive transition-colors"
+              className="flex flex-col items-center justify-center min-w-[64px] min-h-[48px] rounded-xl text-muted-foreground active:text-destructive active:scale-95 transition-colors"
               data-testid="mobile-nav-exit"
             >
               <LogOut className="h-5 w-5" />

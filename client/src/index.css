@@ -60,6 +60,9 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-family: var(--font-body);
+    overscroll-behavior-y: none;
+    -webkit-user-select: none;
+    user-select: text;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -115,6 +118,10 @@
 
 .pb-safe {
   padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+}
+
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
 }
 
 .pb-bottom-nav {

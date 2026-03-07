@@ -18,7 +18,8 @@ Preferred communication style: Simple, everyday language.
 - **Charts:** Recharts for data visualization.
 - **QR Codes:** qrcode.react for session join codes.
 - **Fonts:** Cinzel (headings) and Inter (body).
-- **Mobile UX:** ResponsiveModal pattern (Drawer on mobile <768px, Dialog on desktop), bottom navigation with safe-area padding, native scrolling, 48px touch targets.
+- **Mobile UX:** ResponsiveModal pattern (Drawer on mobile <768px, Dialog on desktop), bottom navigation with safe-area padding (top + bottom via `pt-safe`/`pb-safe` CSS classes using `env(safe-area-inset-*)`), native scrolling, 48px touch targets, `active:scale-95`/`active:scale-[0.98]` touch feedback on all buttons and nav items, `overscroll-behavior-y: none` to prevent pull-to-refresh bounce.
+- **PWA:** `manifest.json` with `display: standalone`, `theme_color: #0f1729`, Apple meta tags (`apple-mobile-web-app-capable`, `black-translucent` status bar). Ready for Capacitor wrapping.
 - **Responsive Components:** `ResponsiveModal` (`@/components/ui/responsive-modal`), `useMediaQuery` (`@/hooks/use-media-query`).
 - **Build Tool:** Vite.
 
