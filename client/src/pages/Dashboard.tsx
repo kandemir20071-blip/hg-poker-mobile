@@ -36,6 +36,7 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianG
 import { PaywallOverlay } from "@/components/ui/PaywallOverlay";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
+import { useBilling } from "@/hooks/use-billing";
 import diamondFrogSrc from "@assets/Bildschirmfoto_2026-03-03_um_16.02.50-removebg-preview_1772558097106.png";
 
 type Tab = "profile" | "leagues";
@@ -277,19 +278,7 @@ function ProfileTab() {
     );
   };
 
-  const handleMobileUpgrade = async () => {
-    try {
-      const res = await fetch("/api/create-checkout-session", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-      });
-      const data = await res.json();
-      if (data.url) {
-        window.location.href = data.url;
-      }
-    } catch {}
-  };
+  const { handleUpgrade: handleMobileUpgrade, isLoading: billingLoading, priceLabel } = useBilling();
 
   return (
     <div className="space-y-6">
@@ -313,11 +302,12 @@ function ProfileTab() {
           {user?.subscriptionTier !== 'pro' && (
             <Button
               onClick={handleMobileUpgrade}
+              disabled={billingLoading}
               className="shrink-0 min-h-[48px] px-4 font-semibold text-sm bg-emerald-600 hover:bg-emerald-500 text-white"
               data-testid="button-mobile-upgrade-pro"
             >
-              <Gem className="w-4 h-4 mr-1.5" />
-              Upgrade
+              {billingLoading ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> : <Gem className="w-4 h-4 mr-1.5" />}
+              {priceLabel}
             </Button>
           )}
         </div>

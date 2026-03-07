@@ -68,7 +68,8 @@ Preferred communication style: Simple, everyday language.
 ### Third-Party Services
 - **Replit Auth (OIDC):** User authentication.
 - **PostgreSQL:** Primary database.
-- **Stripe:** Pro subscription checkout via Stripe Checkout Sessions (recurring subscription). Endpoints: `POST /api/create-checkout-session`, `GET /api/verify-session`. PaywallOverlay redirects to Stripe; Dashboard handles success redirect verification and updates `subscriptionTier` to `'pro'`.
+- **Stripe:** Pro subscription checkout via Stripe Checkout Sessions (recurring subscription, web only). Endpoints: `POST /api/create-checkout-session`, `GET /api/verify-session`. PaywallOverlay redirects to Stripe; Dashboard handles success redirect verification and updates `subscriptionTier` to `'pro'`.
+- **RevenueCat:** Native mobile (Capacitor) in-app purchase billing. Endpoints: `POST /api/revenuecat-webhook` (server-to-server), `POST /api/revenuecat-activate` (client-side activation after purchase). The `useBilling` hook (`client/src/hooks/use-billing.ts`) handles platform detection via `Capacitor.isNativePlatform()` and routes to RevenueCat (native) or Stripe (web) accordingly. Dynamic pricing: $6.99/mo native, $5.00/mo web.
 
 ### Key NPM Packages
 - `drizzle-orm`, `drizzle-kit`
@@ -82,3 +83,4 @@ Preferred communication style: Simple, everyday language.
 - `multer`
 - `shadcn/ui` (Radix UI)
 - `stripe`
+- `@capacitor/core`, `@revenuecat/purchases-capacitor`

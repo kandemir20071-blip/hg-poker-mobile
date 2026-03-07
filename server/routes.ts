@@ -1761,6 +1761,91 @@ export async function registerRoutes(
     }
   });
 
+  // ==================== REVENUECAT ====================
+
+  app.post("/api/revenuecat-webhook", async (req, res) => {
+    try {
+      const authHeader = req.headers["authorization"];
+      const expectedSecret = process.env.REVENUECAT_WEBHOOK_SECRET;
+      if (expectedSecret && authHeader !== `Bearer ${expectedSecret}`) {
+        console.warn("[RevenueCat] Webhook rejected: invalid authorization header");
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const event = req.body;
+      const eventType = event?.event?.type;
+      const appUserId = event?.event?.app_user_id;
+
+      console.log(`[RevenueCat] Webhook received: type=${eventType}, appUserId=${appUserId}`);
+
+      if (!appUserId) {
+        return res.status(400).json({ message: "Missing app_user_id" });
+      }
+
+      const activationEvents = [
+        "INITIAL_PURCHASE",
+        "RENEWAL",
+        "UNCANCELLATION",
+        "NON_RENEWING_PURCHASE",
+      ];
+
+      const deactivationEvents = [
+        "EXPIRATION",
+      ];
+
+      if (activationEvents.includes(eventType)) {
+        await authStorage.updateSubscriptionTier(appUserId, "pro");
+        console.log(`[RevenueCat] Activated pro for user ${appUserId}`);
+      } else if (deactivationEvents.includes(eventType)) {
+        await authStorage.updateSubscriptionTier(appUserId, "free");
+        console.log(`[RevenueCat] Deactivated pro for user ${appUserId}`);
+      }
+
+      res.json({ success: true });
+    } catch (err: any) {
+      console.error("[RevenueCat] Webhook error:", err);
+      res.status(500).json({ message: err.message || "Webhook processing failed" });
+    }
+  });
+
+  app.post("/api/revenuecat-activate", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).claims.sub;
+      const { appUserId } = req.body;
+
+      if (!appUserId) {
+        return res.status(400).json({ success: false, message: "Missing appUserId" });
+      }
+
+      const rcApiKey = process.env.REVENUECAT_API_KEY;
+      if (!rcApiKey) {
+        return res.status(500).json({ success: false, message: "RevenueCat not configured" });
+      }
+
+      const rcRes = await fetch(`https://api.revenuecat.com/v1/subscribers/${appUserId}`, {
+        headers: { Authorization: `Bearer ${rcApiKey}` },
+      });
+
+      if (!rcRes.ok) {
+        return res.status(400).json({ success: false, message: "Failed to verify purchase with RevenueCat" });
+      }
+
+      const rcData = await rcRes.json() as any;
+      const proEntitlement = rcData?.subscriber?.entitlements?.["pro"];
+      const isActive = proEntitlement && new Date(proEntitlement.expires_date) > new Date();
+
+      if (!isActive) {
+        return res.status(400).json({ success: false, message: "No active Pro entitlement found" });
+      }
+
+      const updatedUser = await authStorage.updateSubscriptionTier(userId, "pro");
+      res.json({ success: true, user: updatedUser });
+    } catch (err: any) {
+      console.error("[RevenueCat] Activate error:", err);
+      res.status(500).json({ success: false, message: err.message || "Activation failed" });
+    }
+  });
+
   return httpServer;
 }
 
