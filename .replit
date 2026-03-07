@@ -50,3 +50,4 @@ integrations = ["javascript_log_in_with_replit:2.0.0", "javascript_stripe:1.0.0"
 [userenv.shared]
 STRIPE_SECRET_KEY = "sk_test_51T6toHBjZIPlsx1LzG9VGhGuZArS4hWK8OroO8sXaw0sjr68A50x65iTFiD5qh97VSZRnHgL8oZScugkWUjqmYfR00ReE8buVg"
 STRIPE_PRICE_ID_PRO = "price_1T6uU1BjZIPlsx1LJkZuztd9"
+REVENUECAT_API_KEY = "test_AhPybJtYVFBMREpphBIGClDwCzR"

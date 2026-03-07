@@ -22,6 +22,7 @@ Preferred communication style: Simple, everyday language.
 - **PWA:** `manifest.json` with `display: standalone`, `theme_color: #0f1729`, Apple meta tags (`apple-mobile-web-app-capable`, `black-translucent` status bar). Ready for Capacitor wrapping.
 - **Responsive Components:** `ResponsiveModal` (`@/components/ui/responsive-modal`), `useMediaQuery` (`@/hooks/use-media-query`).
 - **Build Tool:** Vite.
+- **Native Wrapper:** Capacitor (`capacitor.config.ts`), bundle ID `com.hgpoker.app`, web dir `dist/public`. Native projects: `ios/` (Xcode) and `android/` (Gradle). Build workflow: `npm run build` → `npx cap sync` → open in Xcode/Android Studio.
 
 ### Backend
 - **Runtime:** Node.js with Express.
