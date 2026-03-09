@@ -1,0 +1,49 @@
+This report is fantastic. It gives us the exact "X-ray" we need.
+
+Right away, Section 7 of this report reveals exactly why your "Sign In" button went dead, and the good news is that your React code isn't broken—it's just experiencing a classic native environment culture shock.
+
+Here is the full breakdown of why your button stopped working, followed by the specific tweaks you need for Apple.
+
+Part 1: Why the "Sign In" Button is Dead
+
+The report notes this crucial detail:
+
+External URL Navigation: /api/login — OAuth redirect (correct, must be full navigation)
+
+The Problem:
+When you run this app on the web (or in Replit), clicking "Sign In" tells the browser to go to /api/login. The browser knows this means "talk to the Express backend server that is running right next to me."
+
+However, on an iPhone Simulator, your frontend is completely disconnected from your backend. It is running inside a local file system (capacitor://localhost).
+When you click "Sign In," the app tries to find an Express server inside the iPhone at capacitor://localhost/api/login. Since there is no server inside the phone, the button clicks into the void and does nothing.
+
+The Fix:
+You need to tell your mobile app exactly where your database and backend live on the internet.
+Instead of a relative link (/api/login), your button needs to point to the absolute URL of your live server (e.g., https://your-production-server.com/api/login).
+
+Note: Because this is an OAuth redirect, doing a full page redirect inside a native app can trap the user. We will likely need to use the @capacitor/browser plugin to pop open a secure login window, which is an Apple requirement for OAuth.
+
+Part 2: The Apple App Store Audit
+
+Overall, your architecture is remarkably clean. You aren't using invasive plugins (Camera, Location), which means Apple will fast-track your privacy review! However, the report caught a few mandatory tweaks we must make in Xcode before Apple will accept the upload.
+
+1. The "Encryption" Trap (Info.plist)
+
+Apple halts every single app submission to ask if you are exporting military-grade encryption. Since you are just using standard HTTPS web traffic, you need to add a specific key to your Info.plist file to bypass this manually.
+
+Action: We will need to add ITSAppUsesNonExemptEncryption and set it to false in Xcode.
+
+2. Architecture Target
+
+Action: The report shows UIRequiredDeviceCapabilities is set to armv7. Apple officially killed armv7 years ago. We will need to update this to arm64 in Xcode so modern iPhones can download it.
+
+3. Orientation Lock
+
+Action: The app currently allows both Portrait and Landscape. For a poker utility/game, if your UI is designed for vertical scrolling, rotating the phone will stretch and break your Tailwind CSS layout. We should lock this to Portrait only in Xcode.
+
+4. The Bundle ID
+
+Action: Your ID is com.hgpoker.app. Apple highly discourages ending IDs with .app. Before we make the App Store Connect listing, we should change this to something like com.hgpoker.mobile or com.hgpoker.tracker.
+
+5. Bandwidth Waste
+
+Action: Your index.html is downloading 25 Google Fonts, but you are only using "Inter." On a cellular connection, this delays the app's startup time significantly. We will need to delete that massive font link in Replit.
