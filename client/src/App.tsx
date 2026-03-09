@@ -1,4 +1,6 @@
-import { Switch, Route, useLocation } from "wouter";
+import { Switch, Route, useLocation, Router as WouterRouter } from "wouter";
+import { useHashLocation } from "wouter/use-hash-location";
+import { Capacitor } from "@capacitor/core";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -14,10 +16,17 @@ import SessionView from "@/pages/SessionView";
 import JoinSession from "@/pages/JoinSession";
 import ImportWizard from "@/pages/ImportWizard";
 import { Loader2 } from "lucide-react";
+import { useEffect } from "react";
 
 function PrivateRoute({ component: Component, ...rest }: any) {
   const { isAuthenticated, isLoading } = useAuth();
   const [, setLocation] = useLocation();
+
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      setLocation("/");
+    }
+  }, [isLoading, isAuthenticated, setLocation]);
 
   if (isLoading) {
     return (
@@ -28,7 +37,6 @@ function PrivateRoute({ component: Component, ...rest }: any) {
   }
 
   if (!isAuthenticated) {
-    setLocation("/");
     return null;
   }
 
@@ -58,11 +66,19 @@ function Router() {
   );
 }
 
+const isNative = Capacitor.isNativePlatform();
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Router />
+        {isNative ? (
+          <WouterRouter hook={useHashLocation}>
+            <Router />
+          </WouterRouter>
+        ) : (
+          <Router />
+        )}
         <Toaster />
       </TooltipProvider>
     </QueryClientProvider>
