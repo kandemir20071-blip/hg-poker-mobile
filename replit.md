@@ -31,7 +31,8 @@ Preferred communication style: Simple, everyday language.
 - **Language:** TypeScript (executed via `tsx`).
 - **API Pattern:** RESTful JSON API (`/api/*`) with Zod schemas for validation.
 - **File Upload:** Multer for import functionality.
-- **Session Management:** `express-session` with `connect-pg-simple`.
+- **Session Management:** `express-session` with `connect-pg-simple`. Cookies: `httpOnly`, `secure`, `sameSite: "none"` (required for cross-origin Capacitor native requests).
+- **CORS:** `cors` middleware allows origins `capacitor://localhost`, `http://localhost`, `https://localhost` with credentials. Same-origin web requests pass through unchanged.
 - **Authentication:** Replit OpenID Connect (OIDC) via Passport.js.
 - **Build:** esbuild for server, Vite for client.
 

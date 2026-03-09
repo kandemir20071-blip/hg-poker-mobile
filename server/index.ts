@@ -1,4 +1,5 @@
 import express, { type Request, Response, NextFunction } from "express";
+import cors from "cors";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
@@ -11,6 +12,51 @@ declare module "http" {
     rawBody: unknown;
   }
 }
+
+const allowedOrigins = [
+  "capacitor://localhost",
+  "http://localhost",
+  "https://localhost",
+];
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(null, false);
+      }
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  }),
+);
+
+app.use((req: Request, res: Response, next: NextFunction) => {
+  const safeMethods = ["GET", "HEAD", "OPTIONS"];
+  if (safeMethods.includes(req.method)) return next();
+
+  const origin = req.headers.origin;
+  const host = req.headers.host;
+
+  if (!origin) {
+    if (host && (req.headers.referer?.includes(host) || req.headers["sec-fetch-site"] === "same-origin")) {
+      return next();
+    }
+    return next();
+  }
+
+  if (allowedOrigins.includes(origin)) return next();
+
+  try {
+    const originHost = new URL(origin).host;
+    if (host && originHost === host) return next();
+  } catch {}
+
+  return res.status(403).json({ message: "Forbidden" });
+});
 
 app.use(
   express.json({
