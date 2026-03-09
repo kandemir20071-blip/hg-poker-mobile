@@ -2,12 +2,13 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, buildUrl } from "@shared/routes";
 import type { CreateSessionRequest, JoinSessionRequest, EndSessionRequest } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
+import { getApiBase } from "@/lib/api-base";
 
 export function useSessions() {
   return useQuery({
     queryKey: [api.sessions.list.path],
     queryFn: async () => {
-      const res = await fetch(api.sessions.list.path, { credentials: "include" });
+      const res = await fetch(getApiBase() + api.sessions.list.path, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch sessions");
       return api.sessions.list.responses[200].parse(await res.json());
     },
@@ -18,7 +19,7 @@ export function useActiveGames(enabled: boolean = true) {
   return useQuery({
     queryKey: ['/api/sessions/active-games'],
     queryFn: async () => {
-      const res = await fetch('/api/sessions/active-games', { credentials: "include" });
+      const res = await fetch(getApiBase() + '/api/sessions/active-games', { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch active games");
       return res.json() as Promise<{ session: { id: number; type: string; status: string; leagueId: number }; leagueName: string }[]>;
     },
@@ -31,7 +32,7 @@ export function useSession(id: number) {
   return useQuery({
     queryKey: [api.sessions.get.path, id],
     queryFn: async () => {
-      const url = buildUrl(api.sessions.get.path, { id });
+      const url = getApiBase() + buildUrl(api.sessions.get.path, { id });
       const res = await fetch(url, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch session");
       return api.sessions.get.responses[200].parse(await res.json());
@@ -46,7 +47,7 @@ export function useCreateSession() {
 
   return useMutation({
     mutationFn: async (data: CreateSessionRequest) => {
-      const res = await fetch(api.sessions.create.path, {
+      const res = await fetch(getApiBase() + api.sessions.create.path, {
         method: api.sessions.create.method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
@@ -71,7 +72,7 @@ export function useJoinSession() {
 
   return useMutation({
     mutationFn: async (data: JoinSessionRequest) => {
-      const res = await fetch(api.sessions.join.path, {
+      const res = await fetch(getApiBase() + api.sessions.join.path, {
         method: api.sessions.join.method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
@@ -99,7 +100,7 @@ export function useEndSession() {
 
   return useMutation({
     mutationFn: async ({ id, data, forceUnbalanced, adjustments }: { id: number; data: EndSessionRequest; forceUnbalanced?: boolean; adjustments?: { playerId: number; amount: number }[] }) => {
-      const url = buildUrl(api.sessions.end.path, { id });
+      const url = getApiBase() + buildUrl(api.sessions.end.path, { id });
       const res = await fetch(url, {
         method: api.sessions.end.method,
         headers: { "Content-Type": "application/json" },
@@ -131,7 +132,7 @@ export function useToggleAutoApprove() {
 
   return useMutation({
     mutationFn: async ({ id, enabled }: { id: number; enabled: boolean }) => {
-      const url = buildUrl(api.sessions.toggleAutoApprove.path, { id });
+      const url = getApiBase() + buildUrl(api.sessions.toggleAutoApprove.path, { id });
       const res = await fetch(url, {
         method: api.sessions.toggleAutoApprove.method,
         headers: { "Content-Type": "application/json" },
@@ -159,7 +160,7 @@ export function useDeleteSession() {
 
   return useMutation({
     mutationFn: async (id: number) => {
-      const url = buildUrl('/api/sessions/:id', { id });
+      const url = getApiBase() + buildUrl('/api/sessions/:id', { id });
       const res = await fetch(url, {
         method: 'DELETE',
         credentials: "include",
@@ -189,7 +190,7 @@ export function useBustPlayer() {
 
   return useMutation({
     mutationFn: async ({ sessionId, playerId }: { sessionId: number; playerId: number }) => {
-      const res = await fetch(`/api/sessions/${sessionId}/players/${playerId}/bust`, {
+      const res = await fetch(getApiBase() + `/api/sessions/${sessionId}/players/${playerId}/bust`, {
         method: 'POST',
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -225,7 +226,7 @@ export function useCustomChop() {
 
   return useMutation({
     mutationFn: async ({ sessionId, payouts }: { sessionId: number; payouts: Record<number, number> }) => {
-      const res = await fetch(`/api/sessions/${sessionId}/custom-chop`, {
+      const res = await fetch(getApiBase() + `/api/sessions/${sessionId}/custom-chop`, {
         method: 'PUT',
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -253,7 +254,7 @@ export function useAddPlayerManually() {
 
   return useMutation({
     mutationFn: async ({ sessionId, name }: { sessionId: number; name: string }) => {
-      const url = buildUrl(api.sessions.addPlayer.path, { id: sessionId });
+      const url = getApiBase() + buildUrl(api.sessions.addPlayer.path, { id: sessionId });
       const res = await fetch(url, {
         method: api.sessions.addPlayer.method,
         headers: { "Content-Type": "application/json" },

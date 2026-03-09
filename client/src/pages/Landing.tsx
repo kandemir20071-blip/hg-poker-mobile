@@ -5,6 +5,8 @@ import { useEffect } from "react";
 import { ArrowRight } from "lucide-react";
 import { SuitsRow } from "@/components/ui/Suits";
 import { Logo } from "@/components/ui/Logo";
+import { getApiBase } from "@/lib/api-base";
+import { Capacitor } from "@capacitor/core";
 import heroBg from "@assets/unnamed-2_1771086435607.jpg";
 
 export default function Landing() {
@@ -46,11 +48,22 @@ export default function Landing() {
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
-          <a href="/api/login" data-testid="link-sign-in">
-            <Button size="lg" className="rounded-full px-8 font-semibold text-base glow-emerald" data-testid="button-sign-in">
-              Sign In <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-          </a>
+          <Button
+            size="lg"
+            className="rounded-full px-8 font-semibold text-base glow-emerald"
+            data-testid="button-sign-in"
+            onClick={async () => {
+              const loginUrl = getApiBase() + "/api/login";
+              if (Capacitor.isNativePlatform()) {
+                const { Browser } = await import("@capacitor/browser");
+                await Browser.open({ url: loginUrl });
+              } else {
+                window.location.href = loginUrl;
+              }
+            }}
+          >
+            Sign In <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
         </div>
       </div>
 

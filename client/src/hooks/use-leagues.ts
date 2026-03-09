@@ -1,12 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, buildUrl } from "@shared/routes";
 import { useToast } from "@/hooks/use-toast";
+import { getApiBase } from "@/lib/api-base";
 
 export function useLeagues(enabled: boolean = true) {
   return useQuery({
     queryKey: [api.leagues.list.path],
     queryFn: async () => {
-      const res = await fetch(api.leagues.list.path, { credentials: "include" });
+      const res = await fetch(getApiBase() + api.leagues.list.path, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch leagues");
       return res.json();
     },
@@ -19,7 +20,7 @@ export function useLeague(id: number | null) {
     queryKey: [api.leagues.get.path, id],
     queryFn: async () => {
       if (!id) return null;
-      const url = buildUrl(api.leagues.get.path, { id });
+      const url = getApiBase() + buildUrl(api.leagues.get.path, { id });
       const res = await fetch(url, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch league");
       return res.json();
@@ -34,7 +35,7 @@ export function useCreateLeague() {
 
   return useMutation({
     mutationFn: async (data: { name: string }) => {
-      const res = await fetch(api.leagues.create.path, {
+      const res = await fetch(getApiBase() + api.leagues.create.path, {
         method: 'POST',
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
@@ -62,7 +63,7 @@ export function useJoinLeague() {
 
   return useMutation({
     mutationFn: async (data: { inviteCode: string }) => {
-      const res = await fetch(api.leagues.join.path, {
+      const res = await fetch(getApiBase() + api.leagues.join.path, {
         method: 'POST',
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
@@ -90,7 +91,7 @@ export function useClaimPlayer() {
 
   return useMutation({
     mutationFn: async ({ leagueId, playerId }: { leagueId: number; playerId: number }) => {
-      const url = buildUrl(api.leagues.claimPlayer.path, { id: leagueId });
+      const url = getApiBase() + buildUrl(api.leagues.claimPlayer.path, { id: leagueId });
       const res = await fetch(url, {
         method: 'POST',
         headers: { "Content-Type": "application/json" },
@@ -124,7 +125,7 @@ export function useCreateAndClaimPlayer() {
 
   return useMutation({
     mutationFn: async ({ leagueId, name }: { leagueId: number; name: string }) => {
-      const url = buildUrl(api.leagues.createAndClaimPlayer.path, { id: leagueId });
+      const url = getApiBase() + buildUrl(api.leagues.createAndClaimPlayer.path, { id: leagueId });
       const res = await fetch(url, {
         method: 'POST',
         headers: { "Content-Type": "application/json" },
@@ -157,7 +158,7 @@ export function useLeaguePlayers(leagueId: number | null) {
     queryKey: [api.leagues.players.path, leagueId],
     queryFn: async () => {
       if (!leagueId) return [];
-      const url = buildUrl(api.leagues.players.path, { id: leagueId });
+      const url = getApiBase() + buildUrl(api.leagues.players.path, { id: leagueId });
       const res = await fetch(url, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch league players");
       return res.json();
@@ -171,7 +172,7 @@ export function useLeagueSessions(leagueId: number | null) {
     queryKey: ['/api/leagues/sessions', leagueId],
     queryFn: async () => {
       if (!leagueId) return [];
-      const res = await fetch(`/api/leagues/${leagueId}/sessions`, { credentials: "include" });
+      const res = await fetch(getApiBase() + `/api/leagues/${leagueId}/sessions`, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch league sessions");
       return res.json();
     },
@@ -184,7 +185,7 @@ export function useLeagueStats(leagueId: number | null) {
     queryKey: [api.stats.league.path, leagueId],
     queryFn: async () => {
       if (!leagueId) return null;
-      const url = buildUrl(api.stats.league.path, { leagueId });
+      const url = getApiBase() + buildUrl(api.stats.league.path, { leagueId });
       const res = await fetch(url, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch league stats");
       return res.json();
@@ -197,7 +198,7 @@ export function usePersonalStats() {
   return useQuery({
     queryKey: [api.stats.personal.path],
     queryFn: async () => {
-      const res = await fetch(api.stats.personal.path, { credentials: "include" });
+      const res = await fetch(getApiBase() + api.stats.personal.path, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch personal stats");
       return res.json();
     },
@@ -208,7 +209,7 @@ export function usePlayerRivalries() {
   return useQuery({
     queryKey: [api.stats.playerRivalries.path],
     queryFn: async () => {
-      const res = await fetch(api.stats.playerRivalries.path, { credentials: "include" });
+      const res = await fetch(getApiBase() + api.stats.playerRivalries.path, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch rivalries");
       return res.json() as Promise<{
         formChart: Array<{ date: string; netProfit: number; cumulativeProfit: number; leagueName: string }>;
@@ -225,7 +226,7 @@ export function useUnclaimPlayer() {
 
   return useMutation({
     mutationFn: async ({ leagueId, playerId }: { leagueId: number; playerId: number }) => {
-      const url = buildUrl(api.leagues.unclaimPlayer.path, { id: leagueId });
+      const url = getApiBase() + buildUrl(api.leagues.unclaimPlayer.path, { id: leagueId });
       const res = await fetch(url, {
         method: 'POST',
         headers: { "Content-Type": "application/json" },
@@ -258,7 +259,7 @@ export function useMergePlayers() {
 
   return useMutation({
     mutationFn: async ({ leagueId, sourcePlayerId, targetPlayerId }: { leagueId: number; sourcePlayerId: number; targetPlayerId: number }) => {
-      const url = buildUrl(api.leagues.mergePlayers.path, { id: leagueId });
+      const url = getApiBase() + buildUrl(api.leagues.mergePlayers.path, { id: leagueId });
       const res = await fetch(url, {
         method: 'POST',
         headers: { "Content-Type": "application/json" },
@@ -292,7 +293,7 @@ export function useRenamePlayer() {
 
   return useMutation({
     mutationFn: async ({ leagueId, playerId, newName }: { leagueId: number; playerId: number; newName: string }) => {
-      const url = buildUrl(api.leagues.renamePlayer.path, { id: leagueId });
+      const url = getApiBase() + buildUrl(api.leagues.renamePlayer.path, { id: leagueId });
       const res = await fetch(url, {
         method: 'POST',
         headers: { "Content-Type": "application/json" },
@@ -327,7 +328,7 @@ export function useDeletePlayer() {
 
   return useMutation({
     mutationFn: async ({ leagueId, playerId }: { leagueId: number; playerId: number }) => {
-      const path = api.leagues.deletePlayer.path.replace(':id', String(leagueId));
+      const path = getApiBase() + api.leagues.deletePlayer.path.replace(':id', String(leagueId));
       const res = await fetch(path, {
         method: 'POST',
         headers: { "Content-Type": "application/json" },
@@ -362,7 +363,7 @@ export function useLeaveLeague() {
 
   return useMutation({
     mutationFn: async (leagueId: number) => {
-      const url = buildUrl(api.leagues.leave.path, { id: leagueId });
+      const url = getApiBase() + buildUrl(api.leagues.leave.path, { id: leagueId });
       const res = await fetch(url, {
         method: 'DELETE',
         credentials: "include",
@@ -390,7 +391,7 @@ export function useDeleteLeague() {
 
   return useMutation({
     mutationFn: async (leagueId: number) => {
-      const url = buildUrl(api.leagues.delete.path, { id: leagueId });
+      const url = getApiBase() + buildUrl(api.leagues.delete.path, { id: leagueId });
       const res = await fetch(url, {
         method: 'DELETE',
         credentials: "include",
@@ -420,7 +421,7 @@ export function useKickMember() {
 
   return useMutation({
     mutationFn: async ({ leagueId, userId }: { leagueId: number; userId: string }) => {
-      const url = buildUrl(api.leagues.kickMember.path, { leagueId, userId });
+      const url = getApiBase() + buildUrl(api.leagues.kickMember.path, { leagueId, userId });
       const res = await fetch(url, {
         method: 'DELETE',
         credentials: "include",
@@ -449,7 +450,7 @@ export function useUpdateMemberPermission() {
 
   return useMutation({
     mutationFn: async ({ leagueId, userId, canHostSessions }: { leagueId: number; userId: string; canHostSessions: boolean }) => {
-      const res = await fetch(`/api/leagues/${leagueId}/members/${userId}/permissions`, {
+      const res = await fetch(getApiBase() + `/api/leagues/${leagueId}/members/${userId}/permissions`, {
         method: 'PATCH',
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ canHostSessions }),
@@ -477,7 +478,7 @@ export function useMigrateToLeague() {
 
   return useMutation({
     mutationFn: async (leagueId: number) => {
-      const res = await fetch('/api/migrate-to-league', {
+      const res = await fetch(getApiBase() + '/api/migrate-to-league', {
         method: 'POST',
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ leagueId }),

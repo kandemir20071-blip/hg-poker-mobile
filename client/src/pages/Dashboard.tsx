@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { getApiBase } from "@/lib/api-base";
 import { useAuth } from "@/hooks/use-auth";
 import { useStats } from "@/hooks/use-stats";
 import { useMediaQuery } from "@/hooks/use-media-query";
@@ -60,7 +61,7 @@ export default function Dashboard() {
     const sessionId = params.get("session_id");
     if (success === "true" && sessionId) {
       window.history.replaceState({}, "", "/dashboard");
-      fetch(`/api/verify-session?session_id=${sessionId}`, { credentials: "include" })
+      fetch(getApiBase() + `/api/verify-session?session_id=${sessionId}`, { credentials: "include" })
         .then((res) => res.json())
         .then((data) => {
           if (data.success) {

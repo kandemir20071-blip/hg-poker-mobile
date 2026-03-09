@@ -1,10 +1,10 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace "com.hgpoker.app"
+    namespace "com.hgpoker.tracker"
     compileSdk rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.hgpoker.app"
+        applicationId "com.hgpoker.tracker"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

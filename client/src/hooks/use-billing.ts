@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Capacitor } from "@capacitor/core";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
+import { getApiBase } from "@/lib/api-base";
 
 const WEB_PRICE = "$5.00/mo";
 const NATIVE_PRICE = "$6.99/mo";
@@ -37,7 +38,7 @@ export function useBilling() {
         const isPro = result.customerInfo.entitlements.active["pro"] !== undefined;
 
         if (isPro) {
-          const res = await fetch("/api/revenuecat-activate", {
+          const res = await fetch(getApiBase() + "/api/revenuecat-activate", {
             method: "POST",
             credentials: "include",
             headers: { "Content-Type": "application/json" },
@@ -69,7 +70,7 @@ export function useBilling() {
       }
     } else {
       try {
-        const res = await fetch("/api/create-checkout-session", {
+        const res = await fetch(getApiBase() + "/api/create-checkout-session", {
           method: "POST",
           credentials: "include",
           headers: { "Content-Type": "application/json" },

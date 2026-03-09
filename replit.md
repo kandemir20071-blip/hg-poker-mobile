@@ -12,17 +12,19 @@ Preferred communication style: Simple, everyday language.
 
 ### Frontend
 - **Framework:** React with TypeScript (client-side SPA)
-- **Routing:** Wouter
+- **Routing:** Wouter (hash-based routing on native via `useHashLocation`, History API on web)
 - **Styling:** Tailwind CSS with a dark "casino/sleek" theme, complemented by shadcn/ui (New York style) built on Radix UI.
 - **Data Fetching:** TanStack React Query for server state management.
 - **Charts:** Recharts for data visualization.
 - **QR Codes:** qrcode.react for session join codes.
-- **Fonts:** Cinzel (headings) and Inter (body).
+- **Fonts:** Inter (body). Loaded via CSS `@import` in `index.css`.
 - **Mobile UX:** ResponsiveModal pattern (Drawer on mobile <768px, Dialog on desktop), bottom navigation with safe-area padding (top + bottom via `pt-safe`/`pb-safe` CSS classes using `env(safe-area-inset-*)`), native scrolling, 48px touch targets, `active:scale-95`/`active:scale-[0.98]` touch feedback on all buttons and nav items, `overscroll-behavior-y: none` to prevent pull-to-refresh bounce.
 - **PWA:** `manifest.json` with `display: standalone`, `theme_color: #0f1729`, Apple meta tags (`apple-mobile-web-app-capable`, `black-translucent` status bar). Ready for Capacitor wrapping.
 - **Responsive Components:** `ResponsiveModal` (`@/components/ui/responsive-modal`), `useMediaQuery` (`@/hooks/use-media-query`).
 - **Build Tool:** Vite.
-- **Native Wrapper:** Capacitor (`capacitor.config.ts`), bundle ID `com.hgpoker.app`, web dir `dist/public`. Native projects: `ios/` (Xcode) and `android/` (Gradle). Build workflow: `npm run build` → `npx cap sync` → open in Xcode/Android Studio.
+- **Native Wrapper:** Capacitor (`capacitor.config.ts`), bundle ID `com.hgpoker.tracker`, web dir `dist/public`. Native projects: `ios/` (Xcode) and `android/` (Gradle). Build workflow: `npm run build` → `npx cap sync` → open in Xcode/Android Studio.
+- **Native API Routing:** `client/src/lib/api-base.ts` exports `getApiBase()` — returns `VITE_API_BASE_URL` on native (Capacitor), empty string on web. All `fetch()` calls and auth redirects prepend this base URL.
+- **Native OAuth:** On native, login/logout use `@capacitor/browser` plugin to open OAuth in a secure in-app browser (Apple requirement). On web, standard `window.location.href` redirects.
 
 ### Backend
 - **Runtime:** Node.js with Express.
@@ -65,6 +67,7 @@ Preferred communication style: Simple, everyday language.
 - `REPL_ID`
 - `STRIPE_SECRET_KEY`
 - `STRIPE_PRICE_ID_PRO`
+- `VITE_API_BASE_URL` (production server URL for native Capacitor builds, e.g. `https://your-app.replit.app`)
 
 ### Third-Party Services
 - **Replit Auth (OIDC):** User authentication.
@@ -84,4 +87,4 @@ Preferred communication style: Simple, everyday language.
 - `multer`
 - `shadcn/ui` (Radix UI)
 - `stripe`
-- `@capacitor/core`, `@revenuecat/purchases-capacitor`
+- `@capacitor/core`, `@capacitor/browser`, `@revenuecat/purchases-capacitor`

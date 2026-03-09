@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from "@capacitor/cli";
 
 const config: CapacitorConfig = {
-  appId: "com.hgpoker.app",
+  appId: "com.hgpoker.tracker",
   appName: "HG Poker",
   webDir: "dist/public",
   server: {

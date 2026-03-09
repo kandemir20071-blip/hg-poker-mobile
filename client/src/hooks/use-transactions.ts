@@ -3,6 +3,7 @@ import { api, buildUrl } from "@shared/routes";
 import type { AddTransactionRequest } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { getApiBase } from "@/lib/api-base";
 
 export function useAddTransaction() {
   const queryClient = useQueryClient();
@@ -10,7 +11,7 @@ export function useAddTransaction() {
 
   return useMutation({
     mutationFn: async ({ sessionId, data }: { sessionId: number; data: AddTransactionRequest }) => {
-      const url = buildUrl(api.transactions.create.path, { sessionId });
+      const url = getApiBase() + buildUrl(api.transactions.create.path, { sessionId });
       const res = await fetch(url, {
         method: api.transactions.create.method,
         headers: { "Content-Type": "application/json" },
@@ -80,7 +81,7 @@ export function useUpdateTransactionStatus() {
 
   return useMutation({
     mutationFn: async ({ id, sessionId, data }: { id: number; sessionId: number; data: { status: 'approved' | 'rejected' } }) => {
-      const url = buildUrl(api.transactions.updateStatus.path, { id });
+      const url = getApiBase() + buildUrl(api.transactions.updateStatus.path, { id });
       const res = await fetch(url, {
         method: api.transactions.updateStatus.method,
         headers: { "Content-Type": "application/json" },
@@ -103,7 +104,7 @@ export function useUpdateTransaction() {
 
   return useMutation({
     mutationFn: async ({ id, sessionId, data }: { id: number; sessionId: number; data: { amount?: number; type?: 'buy_in' | 'cash_out' } }) => {
-      const url = buildUrl(api.transactions.update.path, { id });
+      const url = getApiBase() + buildUrl(api.transactions.update.path, { id });
       const res = await fetch(url, {
         method: api.transactions.update.method,
         headers: { "Content-Type": "application/json" },
@@ -129,7 +130,7 @@ export function useDeleteTransaction() {
 
   return useMutation({
     mutationFn: async ({ id, sessionId }: { id: number; sessionId: number }) => {
-      const url = buildUrl(api.transactions.delete.path, { id });
+      const url = getApiBase() + buildUrl(api.transactions.delete.path, { id });
       const res = await fetch(url, {
         method: api.transactions.delete.method,
         credentials: "include",
@@ -153,7 +154,7 @@ export function useCashOutPlayer() {
 
   return useMutation({
     mutationFn: async ({ sessionId, playerId, amount }: { sessionId: number; playerId: number; amount: number }) => {
-      const res = await fetch(`/api/sessions/${sessionId}/players/${playerId}/cashout`, {
+      const res = await fetch(getApiBase() + `/api/sessions/${sessionId}/players/${playerId}/cashout`, {
         method: 'POST',
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ amount }),

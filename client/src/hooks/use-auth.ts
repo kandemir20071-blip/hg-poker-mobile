@@ -1,8 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { User } from "@shared/models/auth";
+import { getApiBase } from "@/lib/api-base";
+import { Capacitor } from "@capacitor/core";
 
 async function fetchUser(): Promise<User | null> {
-  const response = await fetch("/api/auth/user", {
+  const response = await fetch(getApiBase() + "/api/auth/user", {
     credentials: "include",
   });
 
@@ -18,11 +20,16 @@ async function fetchUser(): Promise<User | null> {
 }
 
 async function logout(): Promise<void> {
-  window.location.href = "/api/logout";
+  if (Capacitor.isNativePlatform()) {
+    const { Browser } = await import("@capacitor/browser");
+    await Browser.open({ url: getApiBase() + "/api/logout" });
+  } else {
+    window.location.href = "/api/logout";
+  }
 }
 
 async function patchDisplayName(displayName: string): Promise<User> {
-  const response = await fetch("/api/auth/user/display-name", {
+  const response = await fetch(getApiBase() + "/api/auth/user/display-name", {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     credentials: "include",

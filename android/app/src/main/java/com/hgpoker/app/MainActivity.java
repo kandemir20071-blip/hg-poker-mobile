@@ -1,4 +1,4 @@
-package com.hgpoker.app;
+package com.hgpoker.tracker;
 
 import com.getcapacitor.BridgeActivity;
 

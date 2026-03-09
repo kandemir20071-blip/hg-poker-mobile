@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useLocation, useSearch } from "wouter";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { getApiBase } from "@/lib/api-base";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -64,8 +65,8 @@ export default function ImportWizard() {
     try {
       const lid = leagueIdOverride !== undefined ? leagueIdOverride : selectedLeagueId;
       const url = lid
-        ? `/api/import/history?leagueId=${lid}`
-        : "/api/import/history";
+        ? getApiBase() + `/api/import/history?leagueId=${lid}`
+        : getApiBase() + "/api/import/history";
       const res = await fetch(url, { credentials: "include" });
       if (res.ok) {
         const data = await res.json();
@@ -88,7 +89,7 @@ export default function ImportWizard() {
     mutationFn: async (file: File) => {
       const formData = new FormData();
       formData.append("file", file);
-      const res = await fetch("/api/import/upload", {
+      const res = await fetch(getApiBase() + "/api/import/upload", {
         method: "POST",
         body: formData,
         credentials: "include",
@@ -129,7 +130,7 @@ export default function ImportWizard() {
   const saveMutation = useMutation({
     mutationFn: async (importRows: ImportRow[]) => {
       if (!selectedLeagueId) throw new Error("Please select a league first");
-      const res = await fetch("/api/import/save", {
+      const res = await fetch(getApiBase() + "/api/import/save", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ rows: importRows, leagueId: selectedLeagueId }),
