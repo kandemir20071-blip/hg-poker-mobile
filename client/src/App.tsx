@@ -8,7 +8,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/use-auth";
 import NotFound from "@/pages/not-found";
 
-// Components & Pages
 import Shell from "@/components/layout/Shell";
 import Landing from "@/pages/Landing";
 import Dashboard from "@/pages/Dashboard";
@@ -68,10 +67,37 @@ function Router() {
 
 const isNative = Capacitor.isNativePlatform();
 
+function NativeDeepLinkHandler() {
+  useEffect(() => {
+    if (!isNative) return;
+
+    let cleanup: (() => void) | undefined;
+
+    (async () => {
+      const { App: CapApp } = await import("@capacitor/app");
+      const { Browser } = await import("@capacitor/browser");
+
+      const handle = await CapApp.addListener("appUrlOpen", async (event) => {
+        if (event.url.startsWith("hgpoker://auth/callback")) {
+          try { await Browser.close(); } catch {}
+          queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+        }
+      });
+
+      cleanup = () => handle.remove();
+    })();
+
+    return () => { cleanup?.(); };
+  }, []);
+
+  return null;
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
+        <NativeDeepLinkHandler />
         {isNative ? (
           <WouterRouter hook={useHashLocation}>
             <Router />

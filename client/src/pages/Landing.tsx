@@ -53,12 +53,12 @@ export default function Landing() {
             className="rounded-full px-8 font-semibold text-base glow-emerald"
             data-testid="button-sign-in"
             onClick={async () => {
-              const loginUrl = getApiBase() + "/api/login";
               if (Capacitor.isNativePlatform()) {
+                const loginUrl = getApiBase() + "/api/login?native=true";
                 const { Browser } = await import("@capacitor/browser");
                 await Browser.open({ url: loginUrl });
               } else {
-                window.location.href = loginUrl;
+                window.location.href = "/api/login";
               }
             }}
           >

@@ -104,18 +104,43 @@ export async function setupAuth(app: Express) {
   passport.deserializeUser((user: Express.User, cb) => cb(null, user));
 
   app.get("/api/login", (req, res, next) => {
-    ensureStrategy(req.hostname);
-    passport.authenticate(`replitauth:${req.hostname}`, {
-      prompt: "login consent",
-      scope: ["openid", "email", "profile", "offline_access"],
-    })(req, res, next);
+    const isNative = req.query.native === "true";
+    if (isNative) {
+      (req.session as any).nativeLogin = true;
+      req.session.save(() => {
+        ensureStrategy(req.hostname);
+        passport.authenticate(`replitauth:${req.hostname}`, {
+          prompt: "login consent",
+          scope: ["openid", "email", "profile", "offline_access"],
+        })(req, res, next);
+      });
+    } else {
+      ensureStrategy(req.hostname);
+      passport.authenticate(`replitauth:${req.hostname}`, {
+        prompt: "login consent",
+        scope: ["openid", "email", "profile", "offline_access"],
+      })(req, res, next);
+    }
   });
 
   app.get("/api/callback", (req, res, next) => {
     ensureStrategy(req.hostname);
-    passport.authenticate(`replitauth:${req.hostname}`, {
-      successReturnToOrRedirect: "/",
-      failureRedirect: "/api/login",
+    const isNative = (req.session as any).nativeLogin === true;
+    passport.authenticate(`replitauth:${req.hostname}`, (err: any, user: any) => {
+      if (err || !user) {
+        delete (req.session as any).nativeLogin;
+        return res.redirect("/api/login");
+      }
+      req.logIn(user, (loginErr) => {
+        delete (req.session as any).nativeLogin;
+        if (loginErr) {
+          return res.redirect("/api/login");
+        }
+        if (isNative) {
+          return res.redirect("hgpoker://auth/callback");
+        }
+        return res.redirect("/");
+      });
     })(req, res, next);
   });
 

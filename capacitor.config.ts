@@ -7,6 +7,11 @@ const config: CapacitorConfig = {
   server: {
     androidScheme: "https",
   },
+  plugins: {
+    App: {
+      url: "hgpoker://",
+    },
+  },
 };
 
 export default config;

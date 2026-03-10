@@ -16,7 +16,7 @@ export function redirectToLogin(toast?: (options: { title: string; description: 
   setTimeout(async () => {
     if (Capacitor.isNativePlatform()) {
       const { Browser } = await import("@capacitor/browser");
-      await Browser.open({ url: getApiBase() + "/api/login" });
+      await Browser.open({ url: getApiBase() + "/api/login?native=true" });
     } else {
       window.location.href = "/api/login";
     }

@@ -58,6 +58,7 @@ Preferred communication style: Simple, everyday language.
 - Passport.js strategy with PostgreSQL session persistence.
 - Routes: `/api/login`, `/api/logout`, `/api/auth/user`.
 - Session secret via `SESSION_SECRET`, 7-day TTL with HTTP-only secure cookies.
+- **Native OAuth Flow:** Login from native sends `?native=true`; backend stores `nativeLogin` in session. After OIDC callback, native logins redirect to `hgpoker://auth/callback` custom URL scheme. `NativeDeepLinkHandler` in `App.tsx` catches the deep link via `@capacitor/app`'s `appUrlOpen`, calls `Browser.close()`, and invalidates the auth query to refresh user state.
 
 ## External Dependencies
 
@@ -88,4 +89,4 @@ Preferred communication style: Simple, everyday language.
 - `multer`
 - `shadcn/ui` (Radix UI)
 - `stripe`
-- `@capacitor/core`, `@capacitor/browser`, `@revenuecat/purchases-capacitor`
+- `@capacitor/core`, `@capacitor/app`, `@capacitor/browser`, `@revenuecat/purchases-capacitor`
