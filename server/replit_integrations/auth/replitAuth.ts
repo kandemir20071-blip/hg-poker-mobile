@@ -106,33 +106,34 @@ export async function setupAuth(app: Express) {
   app.get("/api/login", (req, res, next) => {
     const isNative = req.query.native === "true";
     if (isNative) {
-      (req.session as any).nativeLogin = true;
-      req.session.save(() => {
-        ensureStrategy(req.hostname);
-        passport.authenticate(`replitauth:${req.hostname}`, {
-          prompt: "login consent",
-          scope: ["openid", "email", "profile", "offline_access"],
-        })(req, res, next);
+      res.cookie("__native_login", "1", {
+        httpOnly: true,
+        secure: true,
+        sameSite: "none",
+        maxAge: 5 * 60 * 1000,
+        path: "/",
       });
-    } else {
-      ensureStrategy(req.hostname);
-      passport.authenticate(`replitauth:${req.hostname}`, {
-        prompt: "login consent",
-        scope: ["openid", "email", "profile", "offline_access"],
-      })(req, res, next);
     }
+    ensureStrategy(req.hostname);
+    passport.authenticate(`replitauth:${req.hostname}`, {
+      prompt: "login consent",
+      scope: ["openid", "email", "profile", "offline_access"],
+    })(req, res, next);
   });
 
   app.get("/api/callback", (req, res, next) => {
     ensureStrategy(req.hostname);
-    const isNative = (req.session as any).nativeLogin === true;
+    const cookieHeader = req.headers.cookie || "";
+    const isNative = cookieHeader.split(";").some(
+      (c) => c.trim().startsWith("__native_login=")
+    );
     passport.authenticate(`replitauth:${req.hostname}`, (err: any, user: any) => {
       if (err || !user) {
-        delete (req.session as any).nativeLogin;
+        res.clearCookie("__native_login", { path: "/" });
         return res.redirect("/api/login");
       }
       req.logIn(user, (loginErr) => {
-        delete (req.session as any).nativeLogin;
+        res.clearCookie("__native_login", { path: "/" });
         if (loginErr) {
           return res.redirect("/api/login");
         }
