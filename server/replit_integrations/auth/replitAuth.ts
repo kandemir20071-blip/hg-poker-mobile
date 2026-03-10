@@ -79,25 +79,25 @@ export async function setupAuth(app: Express) {
     verified(null, user);
   };
 
-  // Keep track of registered strategies
   const registeredStrategies = new Set<string>();
 
-  // Helper function to ensure strategy exists for a domain
-  const ensureStrategy = (domain: string) => {
-    const strategyName = `replitauth:${domain}`;
+  const ensureStrategy = (domain: string, variant: "web" | "native") => {
+    const strategyName = `replitauth:${domain}:${variant}`;
     if (!registeredStrategies.has(strategyName)) {
+      const callbackPath = variant === "native" ? "/api/callback-native" : "/api/callback";
       const strategy = new Strategy(
         {
           name: strategyName,
           config,
           scope: "openid email profile offline_access",
-          callbackURL: `https://${domain}/api/callback`,
+          callbackURL: `https://${domain}${callbackPath}`,
         },
         verify
       );
       passport.use(strategy);
       registeredStrategies.add(strategyName);
     }
+    return `replitauth:${domain}:${variant}`;
   };
 
   passport.serializeUser((user: Express.User, cb) => cb(null, user));
@@ -105,42 +105,33 @@ export async function setupAuth(app: Express) {
 
   app.get("/api/login", (req, res, next) => {
     const isNative = req.query.native === "true";
-    if (isNative) {
-      res.cookie("__native_login", "1", {
-        httpOnly: true,
-        secure: true,
-        sameSite: "none",
-        maxAge: 5 * 60 * 1000,
-        path: "/",
-      });
-    }
-    ensureStrategy(req.hostname);
-    passport.authenticate(`replitauth:${req.hostname}`, {
+    const variant = isNative ? "native" : "web";
+    const strategyName = ensureStrategy(req.hostname, variant);
+    passport.authenticate(strategyName, {
       prompt: "login consent",
       scope: ["openid", "email", "profile", "offline_access"],
     })(req, res, next);
   });
 
   app.get("/api/callback", (req, res, next) => {
-    ensureStrategy(req.hostname);
-    const cookieHeader = req.headers.cookie || "";
-    const isNative = cookieHeader.split(";").some(
-      (c) => c.trim().startsWith("__native_login=")
-    );
-    passport.authenticate(`replitauth:${req.hostname}`, (err: any, user: any) => {
+    const strategyName = ensureStrategy(req.hostname, "web");
+    passport.authenticate(strategyName, {
+      successReturnToOrRedirect: "/",
+      failureRedirect: "/api/login",
+    })(req, res, next);
+  });
+
+  app.get("/api/callback-native", (req, res, next) => {
+    const strategyName = ensureStrategy(req.hostname, "native");
+    passport.authenticate(strategyName, (err: any, user: any) => {
       if (err || !user) {
-        res.clearCookie("__native_login", { path: "/" });
         return res.redirect("/api/login");
       }
       req.logIn(user, (loginErr) => {
-        res.clearCookie("__native_login", { path: "/" });
         if (loginErr) {
           return res.redirect("/api/login");
         }
-        if (isNative) {
-          return res.redirect("hgpoker://auth/callback");
-        }
-        return res.redirect("/");
+        return res.redirect("hgpoker://auth/callback");
       });
     })(req, res, next);
   });
