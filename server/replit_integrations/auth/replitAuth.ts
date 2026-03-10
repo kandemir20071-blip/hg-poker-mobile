@@ -150,7 +150,18 @@ export async function setupAuth(app: Express) {
           return res.redirect("/api/login");
         }
         if (isNative) {
-          return res.redirect("hgpoker://auth/callback");
+          return res.send(`<!DOCTYPE html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Redirecting...</title>
+<style>body{background:#0f1729;color:#fff;font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;text-align:center}
+.c{padding:2rem}h1{font-size:1.5rem;margin-bottom:1rem}a{display:inline-block;margin-top:1.5rem;padding:0.75rem 2rem;background:#22c55e;color:#000;font-weight:600;border-radius:9999px;text-decoration:none}</style>
+</head><body><div class="c">
+<h1>Login Successful</h1>
+<p>Returning to HG Poker...</p>
+<a href="hgpoker://auth/callback">Tap here if not redirected</a>
+</div>
+<script>window.location.href="hgpoker://auth/callback";</script>
+</body></html>`);
         }
         return res.redirect("/");
       });
