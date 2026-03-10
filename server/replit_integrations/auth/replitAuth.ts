@@ -81,32 +81,54 @@ export async function setupAuth(app: Express) {
 
   const registeredStrategies = new Set<string>();
 
-  const ensureStrategy = (domain: string, variant: "web" | "native") => {
-    const strategyName = `replitauth:${domain}:${variant}`;
+  const ensureStrategy = (domain: string) => {
+    const strategyName = `replitauth:${domain}`;
     if (!registeredStrategies.has(strategyName)) {
-      const callbackPath = variant === "native" ? "/api/callback-native" : "/api/callback";
       const strategy = new Strategy(
         {
           name: strategyName,
           config,
           scope: "openid email profile offline_access",
-          callbackURL: `https://${domain}${callbackPath}`,
+          callbackURL: `https://${domain}/api/callback`,
         },
         verify
       );
       passport.use(strategy);
       registeredStrategies.add(strategyName);
     }
-    return `replitauth:${domain}:${variant}`;
+    return strategyName;
   };
+
+  const nativeLoginStates = new Map<string, number>();
+  setInterval(() => {
+    const now = Date.now();
+    for (const [key, ts] of nativeLoginStates) {
+      if (now - ts > 10 * 60 * 1000) nativeLoginStates.delete(key);
+    }
+  }, 60 * 1000);
 
   passport.serializeUser((user: Express.User, cb) => cb(null, user));
   passport.deserializeUser((user: Express.User, cb) => cb(null, user));
 
   app.get("/api/login", (req, res, next) => {
     const isNative = req.query.native === "true";
-    const variant = isNative ? "native" : "web";
-    const strategyName = ensureStrategy(req.hostname, variant);
+    const strategyName = ensureStrategy(req.hostname);
+
+    if (isNative) {
+      const originalRedirect = res.redirect;
+      (res as any).redirect = function (...args: any[]) {
+        const url: string = typeof args[0] === "number" ? args[1] : args[0];
+        try {
+          const parsed = new URL(url);
+          const state = parsed.searchParams.get("state");
+          if (state) {
+            nativeLoginStates.set(state, Date.now());
+          }
+        } catch {}
+        return originalRedirect.apply(res, args as any);
+      };
+    }
+
     passport.authenticate(strategyName, {
       prompt: "login consent",
       scope: ["openid", "email", "profile", "offline_access"],
@@ -114,15 +136,11 @@ export async function setupAuth(app: Express) {
   });
 
   app.get("/api/callback", (req, res, next) => {
-    const strategyName = ensureStrategy(req.hostname, "web");
-    passport.authenticate(strategyName, {
-      successReturnToOrRedirect: "/",
-      failureRedirect: "/api/login",
-    })(req, res, next);
-  });
+    const state = req.query.state as string | undefined;
+    const isNative = !!(state && nativeLoginStates.has(state));
+    if (state) nativeLoginStates.delete(state);
 
-  app.get("/api/callback-native", (req, res, next) => {
-    const strategyName = ensureStrategy(req.hostname, "native");
+    const strategyName = ensureStrategy(req.hostname);
     passport.authenticate(strategyName, (err: any, user: any) => {
       if (err || !user) {
         return res.redirect("/api/login");
@@ -131,7 +149,10 @@ export async function setupAuth(app: Express) {
         if (loginErr) {
           return res.redirect("/api/login");
         }
-        return res.redirect("hgpoker://auth/callback");
+        if (isNative) {
+          return res.redirect("hgpoker://auth/callback");
+        }
+        return res.redirect("/");
       });
     })(req, res, next);
   });
