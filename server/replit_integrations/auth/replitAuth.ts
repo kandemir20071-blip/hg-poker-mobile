@@ -99,36 +99,11 @@ export async function setupAuth(app: Express) {
     return strategyName;
   };
 
-  const nativeLoginStates = new Map<string, number>();
-  setInterval(() => {
-    const now = Date.now();
-    for (const [key, ts] of nativeLoginStates) {
-      if (now - ts > 10 * 60 * 1000) nativeLoginStates.delete(key);
-    }
-  }, 60 * 1000);
-
   passport.serializeUser((user: Express.User, cb) => cb(null, user));
   passport.deserializeUser((user: Express.User, cb) => cb(null, user));
 
   app.get("/api/login", (req, res, next) => {
-    const isNative = req.query.native === "true";
     const strategyName = ensureStrategy(req.hostname);
-
-    if (isNative) {
-      const originalRedirect = res.redirect;
-      (res as any).redirect = function (...args: any[]) {
-        const url: string = typeof args[0] === "number" ? args[1] : args[0];
-        try {
-          const parsed = new URL(url);
-          const state = parsed.searchParams.get("state");
-          if (state) {
-            nativeLoginStates.set(state, Date.now());
-          }
-        } catch {}
-        return originalRedirect.apply(res, args as any);
-      };
-    }
-
     passport.authenticate(strategyName, {
       prompt: "login consent",
       scope: ["openid", "email", "profile", "offline_access"],
@@ -136,10 +111,6 @@ export async function setupAuth(app: Express) {
   });
 
   app.get("/api/callback", (req, res, next) => {
-    const state = req.query.state as string | undefined;
-    const isNative = !!(state && nativeLoginStates.has(state));
-    if (state) nativeLoginStates.delete(state);
-
     const strategyName = ensureStrategy(req.hostname);
     passport.authenticate(strategyName, (err: any, user: any) => {
       if (err || !user) {
@@ -149,21 +120,25 @@ export async function setupAuth(app: Express) {
         if (loginErr) {
           return res.redirect("/api/login");
         }
-        if (isNative) {
-          return res.send(`<!DOCTYPE html>
+        return res.send(`<!DOCTYPE html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Redirecting...</title>
 <style>body{background:#0f1729;color:#fff;font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;text-align:center}
-.c{padding:2rem}h1{font-size:1.5rem;margin-bottom:1rem}a{display:inline-block;margin-top:1.5rem;padding:0.75rem 2rem;background:#22c55e;color:#000;font-weight:600;border-radius:9999px;text-decoration:none}</style>
+.c{padding:2rem}h1{font-size:1.5rem;margin-bottom:1rem}a{display:none;margin-top:1.5rem;padding:0.75rem 2rem;background:#22c55e;color:#000;font-weight:600;border-radius:9999px;text-decoration:none}</style>
 </head><body><div class="c">
 <h1>Login Successful</h1>
-<p>Returning to HG Poker...</p>
-<a href="hgpoker://auth/callback">Tap here if not redirected</a>
+<p id="msg">Returning to HG Poker...</p>
+<a id="fallback" href="hgpoker://auth/callback">Tap here to return to the app</a>
 </div>
-<script>window.location.href="hgpoker://auth/callback";</script>
+<script>
+window.location.href="hgpoker://auth/callback";
+setTimeout(function(){
+  document.getElementById("fallback").style.display="inline-block";
+  document.getElementById("msg").textContent="Redirecting to dashboard...";
+  window.location.href="/";
+},1500);
+</script>
 </body></html>`);
-        }
-        return res.redirect("/");
       });
     })(req, res, next);
   });

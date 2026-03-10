@@ -54,9 +54,8 @@ export default function Landing() {
             data-testid="button-sign-in"
             onClick={async () => {
               if (Capacitor.isNativePlatform()) {
-                const loginUrl = getApiBase() + "/api/login?native=true";
                 const { Browser } = await import("@capacitor/browser");
-                await Browser.open({ url: loginUrl });
+                await Browser.open({ url: getApiBase() + "/api/login" });
               } else {
                 window.location.href = "/api/login";
               }
